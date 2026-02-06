@@ -82,7 +82,11 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
     if (!media) return;
 
     if (isActive) {
-      media.play().catch(err => {
+      const playPromise = media.play();
+      playPromise?.catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        const name = err && typeof err === "object" && "name" in err ? String((err as any).name) : "";
+        if (name === "AbortError" || message.includes("interrupted by a call to pause")) return;
         console.warn("Playback failed:", err);
         setIsPlaying(false);
       });
@@ -98,7 +102,9 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
     if (!media) return;
 
     if (media.paused) {
-      media.play();
+      media.play().catch(() => {
+        setIsPlaying(false);
+      });
       setIsPlaying(true);
     } else {
       media.pause();
