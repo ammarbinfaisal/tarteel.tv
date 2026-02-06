@@ -7,7 +7,7 @@ export type ClipVariant = {
   url?: string;
 };
 
-export type ClipTranslation = "saheeh-international" | "khan-al-hilali";
+export type ClipTranslation = "saheeh-international" | "khan-al-hilali" | "abu-iyaad" | (string & {});
 
 export type Clip = {
   id: string;

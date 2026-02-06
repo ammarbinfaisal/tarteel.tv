@@ -28,6 +28,7 @@ export function isHls(urlOrKey: string | null | undefined) {
 export const translationMap: Record<string, string> = {
   "saheeh-international": "Saheeh International",
   "khan-al-hilali": "Khan & al-Hilali",
+  "abu-iyaad": "Abu Iyaad",
 };
 
 export function formatTranslation(slug: string | undefined): string {

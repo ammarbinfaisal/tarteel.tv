@@ -24,7 +24,7 @@ export const searchParamsParsers = {
   end: parseAsPositiveInt,
   reciter: parseAsString,
   riwayah: parseAsString,
-  translation: parseAsStringLiteral(["saheeh-international", "khan-al-hilali"] as const),
+  translation: parseAsString,
   view: parseAsStringLiteral(["grid", "reel"] as const).withDefault("grid"),
   clipId: parseAsString,
 } as const;
