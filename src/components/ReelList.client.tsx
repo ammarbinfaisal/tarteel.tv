@@ -29,6 +29,7 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [view] = useQueryState("view", searchParamsParsers.view);
   const [clipId, setClipId] = useQueryState("clipId", searchParamsParsers.clipId);
 
   useEffect(() => {
@@ -61,11 +62,12 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
   }, [clips]);
 
   useEffect(() => {
+    if (view !== "reel") return;
     const activeId = clips[activeIndex]?.id;
     if (!activeId) return;
     if (activeId === clipId) return;
     setClipId(activeId, { history: "replace", shallow: true });
-  }, [activeIndex, clipId, clips, setClipId]);
+  }, [activeIndex, clipId, clips, setClipId, view]);
 
   useEffect(() => {
     setActiveIndex(0);

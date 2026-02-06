@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { ViewModeToggle } from "./ViewModeToggle";
 import { Suspense } from "react";
-import { useQueryState } from "nuqs";
+import { useQueryStates } from "nuqs";
 import { cn } from "@/lib/utils";
-import { searchParamsParsers } from "@/lib/searchparams";
+import { searchParamsParsers, serialize } from "@/lib/searchparams";
 
 export default function Header() {
-  const [view] = useQueryState("view", searchParamsParsers.view);
-  const isReelView = view === "reel";
+  const [query] = useQueryStates(searchParamsParsers);
+  const isReelView = query.view === "reel";
+  const homeHref = serialize("/", { ...query, view: "grid", clipId: null });
 
   return (
     <header className={cn(
@@ -19,7 +20,7 @@ export default function Header() {
         : "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     )}>
       <div className="container flex h-14 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
+        <Link href={homeHref as any} className="flex items-center gap-2 font-bold text-lg tracking-tight">
           tarteel.tv
         </Link>
         <div className="flex items-center gap-4">
