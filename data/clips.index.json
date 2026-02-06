@@ -1,7 +1,7 @@
 {
   "version": 3,
-  "generatedAt": "2026-02-06T20:16:28.175Z",
-  "clipCount": 50,
+  "generatedAt": "2026-02-06T20:23:17.186Z",
+  "clipCount": 49,
   "clipsById": {
     "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -674,28 +674,6 @@
         }
       ]
     },
-    "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali": {
-      "id": "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali",
-      "surah": 16,
-      "ayahStart": 112,
-      "ayahEnd": 112,
-      "reciterSlug": "muhammad-ayub",
-      "reciterName": "Muhammad Ayub",
-      "riwayah": "hafs-an-asim",
-      "translation": "khan-al-hilali",
-      "variants": [
-        {
-          "quality": "high",
-          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s16/a112-112/high.mp4",
-          "md5": "660d3fd678368d52bd45f70c1c8059c6"
-        },
-        {
-          "quality": "hls",
-          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s16/a112-112/hls/master.m3u8",
-          "md5": "d4e2cb9932b9ea2acf0b97d7a24d54d0"
-        }
-      ]
-    },
     "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali": {
       "id": "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
       "surah": 22,
@@ -1172,8 +1150,7 @@
         "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali"
       ],
       "16": [
-        "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali",
-        "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali"
+        "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali"
       ],
       "22": [
         "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
@@ -1243,8 +1220,7 @@
         "s3_a169-171__muhammad-ayub__hafs-an-asim__khan-al-hilali",
         "s3_a185-185__muhammad-ayub__hafs-an-asim__khan-al-hilali",
         "s3_a190-191__muhammad-ayub__hafs-an-asim__khan-al-hilali",
-        "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali",
-        "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali"
+        "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali"
       ],
       "maher-al-muaiqly": [
         "s4_a171-171__maher-al-muaiqly__hafs-an-asim__abu-iyaad",
@@ -1341,7 +1317,6 @@
         "s14_a24-26__badr-al-turki__hafs-an-asim__khan-al-hilali",
         "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali",
         "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali",
-        "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali",
         "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
@@ -1393,7 +1368,6 @@
         "s14_a24-26__badr-al-turki__hafs-an-asim__khan-al-hilali",
         "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali",
         "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali",
-        "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali",
         "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
