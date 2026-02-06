@@ -35,23 +35,26 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
     }))
   }));
 
-  if (selectedClipRaw && view === "reel") {
-    const selectedClip: Clip = {
-      ...selectedClipRaw,
-      variants: selectedClipRaw.variants.map(v => ({
-        ...v,
-        url: v.url ?? variantToPublicUrl(v) ?? undefined
-      }))
-    };
+  if (view === "reel") {
+    const selectedClip = clipId ? clips.find(c => c.id === clipId) : null;
 
-    // Order other clips by similarity to the selected clip
-    const otherClips = clips.filter(c => c.id !== selectedClip.id);
-    const orderedOtherClips = orderBySimilarity(selectedClip, otherClips);
-    clips = [selectedClip, ...orderedOtherClips];
+    if (selectedClip) {
+      // Current clip matches filters, keep it at top
+      const otherClips = clips.filter(c => c.id !== selectedClip.id);
+      const orderedOtherClips = orderBySimilarity(selectedClip, otherClips);
+      clips = [selectedClip, ...orderedOtherClips];
+    } else if (selectedClipRaw && clips.length > 0) {
+      // Current clip does NOT match filters, but we have a reference for similarity
+      const orderedClips = orderBySimilarity(selectedClipRaw as any as Clip, clips);
+      clips = orderedClips;
+    }
 
-    // If the list is too short, add some related clips
-    if (clips.length < 10) {
-      const relatedRaw = await getRelatedClips(selectedClipRaw, 20);
+    const hasFilters = Boolean(surah || start || end || reciter || riwayah || translation);
+
+    // If the list is too short, add some related clips (only if no active filters)
+    if (clips.length > 0 && clips.length < 10 && !hasFilters) {
+      const referenceForRelated = selectedClip || selectedClipRaw || clips[0];
+      const relatedRaw = await getRelatedClips(referenceForRelated as Clip, 20);
       const related = relatedRaw
         .filter(r => !clips.some(c => c.id === r.id))
         .map(clip => ({

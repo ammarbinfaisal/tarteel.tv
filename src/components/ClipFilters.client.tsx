@@ -72,13 +72,13 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
   const apply = () => {
     setQuery(
       (old) => ({
+        ...old,
         surah: localSurah,
         start: localStart,
         end: localEnd,
         reciter: localReciter,
         riwayah: localRiwayah,
         translation: localTranslation,
-        ...(old.view === "reel" ? { clipId: null } : {}),
       }),
       { history: "replace", shallow: false, scroll: true }
     );
@@ -95,13 +95,13 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
 
     setQuery(
       (old) => ({
+        ...old,
         surah: null,
         start: null,
         end: null,
         reciter: null,
         riwayah: null,
         translation: null,
-        ...(old.view === "reel" ? { clipId: null } : {}),
       }),
       { history: "replace", shallow: false, scroll: true }
     );
