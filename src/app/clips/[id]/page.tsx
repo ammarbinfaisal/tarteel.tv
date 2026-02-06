@@ -7,7 +7,7 @@ import { getClipById } from "@/lib/server/clips";
 import { variantToPublicUrl } from "@/lib/server/r2";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatSlug, formatTranslation } from "@/lib/utils";
+import { formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 
 export default async function ClipPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,15 +35,15 @@ export default async function ClipPage({ params }: { params: Promise<{ id: strin
       <Card className="border-none bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-3xl">
-            Surah {clip.surah} · Ayah {clip.ayahStart}-{clip.ayahEnd}
+            {getSurahName(clip.surah)} · Ayah {clip.ayahStart}-{clip.ayahEnd}
           </CardTitle>
           <p className="text-muted-foreground text-lg">
-            {formatSlug(clip.reciter)} · {formatSlug(clip.riwayah)}
+            {clip.reciterName} · {formatSlug(clip.riwayah)}
             {clip.translation ? ` · ${formatTranslation(clip.translation)}` : null}
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
-          <AudioPlayer clipId={clip.id} variants={variants} />
+          <AudioPlayer clipId={clip.id} variants={variants} mode="clip-page" />
           
           <div className="rounded-lg bg-muted p-4 text-xs text-muted-foreground italic">
             Note: If media fails to load, verify your R2 configuration and public URL settings.

@@ -20,16 +20,16 @@ See `ARCHITECTURE.md` for the full design and folder responsibilities.
 
 - Interactive: `bun run clip -- add`
 - Flags (single variant):
-  - `bun run clip -- add --surah 1 --start 1 --end 7 --reciter mishary-alafasy --quality high --r2-key clips/.../high.mp3`
+  - `bun run clip -- add --surah 1 --start 1 --end 7 --reciter "Maher al-Mu'aiqly" --reciter-slug maher --quality high --r2-key clips/.../high.mp3`
 - Flags (both variants):
-  - `bun run clip -- add --surah 1 --start 1 --end 7 --reciter mishary-alafasy --low-key clips/.../low.mp3 --high-key clips/.../high.mp3`
+  - `bun run clip -- add --surah 1 --start 1 --end 7 --reciter "Maher al-Mu'aiqly" --reciter-slug maher --low-key clips/.../low.mp3 --high-key clips/.../high.mp3`
 
 ## Ingest (auto low-quality + upload)
 
 Creates a low-quality variant with `ffmpeg`, uploads both `high` (your input) and `low` to R2, then appends metadata.
 
-- Video (mp4): `bun run clip -- ingest --input ./clips/high.mp4 --surah 1 --start 1 --end 7 --reciter mishary-alafasy --translation saheeh-international`
-- Audio (mp3): `bun run clip -- ingest --input ./clips/high.mp3 --surah 1 --start 1 --end 7 --reciter mishary-alafasy --translation saheeh-international`
+- Video (mp4): `bun run clip -- ingest --input ./clips/high.mp4 --surah 1 --start 1 --end 7 --reciter "Maher al-Mu'aiqly" --reciter-slug maher --translation saheeh-international`
+- Audio (mp3): `bun run clip -- ingest --input ./clips/high.mp3 --surah 1 --start 1 --end 7 --reciter "Maher al-Mu'aiqly" --reciter-slug maher --translation saheeh-international`
 - Single-ayah clip: set `--end` equal to `--start` (or omit `--end` and it defaults to `--start`)
 - Requires `.env.local` (or env) vars: `R2_BUCKET`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
 - Requires `ffmpeg` on your PATH

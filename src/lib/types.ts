@@ -14,14 +14,15 @@ export type Clip = {
   surah: number;
   ayahStart: number;
   ayahEnd: number;
-  reciter: string;
+  reciterSlug: string;
+  reciterName: string;
   riwayah?: string;
   translation?: ClipTranslation;
   variants: ClipVariant[];
 };
 
-export type ClipIndexV2 = {
-  version: 2;
+export type ClipIndexV3 = {
+  version: 3;
   generatedAt: string;
   clipCount: number;
   clipsById: Record<
@@ -30,10 +31,10 @@ export type ClipIndexV2 = {
   >;
   indexes: {
     bySurah: Record<string, string[]>;
-    byReciter: Record<string, string[]>;
+    byReciterSlug: Record<string, string[]>;
     byRiwayah: Record<string, string[]>;
     byTranslation: Record<ClipTranslation, string[]>;
   };
 };
 
-export type ClipIndex = ClipIndexV2;
+export type ClipIndex = ClipIndexV3;

@@ -5,17 +5,89 @@ import path from "node:path";
 import readline from "node:readline";
 import { cache } from "react";
 
-import type { Clip, ClipIndex, ClipIndexV2, ClipTranslation } from "@/lib/types";
+import type { Clip, ClipIndex, ClipIndexV3, ClipTranslation } from "@/lib/types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const INDEX_PATH = path.join(DATA_DIR, "clips.index.json");
 const JSONL_PATH = path.join(DATA_DIR, "clips.jsonl");
 
-async function readIndexFile(): Promise<ClipIndexV2 | null> {
+function slugify(value: string) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function normalizeReciterName(value: string) {
+  const raw = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (!raw) return "";
+
+  const canonicalBySlug: Record<string, string> = {
+    maher: "Maher al-Mu'aiqly",
+    "maher-al-muaiqly": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqly": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqlee": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqli": "Maher al-Mu'aiqly"
+  };
+
+  if (canonicalBySlug[slugify(raw)]) return canonicalBySlug[slugify(raw)];
+
+  const tokens = raw.split(" ").map((token) => {
+    const parts = token.split("-").filter(Boolean);
+    const normalizedParts = parts.map((part) => {
+      const lower = part.toLowerCase();
+      if (lower === "al") return "al";
+      const firstAlpha = lower.search(/[a-z]/i);
+      if (firstAlpha === -1) return part;
+      return lower.slice(0, firstAlpha) + lower[firstAlpha].toUpperCase() + lower.slice(firstAlpha + 1);
+    });
+    return normalizedParts.join("-");
+  });
+
+  return tokens.join(" ");
+}
+
+function deriveReciterFromJsonlClip(c: any): { reciterSlug: string; reciterName: string } {
+  const canonicalBySlug: Record<string, string> = {
+    maher: "Maher al-Mu'aiqly",
+    "maher-al-muaiqly": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqly": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqlee": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqli": "Maher al-Mu'aiqly"
+  };
+
+  const reciterSlugRaw = c?.reciterSlug ?? c?.reciter ?? "";
+  const reciterNameRaw = c?.reciterName ?? "";
+
+  let reciterSlug = "";
+  let reciterName = "";
+
+  if (reciterNameRaw) {
+    reciterName = normalizeReciterName(reciterNameRaw);
+    reciterSlug = c?.reciterSlug ? slugify(c.reciterSlug) : slugify(reciterName);
+  } else {
+    const r = String(reciterSlugRaw ?? "").trim();
+    const looksLikeSlug = /^[a-z0-9-]+$/.test(r);
+    if (looksLikeSlug) {
+      reciterSlug = slugify(r);
+      reciterName = normalizeReciterName(reciterSlug.replace(/-/g, " "));
+    } else {
+      reciterName = normalizeReciterName(r);
+      reciterSlug = slugify(reciterName);
+    }
+  }
+
+  if (canonicalBySlug[reciterSlug]) reciterName = canonicalBySlug[reciterSlug];
+  return { reciterSlug, reciterName };
+}
+
+async function readIndexFile(): Promise<ClipIndexV3 | null> {
   try {
     const raw = await fs.readFile(INDEX_PATH, "utf8");
     const parsed = JSON.parse(raw);
-    if (parsed?.version !== 2) return null;
+    if (parsed?.version !== 3) return null;
     if (!parsed?.indexes?.byTranslation) return null;
     return parsed;
   } catch (err: any) {
@@ -24,39 +96,40 @@ async function readIndexFile(): Promise<ClipIndexV2 | null> {
   }
 }
 
-async function readJsonlFallback(): Promise<ClipIndexV2> {
+async function readJsonlFallback(): Promise<ClipIndexV3> {
   const fh = await fs.open(JSONL_PATH, "r");
   try {
     const rl = readline.createInterface({ input: fh.createReadStream(), crlfDelay: Infinity });
-    const clips: Clip[] = [];
+    const clips: any[] = [];
     for await (const line of rl) {
       const trimmed = line.trim();
       if (!trimmed) continue;
       clips.push(JSON.parse(trimmed));
     }
 
-    const clipsById: ClipIndexV2["clipsById"] = Object.create(null);
-    const bySurah: ClipIndexV2["indexes"]["bySurah"] = Object.create(null);
-    const byReciter: ClipIndexV2["indexes"]["byReciter"] = Object.create(null);
-    const byRiwayah: ClipIndexV2["indexes"]["byRiwayah"] = Object.create(null);
-    const byTranslation: ClipIndexV2["indexes"]["byTranslation"] = Object.create(null);
+    const clipsById: ClipIndexV3["clipsById"] = Object.create(null);
+    const bySurah: ClipIndexV3["indexes"]["bySurah"] = Object.create(null);
+    const byReciterSlug: ClipIndexV3["indexes"]["byReciterSlug"] = Object.create(null);
+    const byRiwayah: ClipIndexV3["indexes"]["byRiwayah"] = Object.create(null);
+    const byTranslation: ClipIndexV3["indexes"]["byTranslation"] = Object.create(null);
 
     for (const c of clips) {
       const riwayah = c.riwayah ?? "hafs-an-asim";
-      const translation: ClipTranslation = (c.translation as ClipTranslation) ?? "saheeh-international";
-      clipsById[c.id] = { ...c, riwayah, translation };
+      const translation: ClipTranslation = (c.translation as ClipTranslation) ?? "khan-al-hilali";
+      const { reciterSlug, reciterName } = deriveReciterFromJsonlClip(c);
+      clipsById[c.id] = { ...c, reciterSlug, reciterName, riwayah, translation };
       (bySurah[String(c.surah)] ??= []).push(c.id);
-      (byReciter[c.reciter] ??= []).push(c.id);
+      (byReciterSlug[reciterSlug] ??= []).push(c.id);
       (byRiwayah[riwayah] ??= []).push(c.id);
       (byTranslation[translation] ??= []).push(c.id);
     }
 
     return {
-      version: 2,
+      version: 3,
       generatedAt: new Date().toISOString(),
       clipCount: clips.length,
       clipsById,
-      indexes: { bySurah, byReciter, byRiwayah, byTranslation }
+      indexes: { bySurah, byReciterSlug, byRiwayah, byTranslation }
     };
   } finally {
     await fh.close();
@@ -73,7 +146,7 @@ export type ClipFilters = {
   surah?: number;
   ayahStart?: number;
   ayahEnd?: number;
-  reciter?: string;
+  reciterSlug?: string;
   riwayah?: string;
   translation?: ClipTranslation;
 };
@@ -89,7 +162,7 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
 
   const sets: Set<string>[] = [];
   if (filters.surah != null) sets.push(new Set(idx.indexes.bySurah[String(filters.surah)] ?? []));
-  if (filters.reciter) sets.push(new Set(idx.indexes.byReciter[filters.reciter] ?? []));
+  if (filters.reciterSlug) sets.push(new Set(idx.indexes.byReciterSlug[filters.reciterSlug] ?? []));
   if (filters.riwayah) sets.push(new Set(idx.indexes.byRiwayah[filters.riwayah] ?? []));
   if (filters.translation) sets.push(new Set(idx.indexes.byTranslation[filters.translation] ?? []));
 
@@ -110,7 +183,7 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
     if (a.surah !== b.surah) return a.surah - b.surah;
     if (a.ayahStart !== b.ayahStart) return a.ayahStart - b.ayahStart;
     if (a.ayahEnd !== b.ayahEnd) return a.ayahEnd - b.ayahEnd;
-    return a.reciter.localeCompare(b.reciter);
+    return a.reciterSlug.localeCompare(b.reciterSlug);
   });
 
   return clips;
@@ -121,9 +194,16 @@ export async function getClipById(id: string): Promise<Clip | null> {
   return idx.clipsById[id] ?? null;
 }
 
-export async function listReciters(): Promise<string[]> {
+export async function listReciters(): Promise<{ slug: string; name: string }[]> {
   const idx = await getClipIndex();
-  return Object.keys(idx.indexes.byReciter).sort((a, b) => a.localeCompare(b));
+  const slugs = Object.keys(idx.indexes.byReciterSlug).sort((a, b) => a.localeCompare(b));
+  const options = slugs.map((slug) => {
+    const firstId = idx.indexes.byReciterSlug[slug]?.[0];
+    const name = firstId && idx.clipsById[firstId] ? idx.clipsById[firstId].reciterName : slug;
+    return { slug, name };
+  });
+  options.sort((a, b) => a.name.localeCompare(b.name));
+  return options;
 }
 
 export async function listRiwayat(): Promise<string[]> {

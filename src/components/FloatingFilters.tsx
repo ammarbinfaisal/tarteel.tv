@@ -13,7 +13,7 @@ import {
 import ClipFilters from "./ClipFilters.client"
 
 type Props = {
-  reciters: string[];
+  reciters: { slug: string; name: string }[];
   riwayat: string[];
   translations: string[];
 };

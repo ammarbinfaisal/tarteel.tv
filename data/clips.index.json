@@ -1,7 +1,7 @@
 {
-  "version": 2,
-  "generatedAt": "2026-02-06T12:31:13.717Z",
-  "clipCount": 18,
+  "version": 3,
+  "generatedAt": "2026-02-06T14:22:18.925Z",
+  "clipCount": 42,
   "clipsById": {
     "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -22,6 +22,30 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s3/a25-27/high.mp4",
           "md5": "050bd8d4f024621a55269e1942db6b32"
         }
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
+    },
+    "s3_a33-34__mahmood-al-husary__hafs-an-asim__khan-al-hilali": {
+      "id": "s3_a33-34__mahmood-al-husary__hafs-an-asim__khan-al-hilali",
+      "surah": 3,
+      "ayahStart": 33,
+      "ayahEnd": 34,
+      "reciterSlug": "mahmood-al-husary",
+      "reciterName": "Mahmood al-Husary",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/mahmood-al-husary/hafs-an-asim/khan-al-hilali/s3/a33-34/low.mp4",
+          "md5": "18436fd8a0d2dbe979e58ad0731a3f0a"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/mahmood-al-husary/hafs-an-asim/khan-al-hilali/s3/a33-34/high.mp4",
+          "md5": "c3961210a13caf2847f5e18786a886a0"
+        }
       ]
     },
     "s3_a103-103__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
@@ -41,7 +65,9 @@
           "quality": "high",
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s3/a103-103/high.mp4"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s3_a104-105__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s3_a104-105__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -62,7 +88,9 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s3/a104-105/high.mp4",
           "md5": "6fa6f3795003cfc6f23a86ab3d936bb3"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s3_a106-108__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s3_a106-108__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -83,7 +111,9 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s3/a106-108/high.mp4",
           "md5": "b4e7b6b0bc9432a2944eaaeb263044c7"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s3_a142-145__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s3_a142-145__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -104,7 +134,9 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s3/a142-145/high.mp4",
           "md5": "d96e0cb665ada25d30a034e216f6f2cd"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s3_a146-148__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s3_a146-148__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -125,7 +157,9 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s3/a146-148/high.mp4",
           "md5": "79c6753507dc7a50f97da77ca919c1bb"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s3_a149-151__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s3_a149-151__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -146,7 +180,121 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s3/a149-151/high.mp4",
           "md5": "d423745ed9362fe83e8d75276a70789c"
         }
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
+    },
+    "s3_a169-171__muhammad-ayub__hafs-an-asim__khan-al-hilali": {
+      "id": "s3_a169-171__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+      "surah": 3,
+      "ayahStart": 169,
+      "ayahEnd": 171,
+      "reciterSlug": "muhammad-ayub",
+      "reciterName": "Muhammad Ayub",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s3/a169-171/low.mp4",
+          "md5": "3415fcc068cf58f30bdba989a298afc9"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s3/a169-171/high.mp4",
+          "md5": "c8f2a5e60c02e7479f207bbf6c33211c"
+        }
       ]
+    },
+    "s3_a185-185__muhammad-ayub__hafs-an-asim__khan-al-hilali": {
+      "id": "s3_a185-185__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+      "surah": 3,
+      "ayahStart": 185,
+      "ayahEnd": 185,
+      "reciterSlug": "muhammad-ayub",
+      "reciterName": "Muhammad Ayub",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s3/a185-185/low.mp4",
+          "md5": "2c89bf1a266e7639c510c82c4e47047b"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s3/a185-185/high.mp4",
+          "md5": "660d3fd678368d52bd45f70c1c8059c6"
+        }
+      ]
+    },
+    "s3_a190-191__muhammad-ayub__hafs-an-asim__khan-al-hilali": {
+      "id": "s3_a190-191__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+      "surah": 3,
+      "ayahStart": 190,
+      "ayahEnd": 191,
+      "reciterSlug": "muhammad-ayub",
+      "reciterName": "Muhammad Ayub",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s3/a190-191/low.mp4",
+          "md5": "05c58571578ab54ee96bd6017041470a"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s3/a190-191/high.mp4",
+          "md5": "c4fe411806bfde0e46f485df14782beb"
+        }
+      ]
+    },
+    "s5_a62-63__abu-bakr-ash-shatri__hafs-an-asim__khan-al-hilali": {
+      "id": "s5_a62-63__abu-bakr-ash-shatri__hafs-an-asim__khan-al-hilali",
+      "surah": 5,
+      "ayahStart": 62,
+      "ayahEnd": 63,
+      "reciter": "abu-bakr-ash-shatri",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/abu-bakr-ash-shatri/hafs-an-asim/khan-al-hilali/s5/a62-63/low.mp4",
+          "md5": "0b20384070832988f5b6ce6fd0cfa045"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/abu-bakr-ash-shatri/hafs-an-asim/khan-al-hilali/s5/a62-63/high.mp4",
+          "md5": "f6e43177395bf7cab9127cbcb20dfa6c"
+        }
+      ],
+      "reciterName": "Abu Bakr Ash Shatri",
+      "reciterSlug": "abu-bakr-ash-shatri"
+    },
+    "s7_a55-56__maher-al-muaiqly__hafs-an-asim__khan-al-hilali": {
+      "id": "s7_a55-56__maher-al-muaiqly__hafs-an-asim__khan-al-hilali",
+      "surah": 7,
+      "ayahStart": 55,
+      "ayahEnd": 56,
+      "reciter": "maher-al-muaiqly",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/maher-al-muaiqly/hafs-an-asim/khan-al-hilali/s7/a55-56/low.mp4",
+          "md5": "6b6c1d3890abfec3c4789462f972096a"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/maher-al-muaiqly/hafs-an-asim/khan-al-hilali/s7/a55-56/high.mp4",
+          "md5": "edfb596c5c3e651a1e87c3c6679a8c0e"
+        }
+      ],
+      "reciterName": "Maher al-Mu'aiqly",
+      "reciterSlug": "maher-al-muaiqly"
     },
     "s8_a2-4__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s8_a2-4__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -167,7 +315,9 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s8/a2-4/high.mp4",
           "md5": "e1fe0d4ee7d94a657eda9caa12f7175a"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s8_a14-15__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s8_a14-15__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -188,7 +338,9 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s8/a14-15/high.mp4",
           "md5": "499968ad56a59aa1770dd21ea21123c2"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s8_a20-24__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s8_a20-24__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -209,7 +361,9 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s8/a20-24/high.mp4",
           "md5": "36f25e36af5825af219c1f32128782b3"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s8_a45-47__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s8_a45-47__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -230,7 +384,9 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s8/a45-47/high.mp4",
           "md5": "03d8db198b506270bd2f4a576349071b"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s8_a62-63__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s8_a62-63__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -251,7 +407,9 @@
           "r2Key": "clips/abu-hajar-al-iraqi/hafs-an-asim/khan-al-hilali/s8/a62-63/high.mp4",
           "md5": "31d68f68ef1fe7f16b4fd867fd365abb"
         }
-      ]
+      ],
+      "reciterName": "Abu Hajar al Iraqi",
+      "reciterSlug": "abu-hajar-al-iraqi"
     },
     "s9_a46-47__muhammad-mustafa-mahaameed__hafs-an-asim__saheeh-international": {
       "id": "s9_a46-47__muhammad-mustafa-mahaameed__hafs-an-asim__saheeh-international",
@@ -270,7 +428,9 @@
           "quality": "high",
           "r2Key": "clips/muhammad-mustafa-mahaameed/hafs-an-asim/saheeh-international/s9/a46-47/high.mp4"
         }
-      ]
+      ],
+      "reciterName": "Muhammad Mustafa Mahaameed",
+      "reciterSlug": "muhammad-mustafa-mahaameed"
     },
     "s9_a46-48__saud-ash-shuraim__hafs-an-asim__saheeh-international": {
       "id": "s9_a46-48__saud-ash-shuraim__hafs-an-asim__saheeh-international",
@@ -288,6 +448,162 @@
         {
           "quality": "high",
           "r2Key": "clips/saud-ash-shuraim/hafs-an-asim/saheeh-international/s9/a46-48/high.mp4"
+        }
+      ],
+      "reciterName": "Saud Ash Shuraim",
+      "reciterSlug": "saud-ash-shuraim"
+    },
+    "s9_a51-52__ali-jabir__hafs-an-asim__khan-al-hilali": {
+      "id": "s9_a51-52__ali-jabir__hafs-an-asim__khan-al-hilali",
+      "surah": 9,
+      "ayahStart": 51,
+      "ayahEnd": 52,
+      "reciterSlug": "ali-jabir",
+      "reciterName": "Ali Jabir",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/ali-jabir/hafs-an-asim/khan-al-hilali/s9/a51-52/low.mp4",
+          "md5": "f16dd1774263d7993c5a7efe74301f19"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/ali-jabir/hafs-an-asim/khan-al-hilali/s9/a51-52/high.mp4",
+          "md5": "a517af959a67ac4eda4157e9ab678766"
+        }
+      ]
+    },
+    "s9_a81-82__ali-jabir__hafs-an-asim__khan-al-hilali": {
+      "id": "s9_a81-82__ali-jabir__hafs-an-asim__khan-al-hilali",
+      "surah": 9,
+      "ayahStart": 81,
+      "ayahEnd": 82,
+      "reciterSlug": "ali-jabir",
+      "reciterName": "Ali Jabir",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/ali-jabir/hafs-an-asim/khan-al-hilali/s9/a81-82/low.mp4",
+          "md5": "ad8b05ffb7b7133b647cbbc121f33653"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/ali-jabir/hafs-an-asim/khan-al-hilali/s9/a81-82/high.mp4",
+          "md5": "018a37429f452548fa0fbe98452c55c9"
+        }
+      ]
+    },
+    "s10_a22-22__abdul-muhsin-al-qasim__hafs-an-asim__khan-al-hilali": {
+      "id": "s10_a22-22__abdul-muhsin-al-qasim__hafs-an-asim__khan-al-hilali",
+      "surah": 10,
+      "ayahStart": 22,
+      "ayahEnd": 22,
+      "reciterSlug": "abdul-muhsin-al-qasim",
+      "reciterName": "Abdul Muhsin al-Qasim",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/abdul-muhsin-al-qasim/hafs-an-asim/khan-al-hilali/s10/a22-22/low.mp4",
+          "md5": "83ce604b92918ca95f0ef2709e36a9e0"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/abdul-muhsin-al-qasim/hafs-an-asim/khan-al-hilali/s10/a22-22/high.mp4",
+          "md5": "ddab0bc112fade9de7994e6e11e213bc"
+        }
+      ]
+    },
+    "s14_a24-26__badr-al-turki__hafs-an-asim__khan-al-hilali": {
+      "id": "s14_a24-26__badr-al-turki__hafs-an-asim__khan-al-hilali",
+      "surah": 14,
+      "ayahStart": 24,
+      "ayahEnd": 26,
+      "reciterSlug": "badr-al-turki",
+      "reciterName": "Badr al-Turki",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/badr-al-turki/hafs-an-asim/khan-al-hilali/s14/a24-26/low.mp4",
+          "md5": "d41c5e192334070b5b3be9cc754ce939"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/badr-al-turki/hafs-an-asim/khan-al-hilali/s14/a24-26/high.mp4",
+          "md5": "48c34689fc8a2c6647317a68fc086273"
+        }
+      ]
+    },
+    "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali": {
+      "id": "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali",
+      "surah": 14,
+      "ayahStart": 34,
+      "ayahEnd": 34,
+      "reciterSlug": "muhammad-siddeeq-al-minshawi",
+      "reciterName": "Muhammad Siddeeq al-Minshawi",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/muhammad-siddeeq-al-minshawi/hafs-an-asim/khan-al-hilali/s14/a34-34/low.mp4",
+          "md5": "62c8e0f0bf20a719726b1c79f34f312b"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/muhammad-siddeeq-al-minshawi/hafs-an-asim/khan-al-hilali/s14/a34-34/high.mp4",
+          "md5": "901f60cc6bd9a41d66403bc2c68bfd63"
+        }
+      ]
+    },
+    "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali": {
+      "id": "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+      "surah": 16,
+      "ayahStart": 60,
+      "ayahEnd": 61,
+      "reciterSlug": "muhammad-ayub",
+      "reciterName": "Muhammad Ayub",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s16/a60-61/low.mp4",
+          "md5": "d64bf56273960889646727fd654de06b"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s16/a60-61/high.mp4",
+          "md5": "d6397d1c507b51a14a8e5b78b86fba09"
+        }
+      ]
+    },
+    "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali": {
+      "id": "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+      "surah": 16,
+      "ayahStart": 112,
+      "ayahEnd": 112,
+      "reciterSlug": "muhammad-ayub",
+      "reciterName": "Muhammad Ayub",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s16/a112-112/low.mp4",
+          "md5": "2c89bf1a266e7639c510c82c4e47047b"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/muhammad-ayub/hafs-an-asim/khan-al-hilali/s16/a112-112/high.mp4",
+          "md5": "660d3fd678368d52bd45f70c1c8059c6"
         }
       ]
     },
@@ -310,7 +626,9 @@
           "r2Key": "clips/maher-al-mu-aiqly/hafs-an-asim/khan-al-hilali/s22/a39-40/high.mp4",
           "md5": "eed4052695d8e5b835b231321d005c7c"
         }
-      ]
+      ],
+      "reciterName": "Maher al-Mu'aiqly",
+      "reciterSlug": "maher-al-mu-aiqly"
     },
     "s22_a73-73__maher__hafs-an-asim__khan-al-hilali": {
       "id": "s22_a73-73__maher__hafs-an-asim__khan-al-hilali",
@@ -329,7 +647,9 @@
           "quality": "high",
           "r2Key": "clips/maher/hafs-an-asim/khan-al-hilali/s22/a73-73/high.mp4"
         }
-      ]
+      ],
+      "reciterName": "Maher al-Mu'aiqly",
+      "reciterSlug": "maher"
     },
     "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali": {
       "id": "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
@@ -347,6 +667,30 @@
         {
           "quality": "high",
           "r2Key": "clips/maher-al-mu-aiqly/hafs-an-asim/khan-al-hilali/s22/a73-73/high.mp4"
+        }
+      ],
+      "reciterName": "Maher al-Mu'aiqly",
+      "reciterSlug": "maher-al-mu-aiqly"
+    },
+    "s24_a22-22__maher-al-muaiqly__hafs-an-asim__khan-al-hilali": {
+      "id": "s24_a22-22__maher-al-muaiqly__hafs-an-asim__khan-al-hilali",
+      "surah": 24,
+      "ayahStart": 22,
+      "ayahEnd": 22,
+      "reciterSlug": "maher-al-muaiqly",
+      "reciterName": "Maher al-Mu'aiqly",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/maher-al-muaiqly/hafs-an-asim/khan-al-hilali/s24/a22-22/low.mp4",
+          "md5": "4fd6161d6aaeb54097621f12f1aa226d"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/maher-al-muaiqly/hafs-an-asim/khan-al-hilali/s24/a22-22/high.mp4",
+          "md5": "d07a05b1784982b4de1b7b8581665794"
         }
       ]
     },
@@ -369,6 +713,234 @@
           "r2Key": "clips/abdullah-al-juhany/hafs-an-asim/khan-al-hilali/s28/a62-63/high.mp4",
           "md5": "525a220b35a283ebe0c0f0bdbee3748a"
         }
+      ],
+      "reciterName": "Abdullah al Juhany",
+      "reciterSlug": "abdullah-al-juhany"
+    },
+    "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali": {
+      "id": "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
+      "surah": 28,
+      "ayahStart": 64,
+      "ayahEnd": 67,
+      "reciter": "muhammad-bouhassoune",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/muhammad-bouhassoune/hafs-an-asim/khan-al-hilali/s28/a64-67/low.mp4",
+          "md5": "1470e668d8f0d6ca849748480a2969f7"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/muhammad-bouhassoune/hafs-an-asim/khan-al-hilali/s28/a64-67/high.mp4",
+          "md5": "b1625c6a9ded61c48e75a65b7c52e376"
+        }
+      ],
+      "reciterName": "Muhammad Bouhassoune",
+      "reciterSlug": "muhammad-bouhassoune"
+    },
+    "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali": {
+      "id": "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
+      "surah": 28,
+      "ayahStart": 74,
+      "ayahEnd": 75,
+      "reciter": "muhammad-bouhassoune",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/muhammad-bouhassoune/hafs-an-asim/khan-al-hilali/s28/a74-75/low.mp4",
+          "md5": "dff87aa6cd58cf26df9152a85e054d84"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/muhammad-bouhassoune/hafs-an-asim/khan-al-hilali/s28/a74-75/high.mp4",
+          "md5": "a429ce9f55dc1406d394094338872681"
+        }
+      ],
+      "reciterName": "Muhammad Bouhassoune",
+      "reciterSlug": "muhammad-bouhassoune"
+    },
+    "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali": {
+      "id": "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
+      "surah": 29,
+      "ayahStart": 43,
+      "ayahEnd": 45,
+      "reciter": "aashaam-shafeeq",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/aashaam-shafeeq/hafs-an-asim/khan-al-hilali/s29/a43-45/low.mp4",
+          "md5": "e19187a4613bfaa1c115152f67aaee1a"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/aashaam-shafeeq/hafs-an-asim/khan-al-hilali/s29/a43-45/high.mp4",
+          "md5": "636eee7523d6e9d0a246042d997ec014"
+        }
+      ],
+      "reciterName": "Aashaam Shafeeq",
+      "reciterSlug": "aashaam-shafeeq"
+    },
+    "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali": {
+      "id": "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
+      "surah": 29,
+      "ayahStart": 69,
+      "ayahEnd": 69,
+      "reciter": "aashaam-shafeeq",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/aashaam-shafeeq/hafs-an-asim/khan-al-hilali/s29/a69-69/low.mp4",
+          "md5": "e19187a4613bfaa1c115152f67aaee1a"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/aashaam-shafeeq/hafs-an-asim/khan-al-hilali/s29/a69-69/high.mp4",
+          "md5": "636eee7523d6e9d0a246042d997ec014"
+        }
+      ],
+      "reciterName": "Aashaam Shafeeq",
+      "reciterSlug": "aashaam-shafeeq"
+    },
+    "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali": {
+      "id": "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali",
+      "surah": 37,
+      "ayahStart": 171,
+      "ayahEnd": 173,
+      "reciter": "ashiq-ur-rahman",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/ashiq-ur-rahman/hafs-an-asim/khan-al-hilali/s37/a171-173/low.mp4",
+          "md5": "4772295d3ba464ecc6efefadb636fb5e"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/ashiq-ur-rahman/hafs-an-asim/khan-al-hilali/s37/a171-173/high.mp4",
+          "md5": "2fee8d8563b018d74cf0eb671b987a5e"
+        }
+      ],
+      "reciterName": "Ashiq Ur Rahman",
+      "reciterSlug": "ashiq-ur-rahman"
+    },
+    "s47_a67-70__mahmood-al-husary__warsh-an-nafi__khan-al-hilali": {
+      "id": "s47_a67-70__mahmood-al-husary__warsh-an-nafi__khan-al-hilali",
+      "surah": 47,
+      "ayahStart": 67,
+      "ayahEnd": 70,
+      "reciterSlug": "mahmood-al-husary",
+      "reciterName": "Mahmood al-Husary",
+      "riwayah": "warsh-an-nafi",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/mahmood-al-husary/warsh-an-nafi/khan-al-hilali/s47/a67-70/low.mp4",
+          "md5": "9b1f9a3e94b870aadf42e72a74897864"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/mahmood-al-husary/warsh-an-nafi/khan-al-hilali/s47/a67-70/high.mp4",
+          "md5": "c5740818c74ac397117fdfd138812153"
+        }
+      ]
+    },
+    "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali": {
+      "id": "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
+      "surah": 49,
+      "ayahStart": 1,
+      "ayahEnd": 2,
+      "reciterSlug": "abdullah-al-juhany",
+      "reciterName": "Abdullah al-Juhany",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/abdullah-al-juhany/hafs-an-asim/khan-al-hilali/s49/a1-2/low.mp4",
+          "md5": "f27865d11a0ae126c6dfe1e56d8ca6b1"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/abdullah-al-juhany/hafs-an-asim/khan-al-hilali/s49/a1-2/high.mp4",
+          "md5": "0022525795b5fe5b903b7d79552ddaa1"
+        }
+      ]
+    },
+    "s57_a16-16__peshawa-kurdi__hafs-an-asim__khan-al-hilali": {
+      "id": "s57_a16-16__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+      "surah": 57,
+      "ayahStart": 16,
+      "ayahEnd": 16,
+      "reciterSlug": "peshawa-kurdi",
+      "reciterName": "Peshawa Kurdi",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/peshawa-kurdi/hafs-an-asim/khan-al-hilali/s57/a16-16/low.mp4",
+          "md5": "9defccc95eadbc92355b95005bbebe54"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/peshawa-kurdi/hafs-an-asim/khan-al-hilali/s57/a16-16/high.mp4",
+          "md5": "4cf4618c4778994a805740b4d7c80cb4"
+        }
+      ]
+    },
+    "s57_a16-17__peshawa-kurdi__hafs-an-asim__khan-al-hilali": {
+      "id": "s57_a16-17__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+      "surah": 57,
+      "ayahStart": 16,
+      "ayahEnd": 17,
+      "reciter": "peshawa-kurdi",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/peshawa-kurdi/hafs-an-asim/khan-al-hilali/s57/a16-17/low.mp4",
+          "md5": "6424ae3e6b0f3701f66978e2e41d1b05"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/peshawa-kurdi/hafs-an-asim/khan-al-hilali/s57/a16-17/high.mp4",
+          "md5": "41cb86e229127e5d20d5c12c16811a60"
+        }
+      ],
+      "reciterName": "Peshawa Kurdi",
+      "reciterSlug": "peshawa-kurdi"
+    },
+    "s57_a20-21__peshawa-kurdi__hafs-an-asim__khan-al-hilali": {
+      "id": "s57_a20-21__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+      "surah": 57,
+      "ayahStart": 20,
+      "ayahEnd": 21,
+      "reciterSlug": "peshawa-kurdi",
+      "reciterName": "Peshawa Kurdi",
+      "riwayah": "hafs-an-asim",
+      "translation": "khan-al-hilali",
+      "variants": [
+        {
+          "quality": "low",
+          "r2Key": "clips/peshawa-kurdi/hafs-an-asim/khan-al-hilali/s57/a20-21/low.mp4",
+          "md5": "30f491a42f04ec110f37b47c65121455"
+        },
+        {
+          "quality": "high",
+          "r2Key": "clips/peshawa-kurdi/hafs-an-asim/khan-al-hilali/s57/a20-21/high.mp4",
+          "md5": "da35bdcb6b3939f00ceef2aaffdb28e8"
+        }
       ]
     }
   },
@@ -376,12 +948,22 @@
     "bySurah": {
       "3": [
         "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
+        "s3_a33-34__mahmood-al-husary__hafs-an-asim__khan-al-hilali",
         "s3_a103-103__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a104-105__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a106-108__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a142-145__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a146-148__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
-        "s3_a149-151__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali"
+        "s3_a149-151__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
+        "s3_a169-171__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s3_a185-185__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s3_a190-191__muhammad-ayub__hafs-an-asim__khan-al-hilali"
+      ],
+      "5": [
+        "s5_a62-63__abu-bakr-ash-shatri__hafs-an-asim__khan-al-hilali"
+      ],
+      "7": [
+        "s7_a55-56__maher-al-muaiqly__hafs-an-asim__khan-al-hilali"
       ],
       "8": [
         "s8_a2-4__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -392,18 +974,54 @@
       ],
       "9": [
         "s9_a46-47__muhammad-mustafa-mahaameed__hafs-an-asim__saheeh-international",
-        "s9_a46-48__saud-ash-shuraim__hafs-an-asim__saheeh-international"
+        "s9_a46-48__saud-ash-shuraim__hafs-an-asim__saheeh-international",
+        "s9_a51-52__ali-jabir__hafs-an-asim__khan-al-hilali",
+        "s9_a81-82__ali-jabir__hafs-an-asim__khan-al-hilali"
+      ],
+      "10": [
+        "s10_a22-22__abdul-muhsin-al-qasim__hafs-an-asim__khan-al-hilali"
+      ],
+      "14": [
+        "s14_a24-26__badr-al-turki__hafs-an-asim__khan-al-hilali",
+        "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali"
+      ],
+      "16": [
+        "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali"
       ],
       "22": [
         "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali"
       ],
+      "24": [
+        "s24_a22-22__maher-al-muaiqly__hafs-an-asim__khan-al-hilali"
+      ],
       "28": [
-        "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali"
+        "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
+        "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
+        "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali"
+      ],
+      "29": [
+        "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
+        "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali"
+      ],
+      "37": [
+        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali"
+      ],
+      "47": [
+        "s47_a67-70__mahmood-al-husary__warsh-an-nafi__khan-al-hilali"
+      ],
+      "49": [
+        "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali"
+      ],
+      "57": [
+        "s57_a16-16__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+        "s57_a16-17__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+        "s57_a20-21__peshawa-kurdi__hafs-an-asim__khan-al-hilali"
       ]
     },
-    "byReciter": {
+    "byReciterSlug": {
       "abu-hajar-al-iraqi": [
         "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a103-103__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -418,11 +1036,42 @@
         "s8_a45-47__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s8_a62-63__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali"
       ],
+      "mahmood-al-husary": [
+        "s3_a33-34__mahmood-al-husary__hafs-an-asim__khan-al-hilali",
+        "s47_a67-70__mahmood-al-husary__warsh-an-nafi__khan-al-hilali"
+      ],
+      "muhammad-ayub": [
+        "s3_a169-171__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s3_a185-185__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s3_a190-191__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali"
+      ],
+      "abu-bakr-ash-shatri": [
+        "s5_a62-63__abu-bakr-ash-shatri__hafs-an-asim__khan-al-hilali"
+      ],
+      "maher-al-muaiqly": [
+        "s7_a55-56__maher-al-muaiqly__hafs-an-asim__khan-al-hilali",
+        "s24_a22-22__maher-al-muaiqly__hafs-an-asim__khan-al-hilali"
+      ],
       "muhammad-mustafa-mahaameed": [
         "s9_a46-47__muhammad-mustafa-mahaameed__hafs-an-asim__saheeh-international"
       ],
       "saud-ash-shuraim": [
         "s9_a46-48__saud-ash-shuraim__hafs-an-asim__saheeh-international"
+      ],
+      "ali-jabir": [
+        "s9_a51-52__ali-jabir__hafs-an-asim__khan-al-hilali",
+        "s9_a81-82__ali-jabir__hafs-an-asim__khan-al-hilali"
+      ],
+      "abdul-muhsin-al-qasim": [
+        "s10_a22-22__abdul-muhsin-al-qasim__hafs-an-asim__khan-al-hilali"
+      ],
+      "badr-al-turki": [
+        "s14_a24-26__badr-al-turki__hafs-an-asim__khan-al-hilali"
+      ],
+      "muhammad-siddeeq-al-minshawi": [
+        "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali"
       ],
       "maher-al-mu-aiqly": [
         "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
@@ -432,18 +1081,41 @@
         "s22_a73-73__maher__hafs-an-asim__khan-al-hilali"
       ],
       "abdullah-al-juhany": [
-        "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali"
+        "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
+        "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali"
+      ],
+      "muhammad-bouhassoune": [
+        "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
+        "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali"
+      ],
+      "aashaam-shafeeq": [
+        "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
+        "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali"
+      ],
+      "ashiq-ur-rahman": [
+        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali"
+      ],
+      "peshawa-kurdi": [
+        "s57_a16-16__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+        "s57_a16-17__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+        "s57_a20-21__peshawa-kurdi__hafs-an-asim__khan-al-hilali"
       ]
     },
     "byRiwayah": {
       "hafs-an-asim": [
         "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
+        "s3_a33-34__mahmood-al-husary__hafs-an-asim__khan-al-hilali",
         "s3_a103-103__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a104-105__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a106-108__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a142-145__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a146-148__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a149-151__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
+        "s3_a169-171__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s3_a185-185__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s3_a190-191__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s5_a62-63__abu-bakr-ash-shatri__hafs-an-asim__khan-al-hilali",
+        "s7_a55-56__maher-al-muaiqly__hafs-an-asim__khan-al-hilali",
         "s8_a2-4__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s8_a14-15__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s8_a20-24__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -451,30 +1123,74 @@
         "s8_a62-63__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s9_a46-47__muhammad-mustafa-mahaameed__hafs-an-asim__saheeh-international",
         "s9_a46-48__saud-ash-shuraim__hafs-an-asim__saheeh-international",
+        "s9_a51-52__ali-jabir__hafs-an-asim__khan-al-hilali",
+        "s9_a81-82__ali-jabir__hafs-an-asim__khan-al-hilali",
+        "s10_a22-22__abdul-muhsin-al-qasim__hafs-an-asim__khan-al-hilali",
+        "s14_a24-26__badr-al-turki__hafs-an-asim__khan-al-hilali",
+        "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali",
+        "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali",
         "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
-        "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali"
+        "s24_a22-22__maher-al-muaiqly__hafs-an-asim__khan-al-hilali",
+        "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
+        "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
+        "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
+        "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
+        "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
+        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali",
+        "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
+        "s57_a16-16__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+        "s57_a16-17__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+        "s57_a20-21__peshawa-kurdi__hafs-an-asim__khan-al-hilali"
+      ],
+      "warsh-an-nafi": [
+        "s47_a67-70__mahmood-al-husary__warsh-an-nafi__khan-al-hilali"
       ]
     },
     "byTranslation": {
       "khan-al-hilali": [
         "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
+        "s3_a33-34__mahmood-al-husary__hafs-an-asim__khan-al-hilali",
         "s3_a103-103__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a104-105__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a106-108__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a142-145__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a146-148__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s3_a149-151__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
+        "s3_a169-171__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s3_a185-185__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s3_a190-191__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s5_a62-63__abu-bakr-ash-shatri__hafs-an-asim__khan-al-hilali",
+        "s7_a55-56__maher-al-muaiqly__hafs-an-asim__khan-al-hilali",
         "s8_a2-4__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s8_a14-15__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s8_a20-24__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s8_a45-47__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
         "s8_a62-63__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
+        "s9_a51-52__ali-jabir__hafs-an-asim__khan-al-hilali",
+        "s9_a81-82__ali-jabir__hafs-an-asim__khan-al-hilali",
+        "s10_a22-22__abdul-muhsin-al-qasim__hafs-an-asim__khan-al-hilali",
+        "s14_a24-26__badr-al-turki__hafs-an-asim__khan-al-hilali",
+        "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali",
+        "s16_a60-61__muhammad-ayub__hafs-an-asim__khan-al-hilali",
+        "s16_a112-112__muhammad-ayub__hafs-an-asim__khan-al-hilali",
         "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher__hafs-an-asim__khan-al-hilali",
         "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
-        "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali"
+        "s24_a22-22__maher-al-muaiqly__hafs-an-asim__khan-al-hilali",
+        "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
+        "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
+        "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
+        "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
+        "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
+        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali",
+        "s47_a67-70__mahmood-al-husary__warsh-an-nafi__khan-al-hilali",
+        "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
+        "s57_a16-16__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+        "s57_a16-17__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
+        "s57_a20-21__peshawa-kurdi__hafs-an-asim__khan-al-hilali"
       ],
       "saheeh-international": [
         "s9_a46-47__muhammad-mustafa-mahaameed__hafs-an-asim__saheeh-international",

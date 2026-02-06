@@ -14,7 +14,8 @@ Required fields:
 - `id`: stable unique id (CLI generates)
 - `surah`: 1–114
 - `ayahStart`, `ayahEnd`: 1-based ayah range
-- `reciter`: slug (e.g. `alafasy`)
+- `reciterSlug`: storage/filter slug (e.g. `maher`)
+- `reciterName`: preserved display name (e.g. `Maher al-Mu'aiqly`)
 - `riwayah`: optional slug, default `hafs-an-asim`
 - `translation`: optional slug, default `saheeh-international`
 - `variants`: one or more audio variants, typically `low` and/or `high`
@@ -30,7 +31,7 @@ The web app resolves `r2Key` to a playable URL using `R2_PUBLIC_BASE_URL`.
 
 Keep object keys predictable to simplify CLI + avoid collisions:
 
-`clips/{reciter}/{riwayah}/{translation}/s{surah}/a{ayahStart}-{ayahEnd}/{quality}.mp4`
+`clips/{reciterSlug}/{riwayah}/{translation}/s{surah}/a{ayahStart}-{ayahEnd}/{quality}.mp4`
 
 Notes:
 - Use `.mp4` for video clips; `.mp3` also works (player auto-switches).
@@ -44,7 +45,7 @@ If you later add HLS:
 
 At build-time (or after any CLI write), run `scripts/build-index.mjs` to generate:
 
-- `data/clips.index.json`: a compact JSON index (clips array + basic indexes by surah/reciter/riwayah)
+- `data/clips.index.json`: a compact JSON index (clips array + basic indexes by surah/reciterSlug/riwayah)
 
 The Next.js server loads the index once per process and serves:
 - Listing page filtered by search params (server component)
@@ -81,8 +82,8 @@ Optional (later, for signed URLs / per-request auth):
 - Rebuild `data/clips.index.json`
 
 Commands:
-- `bun run clip -- add --surah 2 --start 1 --end 5 --reciter alafasy --quality high --r2-key clips/.../high.mp3`
-- `bun run clip -- ingest --input ./clips/high.mp4 --surah 2 --start 1 --end 5 --reciter alafasy --translation saheeh-international`
+- `bun run clip -- add --surah 2 --start 1 --end 5 --reciter "Maher al-Mu'aiqly" --reciter-slug maher --quality high --r2-key clips/.../high.mp3`
+- `bun run clip -- ingest --input ./clips/high.mp4 --surah 2 --start 1 --end 5 --reciter "Maher al-Mu'aiqly" --reciter-slug maher --translation saheeh-international`
 - `bun run clip -- remove --id <clip_id>`
 - `bun run index`
 

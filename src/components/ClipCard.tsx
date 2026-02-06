@@ -5,7 +5,7 @@ import { Play } from "lucide-react";
 import type { Clip } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn, formatSlug, formatTranslation } from "@/lib/utils";
+import { formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 import AudioPlayer from "./AudioPlayer.client";
 
 export default function ClipCard({ clip, view }: { clip: Clip, view: "grid" | "reel" }) {
@@ -19,10 +19,10 @@ export default function ClipCard({ clip, view }: { clip: Clip, view: "grid" | "r
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-xl">
-                Surah {clip.surah} · Ayah {clip.ayahStart}-{clip.ayahEnd}
+                {getSurahName(clip.surah)} · Ayah {clip.ayahStart}-{clip.ayahEnd}
               </CardTitle>
               <p className="text-muted-foreground text-sm mt-1">
-                {formatSlug(clip.reciter)} · {formatSlug(clip.riwayah)}
+                {clip.reciterName} · {formatSlug(clip.riwayah)}
                 {clip.translation ? ` · ${formatTranslation(clip.translation)}` : null}
               </p>
             </div>
@@ -59,8 +59,8 @@ export default function ClipCard({ clip, view }: { clip: Clip, view: "grid" | "r
         />
       ) : (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-2 text-center">
-          <span className="text-xs">
-            {clip.surah}:{clip.ayahStart}-{clip.ayahEnd}
+          <span className="text-[10px] font-medium leading-tight">
+            {getSurahName(clip.surah)}<br/>{clip.ayahStart}-{clip.ayahEnd}
           </span>
         </div>
       )}
@@ -69,7 +69,7 @@ export default function ClipCard({ clip, view }: { clip: Clip, view: "grid" | "r
       </div>
       <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
         <p className="text-white text-[10px] font-medium truncate">
-          {clip.surah}:{clip.ayahStart}-{clip.ayahEnd}
+          {getSurahName(clip.surah)} {clip.ayahStart}-{clip.ayahEnd}
         </p>
       </div>
     </Link>

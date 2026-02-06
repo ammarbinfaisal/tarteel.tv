@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Clip, ClipVariant } from "@/lib/types";
-import { cn, isProbablyMp4, formatSlug, formatTranslation } from "@/lib/utils";
+import { cn, isProbablyMp4, formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Share2, ExternalLink, Volume2, VolumeX, Play, Pause, Music, Download } from "lucide-react";
 import Link from "next/link";
@@ -19,6 +19,7 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const variants = clip.variants;
 
@@ -72,7 +73,7 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
     if (navigator.share) {
       navigator.share({
         title: `Quran Clip: Surah ${clip.surah}:${clip.ayahStart}-${clip.ayahEnd}`,
-        text: `Listen to this beautiful recitation by ${clip.reciter}`,
+        text: `Listen to this beautiful recitation by ${clip.reciterName}`,
         url: `${window.location.origin}/clips/${clip.id}`,
       });
     } else {
@@ -161,23 +162,42 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
         <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none" />
 
         <div className="flex flex-col justify-end h-full relative z-10 p-6">
-          <div className="flex flex-col gap-3 pointer-events-auto max-w-[85%] mb-12">
-            <div className="flex flex-col gap-1">
-               <h2 className="text-xl font-bold text-white drop-shadow-lg">
-                  Surah {clip.surah}:{clip.ayahStart}-{clip.ayahEnd}
+          <div className="flex flex-col gap-2 pointer-events-auto max-w-[85%] mb-12">
+            {isExpanded ? (
+              <div className="flex flex-col gap-1 mb-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <p className="text-white font-bold text-base drop-shadow-md">
+                  {clip.reciterName}
+                </p>
+                <p className="text-white/90 text-sm drop-shadow-sm leading-snug">
+                  {formatSlug(clip.riwayah)} {clip.translation ? `· ${formatTranslation(clip.translation)}` : ""}
+                </p>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
+                  className="text-white/50 hover:text-white text-xs text-left mt-1 font-medium underline underline-offset-4"
+                >
+                  Show less
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}
+                className="text-white/70 hover:text-white text-left text-lg font-bold leading-none py-1"
+                title="Show details"
+              >
+                ...
+              </button>
+            )}
+            
+            <div className="flex items-center gap-2">
+               <h2 className="text-[10px] font-medium text-white/50 drop-shadow-lg uppercase tracking-wider">
+                  Surah {getSurahName(clip.surah)}:{clip.ayahStart}-{clip.ayahEnd}
                </h2>
                <div className="flex items-center gap-2">
-                 <span className="px-2 py-0.5 rounded bg-white/20 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider border border-white/10">
+                 <span className="px-1 py-0 rounded bg-white/5 backdrop-blur-md text-[7px] font-bold text-white/30 uppercase tracking-tighter border border-white/5">
                    {clip.variants.find(v => v.quality === "high") ? "HD" : "SD"}
                  </span>
                </div>
             </div>
-            <p className="text-white font-semibold text-base drop-shadow-md">
-              {formatSlug(clip.reciter)}
-            </p>
-            <p className="text-white/80 text-sm line-clamp-2 drop-shadow-sm leading-relaxed">
-              {formatSlug(clip.riwayah)} {clip.translation ? `· ${formatTranslation(clip.translation)}` : ""}
-            </p>
           </div>
 
           {/* Action buttons */}

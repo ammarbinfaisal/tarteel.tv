@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { formatSlug, formatTranslation } from "@/lib/utils";
 
 type Props = {
-  reciters: string[];
+  reciters: { slug: string; name: string }[];
   riwayat: string[];
   translations: string[];
 };
@@ -132,8 +132,8 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
             <SelectContent>
               <SelectItem value="all-reciters">All Reciters</SelectItem>
               {reciters.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {formatSlug(r)}
+                <SelectItem key={r.slug} value={r.slug}>
+                  {r.name}
                 </SelectItem>
               ))}
             </SelectContent>

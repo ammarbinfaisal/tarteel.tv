@@ -24,7 +24,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
   const surah = toInt(first(sp, "surah"));
   const ayahStart = toInt(first(sp, "start"));
   const ayahEnd = toInt(first(sp, "end"));
-  const reciter = first(sp, "reciter");
+  const reciterSlug = first(sp, "reciter");
   const riwayah = first(sp, "riwayah");
   const rawTranslation = first(sp, "translation");
   const translation: ClipTranslation | undefined =
@@ -33,7 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
       : undefined;
 
   const [clipsRaw, reciters, riwayat, translations] = await Promise.all([
-    listClips({ surah, ayahStart, ayahEnd, reciter, riwayah, translation }),
+    listClips({ surah, ayahStart, ayahEnd, reciterSlug: reciterSlug ?? undefined, riwayah, translation }),
     listReciters(),
     listRiwayat(),
     listTranslations()

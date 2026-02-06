@@ -7,7 +7,7 @@ interface ClipListProps {
   clips: Clip[];
   view: "grid" | "reel";
   filterData: {
-    reciters: string[];
+    reciters: { slug: string; name: string }[];
     riwayat: string[];
     translations: string[];
   };
@@ -37,4 +37,3 @@ export default function ClipList({ clips, view, filterData }: ClipListProps) {
     </div>
   );
 }
-

@@ -86,8 +86,103 @@ function normalizeRiwayah(value) {
 
 function normalizeTranslation(value) {
   const s = slugify(value);
-  if (s === "saheeh-international" || s === "khan-al-hilali") return s;
+  if (s === "saheeh-international") return s;
+  if (s === "khan-al-hilali") return s;
+  if (s === "khan-hilali") return "khan-al-hilali";
+  if (s === "khan-hilali-translation") return "khan-al-hilali";
+  if (s === "khan-al-hilali-translation") return "khan-al-hilali";
   return s;
+}
+
+function normalizeReciterName(value) {
+  const raw = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (!raw) return "";
+
+  const canonicalBySlug = {
+    maher: "Maher al-Mu'aiqly",
+    "maher-al-muaiqly": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqly": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqlee": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqli": "Maher al-Mu'aiqly"
+  };
+
+  // Preserve canonical spelling if provided verbatim.
+  for (const [, canonical] of Object.entries(canonicalBySlug)) {
+    if (raw === canonical) return canonical;
+  }
+
+  const tokens = raw.split(" ").map((token) => {
+    const parts = token.split("-").filter(Boolean);
+    const normalizedParts = parts.map((part) => {
+      const lower = part.toLowerCase();
+      if (lower === "al") return "al";
+      const firstAlpha = lower.search(/[a-z]/i);
+      if (firstAlpha === -1) return part;
+      return lower.slice(0, firstAlpha) + lower[firstAlpha].toUpperCase() + lower.slice(firstAlpha + 1);
+    });
+    return normalizedParts.join("-");
+  });
+
+  return tokens.join(" ");
+}
+
+function deriveReciter({ reciterArg, reciterNameArg, reciterSlugArg }) {
+  const canonicalBySlug = {
+    maher: "Maher al-Mu'aiqly",
+    "maher-al-muaiqly": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqly": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqlee": "Maher al-Mu'aiqly",
+    "maher-al-mu-aiqli": "Maher al-Mu'aiqly"
+  };
+
+  const nameInput = reciterNameArg ?? "";
+  const slugInput = reciterSlugArg ?? "";
+
+  if (nameInput) {
+    const reciterName = normalizeReciterName(nameInput);
+    const reciterSlug = slugInput ? slugify(slugInput) : slugify(reciterName);
+    return { reciterName: canonicalBySlug[reciterSlug] ?? reciterName, reciterSlug };
+  }
+
+  if (slugInput) {
+    const reciterSlug = slugify(slugInput);
+    const reciterName = canonicalBySlug[reciterSlug] ?? normalizeReciterName(reciterSlug.replace(/-/g, " "));
+    return { reciterName, reciterSlug };
+  }
+
+  const r = String(reciterArg ?? "").trim();
+  if (!r) return { reciterName: "", reciterSlug: "" };
+  const looksLikeSlug = /^[a-z0-9-]+$/.test(r);
+  if (looksLikeSlug) {
+    const reciterSlug = slugify(r);
+    const reciterName = canonicalBySlug[reciterSlug] ?? normalizeReciterName(reciterSlug.replace(/-/g, " "));
+    return { reciterName, reciterSlug };
+  }
+  const reciterName = normalizeReciterName(r);
+  const reciterSlug = slugify(reciterName);
+  return { reciterName: canonicalBySlug[reciterSlug] ?? reciterName, reciterSlug };
+}
+
+function validateTranslationFlag(value) {
+  if (value == null) return null;
+  const normalized = normalizeTranslation(value);
+  if (normalized !== "saheeh-international" && normalized !== "khan-al-hilali") throw new Error("Invalid translation");
+  return normalized;
+}
+
+function rewriteTranslationSuffixInId(id, translation) {
+  if (typeof id !== "string" || !id) return id;
+  const parts = id.split("__");
+  if (parts.length < 4) return id;
+  const last = parts[parts.length - 1];
+  if (last !== "saheeh-international" && last !== "khan-al-hilali") return id;
+  parts[parts.length - 1] = translation;
+  return parts.join("__");
+}
+
+function rewriteTranslationSegmentInR2Key(r2Key, translation) {
+  if (typeof r2Key !== "string" || !r2Key) return r2Key;
+  return r2Key.replace(/\/(saheeh-international|khan-al-hilali)(?=\/)/, `/${translation}`);
 }
 
 async function ensureJsonlFile() {
@@ -226,9 +321,9 @@ async function runIndex() {
   });
 }
 
-function baseR2Key({ prefix, reciter, riwayah, translation, surah, ayahStart, ayahEnd }) {
+function baseR2Key({ prefix, reciterSlug, riwayah, translation, surah, ayahStart, ayahEnd }) {
   const p = prefix ? prefix.replace(/^\/+/, "").replace(/\/+$/, "") : "clips";
-  return `${p}/${reciter}/${riwayah}/${translation}/s${surah}/a${ayahStart}-${ayahEnd}`;
+  return `${p}/${reciterSlug}/${riwayah}/${translation}/s${surah}/a${ayahStart}-${ayahEnd}`;
 }
 
 async function ensureDepsForUpload() {
@@ -526,15 +621,21 @@ async function addClip({ args }) {
     const ayahStart = toInt(args.start) ?? toInt(await rl.question("Ayah start: "));
     const ayahEnd =
       toInt(args.end) ?? toInt(await rl.question("Ayah end (blank = start): ")) ?? ayahStart;
-    const reciter = (args.reciter ?? (await rl.question("Reciter slug (e.g. mishary-alafasy): "))).trim();
+    const reciterArg = args.reciter ?? (await rl.question("Reciter (name or slug, e.g. Maher al-Mu'aiqly): "));
+    const { reciterName, reciterSlug } = deriveReciter({
+      reciterArg,
+      reciterNameArg: args["reciter-name"],
+      reciterSlugArg: args["reciter-slug"]
+    });
     const riwayah = normalizeRiwayah(args.riwayah ?? "hafs-an-asim");
-    const translation = normalizeTranslation(args.translation ?? "saheeh-international");
     const id = (args.id ?? nowId()).trim();
+    const translation = validateTranslationFlag(args.translation) ?? "khan-al-hilali";
 
     if (!Number.isInteger(surah) || surah < 1 || surah > 114) throw new Error("Invalid surah");
     if (!Number.isInteger(ayahStart) || ayahStart < 1) throw new Error("Invalid ayah start");
     if (!Number.isInteger(ayahEnd) || ayahEnd < ayahStart) throw new Error("Invalid ayah end");
-    if (!reciter) throw new Error("Invalid reciter");
+    if (!reciterSlug) throw new Error("Invalid reciter");
+    if (!reciterName) throw new Error("Invalid reciter name");
     if (!riwayah) throw new Error("Invalid riwayah");
     if (translation !== "saheeh-international" && translation !== "khan-al-hilali") throw new Error("Invalid translation");
     const lowKey = typeof args["low-key"] === "string" ? args["low-key"].trim() : "";
@@ -557,7 +658,8 @@ async function addClip({ args }) {
       surah,
       ayahStart,
       ayahEnd,
-      reciter,
+      reciterSlug,
+      reciterName,
       riwayah,
       translation,
       variants
@@ -588,26 +690,31 @@ async function ingestClip({ args }) {
     const ayahStart = toInt(args.start) ?? toInt(await rl.question("Ayah start: "));
     const ayahEnd =
       toInt(args.end) ?? toInt(await rl.question("Ayah end (blank = start): ")) ?? ayahStart;
-    const reciter = slugify(args.reciter ?? (await rl.question("Reciter slug (e.g. mishary-alafasy): ")));
+    const reciterArg = args.reciter ?? (await rl.question("Reciter (name or slug, e.g. Maher al-Mu'aiqly): "));
+    const { reciterName, reciterSlug } = deriveReciter({
+      reciterArg,
+      reciterNameArg: args["reciter-name"],
+      reciterSlugArg: args["reciter-slug"]
+    });
     const riwayah = normalizeRiwayah(args.riwayah ?? "hafs-an-asim");
-    const translation = normalizeTranslation(args.translation ?? "saheeh-international");
     const prefix = typeof args.prefix === "string" ? args.prefix : "clips";
     const overwrite = Boolean(args.overwrite);
+    const idArg = typeof args.id === "string" ? args.id.trim() : "";
+    const translation = validateTranslationFlag(args.translation) ?? "khan-al-hilali";
 
     if (!Number.isInteger(surah) || surah < 1 || surah > 114) throw new Error("Invalid surah");
     if (!Number.isInteger(ayahStart) || ayahStart < 1) throw new Error("Invalid ayah start");
     if (!Number.isInteger(ayahEnd) || ayahEnd < ayahStart) throw new Error("Invalid ayah end");
-    if (!reciter) throw new Error("Invalid reciter");
+    if (!reciterSlug) throw new Error("Invalid reciter");
+    if (!reciterName) throw new Error("Invalid reciter name");
     if (!riwayah) throw new Error("Invalid riwayah");
     if (translation !== "saheeh-international" && translation !== "khan-al-hilali") throw new Error("Invalid translation");
 
-    const baseKey = baseR2Key({ prefix, reciter, riwayah, translation, surah, ayahStart, ayahEnd });
+    const baseKey = baseR2Key({ prefix, reciterSlug, riwayah, translation, surah, ayahStart, ayahEnd });
     const highKey = `${baseKey}/high${ext}`;
     const lowKey = `${baseKey}/low${ext}`;
 
-    const id =
-      (typeof args.id === "string" && args.id.trim()) ||
-      `s${surah}_a${ayahStart}-${ayahEnd}__${reciter}__${riwayah}__${translation}`;
+    const id = idArg || `s${surah}_a${ayahStart}-${ayahEnd}__${reciterSlug}__${riwayah}__${translation}`;
 
     const highMd5 = await md5FileHex(inputPath);
 
@@ -653,7 +760,8 @@ async function ingestClip({ args }) {
       surah,
       ayahStart,
       ayahEnd,
-      reciter,
+      reciterSlug,
+      reciterName,
       riwayah,
       translation,
       variants: [
@@ -697,7 +805,9 @@ async function removeClip({ args }) {
 
     console.log(`About to remove clip: ${id}`);
     console.log(`- surah ${clip.surah} ayah ${clip.ayahStart}-${clip.ayahEnd}`);
-    console.log(`- reciter ${clip.reciter} riwayah ${clip.riwayah} translation ${clip.translation}`);
+    console.log(
+      `- reciter ${clip.reciterName ?? clip.reciter ?? clip.reciterSlug} riwayah ${clip.riwayah} translation ${clip.translation}`
+    );
     console.log(`- variants: ${clip.variants?.map((v) => `${v.quality}:${v.r2Key}`).join(", ") ?? "(none)"}`);
 
     if (dryRun) {
@@ -793,6 +903,83 @@ async function syncMd5({ args }) {
   await runIndex();
 }
 
+async function normalizeJsonl({ args }) {
+  const dryRun = Boolean(args["dry-run"]);
+  const dropLegacyReciter = Boolean(args["drop-legacy-reciter"]);
+  const jsonlExists = await fs
+    .access(JSONL_PATH)
+    .then(() => true)
+    .catch(() => false);
+  if (!jsonlExists) throw new Error(`Missing ${JSONL_PATH}`);
+
+  const fh = await fs.open(JSONL_PATH, "r");
+  const clips = [];
+  let changedCount = 0;
+  try {
+    const rl = (await import("node:readline")).createInterface({ input: fh.createReadStream(), crlfDelay: Infinity });
+    for await (const line of rl) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const obj = JSON.parse(trimmed);
+
+      const before = JSON.stringify(obj);
+
+      const { reciterName, reciterSlug } = deriveReciter({
+        reciterArg: obj.reciterName ?? obj.reciterSlug ?? obj.reciter ?? "",
+        reciterNameArg: obj.reciterName,
+        reciterSlugArg: obj.reciterSlug
+      });
+      if (reciterName) obj.reciterName = reciterName;
+      if (reciterSlug) obj.reciterSlug = reciterSlug;
+
+      if (dropLegacyReciter) delete obj.reciter;
+
+      if (!obj.riwayah) obj.riwayah = "hafs-an-asim";
+      obj.riwayah = normalizeRiwayah(obj.riwayah);
+
+      if (!obj.translation) obj.translation = "khan-al-hilali";
+      obj.translation = validateTranslationFlag(obj.translation);
+
+      obj.id = rewriteTranslationSuffixInId(obj.id, obj.translation);
+
+      if (Array.isArray(obj.variants)) {
+        for (const v of obj.variants) {
+          if (!v?.r2Key) continue;
+          v.r2Key = rewriteTranslationSegmentInR2Key(v.r2Key, obj.translation);
+        }
+      }
+
+      const after = JSON.stringify(obj);
+      if (before !== after) changedCount++;
+      clips.push(obj);
+    }
+  } finally {
+    await fh.close();
+  }
+
+  const ids = new Set();
+  for (const c of clips) {
+    if (ids.has(c.id)) throw new Error(`Duplicate clip id after normalization: ${c.id}`);
+    ids.add(c.id);
+  }
+
+  if (dryRun) {
+    console.log(`Would rewrite ${path.relative(process.cwd(), JSONL_PATH)} (changed ${changedCount} line(s)).`);
+    return;
+  }
+
+  const backupPath = path.join(
+    DATA_DIR,
+    `clips.jsonl.bak.${new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-")}`
+  );
+  await fs.copyFile(JSONL_PATH, backupPath);
+  await fs.writeFile(JSONL_PATH, clips.map((c) => JSON.stringify(c)).join("\n") + "\n", "utf8");
+  console.log(
+    `Wrote ${path.relative(process.cwd(), JSONL_PATH)} (changed ${changedCount} line(s), backup: ${path.relative(process.cwd(), backupPath)})`
+  );
+  await runIndex();
+}
+
 function printHelp() {
   console.log(`
 Usage:
@@ -803,6 +990,7 @@ Commands:
   ingest   Transcode low variant + upload to R2 + append clip
   remove   Remove a clip from JSONL + delete R2 objects
   sync-md5 Fill missing md5 from R2 HEAD
+  normalize-jsonl Normalize reciter fields/casing
   index    Rebuild data/clips.index.json from JSONL
 
 Add flags:
@@ -810,9 +998,11 @@ Add flags:
   --surah <number>
   --start <number>
   --end <number>              (default: start)
-  --reciter <slug>
+  --reciter <name|slug>
+  --reciter-name <name>       (optional; overrides --reciter)
+  --reciter-slug <slug>       (optional; overrides derived slug)
   --riwayah <slug>            (default: hafs-an-asim)
-  --translation <slug>        (default: saheeh-international)
+  --translation <slug>        (default: khan-al-hilali)
   --low-key <string>          (optional)
   --high-key <string>         (optional)
   --quality <low|high>        (used when low/high keys omitted)
@@ -821,6 +1011,9 @@ Add flags:
 Ingest flags:
   --input <path.(mp4|mp3)>    (required)
   --prefix <string>           (default: clips)
+  --reciter <name|slug>
+  --reciter-name <name>       (optional; overrides --reciter)
+  --reciter-slug <slug>       (optional; overrides derived slug)
   --low-kbps <number>         (default: 48, mp3 only)
   --low-height <number>       (default: 720, mp4 only)
   --low-crf <number>          (default: 30, mp4 only)
@@ -839,6 +1032,10 @@ Sync-md5 flags:
   --id <string>               (optional; otherwise all)
   --force                     (overwrite existing md5 fields)
   --dry-run                   (do not write JSONL)
+
+Normalize-jsonl flags:
+  --dry-run                   (print only)
+  --drop-legacy-reciter       (remove old reciter field)
 `.trim());
 }
 
@@ -874,6 +1071,11 @@ if (command === "remove" || command === "rm") {
 
 if (command === "sync-md5") {
   await syncMd5({ args });
+  process.exit(0);
+}
+
+if (command === "normalize-jsonl" || command === "normalize") {
+  await normalizeJsonl({ args });
   process.exit(0);
 }
 

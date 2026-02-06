@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import type { ClipQuality, ClipVariant } from "@/lib/types";
 import {
   Select,
@@ -35,13 +36,26 @@ function pickInitialQuality(variants: ClipVariant[]): ClipQuality {
 export default function AudioPlayer({ 
   clipId, 
   variants, 
-  hideInfo = false 
+  hideInfo = false,
+  mode = "inline"
 }: { 
   clipId: string; 
   variants: ClipVariant[];
   hideInfo?: boolean;
+  mode?: "inline" | "clip-page";
 }) {
   const [quality, setQuality] = useState<ClipQuality>(() => pickInitialQuality(variants));
+  const [stableVhPx, setStableVhPx] = useState<number | null>(null);
+
+  useEffect(() => {
+    const setOnce = () => setStableVhPx(window.innerHeight);
+    setOnce();
+    const onOrientationChange = () => {
+      window.setTimeout(setOnce, 200);
+    };
+    window.addEventListener("orientationchange", onOrientationChange);
+    return () => window.removeEventListener("orientationchange", onOrientationChange);
+  }, []);
 
   const chosen = useMemo(() => {
     const exact = variants.find((v) => v.quality === quality);
@@ -88,13 +102,22 @@ export default function AudioPlayer({
       )}
 
       {useVideo ? (
-        <video 
-          controls 
-          preload="metadata" 
-          playsInline 
-          className="w-full rounded-lg shadow-inner bg-black aspect-video" 
-          src={src || undefined} 
-        />
+        <div
+          className={mode === "clip-page" ? "clip-media-frame" : undefined}
+          style={
+            mode === "clip-page" && stableVhPx
+              ? ({ ["--clip-vh" as any]: `${Math.round(stableVhPx * 0.76)}px` } as CSSProperties)
+              : undefined
+          }
+        >
+          <video
+            controls
+            preload="metadata"
+            playsInline
+            className={mode === "clip-page" ? "clip-media" : "w-full rounded-lg shadow-inner bg-black aspect-video"}
+            src={src || undefined}
+          />
+        </div>
       ) : (
         <audio 
           controls 

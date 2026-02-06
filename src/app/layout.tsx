@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     default: "tarteel.tv",
     template: "%s | tarteel.tv",
   },
-  description: "Experience the beauty of Quranic recitations through curated clips and reels.",
+  description: "Clips of Quran Recitations.",
   keywords: ["Quran", "Recitation", "Tarteel", "Islamic Clips", "Quran Reels"],
   authors: [{ name: "tarteel.tv" }],
   creator: "tarteel.tv",
@@ -19,13 +19,22 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://tarteel.tv",
     title: "tarteel.tv",
-    description: "Experience the beauty of Quranic recitations through curated clips and reels.",
+    description: "Clips of Quran Recitations.",
     siteName: "tarteel.tv",
+    images: [
+      {
+        url: "/image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "tarteel.tv",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "tarteel.tv",
-    description: "Experience the beauty of Quranic recitations through curated clips and reels.",
+    description: "Clips of Quran Recitations.",
+    images: ["/image.jpg"],
   },
   robots: {
     index: true,
@@ -52,4 +61,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-

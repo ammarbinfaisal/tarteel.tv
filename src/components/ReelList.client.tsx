@@ -17,7 +17,7 @@ import ClipFilters from "./ClipFilters.client";
 interface ReelListProps {
   clips: Clip[];
   filterData: {
-    reciters: string[];
+    reciters: { slug: string; name: string }[];
     riwayat: string[];
     translations: string[];
   };
