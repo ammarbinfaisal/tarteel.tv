@@ -44,11 +44,26 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
         hlsRef.current.destroy();
       }
       const hls = new Hls({
-        capLevelToPlayerSize: true,
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 90,
+        abrEwmaDefaultEstimate: 5000000, 
+        // Be more aggressive with quality switching
+        abrBandWidthFactor: 0.9,
+        abrBandWidthUpFactor: 0.7,
+        abrMaxVaryingBandwidth: 0,
       });
       hls.loadSource(src);
       hls.attachMedia(media);
       hlsRef.current = hls;
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (isActive && media) {
+          media.play().catch(() => {
+             // Autoplay might be blocked until interaction
+          });
+        }
+      });
     } else if (media.canPlayType("application/vnd.apple.mpegurl")) {
       (media as HTMLVideoElement).src = src;
     }
