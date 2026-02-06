@@ -64,6 +64,10 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
     if (riwayah) params.set("riwayah", riwayah);
     if (translation) params.set("translation", translation);
 
+    // Preserve view mode
+    const view = sp.get("view");
+    if (view) params.set("view", view);
+
     const qs = params.toString();
     startTransition(() => router.replace(qs ? `/?${qs}` : "/"));
   }
@@ -81,7 +85,13 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
   function reset() {
     const next = { surah: "", start: "", end: "", reciter: "", riwayah: "", translation: "" };
     setForm(next);
-    startTransition(() => router.replace("/"));
+    
+    const params = new URLSearchParams();
+    const view = sp.get("view");
+    if (view) params.set("view", view);
+    
+    const qs = params.toString();
+    startTransition(() => router.replace(qs ? `/?${qs}` : "/"));
   }
 
   return (

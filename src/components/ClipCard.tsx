@@ -43,7 +43,7 @@ export default function ClipCard({ clip, view }: { clip: Clip, view: "grid" | "r
   const videoUrl = variants.find(v => v.quality === "low")?.url || variants[0]?.url;
 
   return (
-    <Link href={`/clips/${clip.id}`} className="relative block aspect-square bg-muted group overflow-hidden">
+    <Link href={`/clips/${clip.id}`} className="relative block aspect-[4/5] bg-muted group overflow-hidden">
       {videoUrl ? (
         <video
           src={videoUrl}

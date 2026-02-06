@@ -44,10 +44,6 @@ export default async function ClipPage({ params }: { params: Promise<{ id: strin
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <AudioPlayer clipId={clip.id} variants={variants} mode="clip-page" />
-          
-          <div className="rounded-lg bg-muted p-4 text-xs text-muted-foreground italic">
-            Note: If media fails to load, verify your R2 configuration and public URL settings.
-          </div>
         </CardContent>
       </Card>
     </div>
