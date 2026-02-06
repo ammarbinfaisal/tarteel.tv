@@ -19,9 +19,11 @@ type Props = {
 };
 
 export function FloatingFilters({ reciters, riwayat, translations }: Props) {
+  const [open, setOpen] = React.useState(false);
+
   return (
     <div className="fixed bottom-6 right-6 z-40">
-      <Sheet>
+      <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
             <Filter className="h-6 w-6" />
@@ -37,6 +39,7 @@ export function FloatingFilters({ reciters, riwayat, translations }: Props) {
               reciters={reciters} 
               riwayat={riwayat} 
               translations={translations} 
+              onApply={() => setOpen(false)}
             />
           </div>
         </SheetContent>

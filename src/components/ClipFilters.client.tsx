@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryStates } from "nuqs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,12 +28,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { searchParamsParsers } from "@/lib/searchparams";
+import { searchParamsParsers, type UrlState } from "@/lib/searchparams";
 
 type Props = {
   reciters: { slug: string; name: string }[];
   riwayat: string[];
   translations: string[];
+  onApply?: () => void;
 };
 
 function toOptionalPositiveInt(value: string): number | null {
@@ -45,24 +46,53 @@ function toOptionalPositiveInt(value: string): number | null {
   return n;
 }
 
-export default function ClipFilters({ reciters, riwayat, translations }: Props) {
+export default function ClipFilters({ reciters, riwayat, translations, onApply }: Props) {
   const [open, setOpen] = useState(false);
 
   const [query, setQuery] = useQueryStates(searchParamsParsers);
 
-  const update = (
-    values: Partial<Pick<typeof query, "surah" | "start" | "end" | "reciter" | "riwayah" | "translation">>
-  ) => {
+  // Local state for the form
+  const [localSurah, setLocalSurah] = useState<number | null>(query.surah);
+  const [localStart, setLocalStart] = useState<number | null>(query.start);
+  const [localEnd, setLocalEnd] = useState<number | null>(query.end);
+  const [localReciter, setLocalReciter] = useState<string | null>(query.reciter);
+  const [localRiwayah, setLocalRiwayah] = useState<string | null>(query.riwayah);
+  const [localTranslation, setLocalTranslation] = useState<UrlState["translation"]>(query.translation);
+
+  // Sync local state when query changes from outside (e.g. reset)
+  useEffect(() => {
+    setLocalSurah(query.surah);
+    setLocalStart(query.start);
+    setLocalEnd(query.end);
+    setLocalReciter(query.reciter);
+    setLocalRiwayah(query.riwayah);
+    setLocalTranslation(query.translation);
+  }, [query.surah, query.start, query.end, query.reciter, query.riwayah, query.translation]);
+
+  const apply = () => {
     setQuery(
       (old) => ({
-        ...values,
+        surah: localSurah,
+        start: localStart,
+        end: localEnd,
+        reciter: localReciter,
+        riwayah: localRiwayah,
+        translation: localTranslation,
         ...(old.view === "reel" ? { clipId: null } : {}),
       }),
       { history: "replace", shallow: false, scroll: true }
     );
+    onApply?.();
   };
 
   const reset = () => {
+    setLocalSurah(null);
+    setLocalStart(null);
+    setLocalEnd(null);
+    setLocalReciter(null);
+    setLocalRiwayah(null);
+    setLocalTranslation(null);
+
     setQuery(
       (old) => ({
         surah: null,
@@ -75,16 +105,25 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
       }),
       { history: "replace", shallow: false, scroll: true }
     );
+    onApply?.();
   };
 
   const form = {
-    surah: query.surah ? String(query.surah) : "",
-    start: query.start ? String(query.start) : "",
-    end: query.end ? String(query.end) : "",
-    reciter: query.reciter ?? "",
-    riwayah: query.riwayah ?? "",
-    translation: query.translation ?? "",
+    surah: localSurah ? String(localSurah) : "",
+    start: localStart ? String(localStart) : "",
+    end: localEnd ? String(localEnd) : "",
+    reciter: localReciter ?? "",
+    riwayah: localRiwayah ?? "",
+    translation: localTranslation ?? "",
   };
+
+  const hasChanges = 
+    localSurah !== query.surah ||
+    localStart !== query.start ||
+    localEnd !== query.end ||
+    localReciter !== query.reciter ||
+    localRiwayah !== query.riwayah ||
+    localTranslation !== query.translation;
 
   return (
     <div className="flex flex-col gap-6 p-1">
@@ -118,7 +157,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
                           key={num}
                           value={`${num} ${name}`}
                           onSelect={() => {
-                            update({ surah: num });
+                            setLocalSurah(num);
                             setOpen(false);
                           }}
                         >
@@ -147,7 +186,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
               inputMode="numeric"
               placeholder="e.g. 1"
               value={form.start}
-              onChange={(e) => update({ start: toOptionalPositiveInt(e.target.value) })}
+              onChange={(e) => setLocalStart(toOptionalPositiveInt(e.target.value))}
             />
           </div>
           <div className="grid gap-2">
@@ -157,7 +196,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
               inputMode="numeric"
               placeholder="e.g. 7"
               value={form.end}
-              onChange={(e) => update({ end: toOptionalPositiveInt(e.target.value) })}
+              onChange={(e) => setLocalEnd(toOptionalPositiveInt(e.target.value))}
             />
           </div>
         </div>
@@ -168,7 +207,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
           <Label>Reciter</Label>
           <Select
             value={form.reciter || "all-reciters"}
-            onValueChange={(v) => update({ reciter: v === "all-reciters" ? null : v })}
+            onValueChange={(v) => setLocalReciter(v === "all-reciters" ? null : v)}
           >
             <SelectTrigger>
               <SelectValue placeholder="All Reciters" />
@@ -188,7 +227,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
           <Label>Riwayah</Label>
           <Select
             value={form.riwayah || "all-riwayah"}
-            onValueChange={(v) => update({ riwayah: v === "all-riwayah" ? null : v })}
+            onValueChange={(v) => setLocalRiwayah(v === "all-riwayah" ? null : v)}
           >
             <SelectTrigger>
               <SelectValue placeholder="All Riwayah" />
@@ -209,9 +248,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
           <Select
             value={form.translation || "no-translation"}
             onValueChange={(v) =>
-              update({
-                translation: v === "no-translation" ? null : (v as NonNullable<typeof query.translation>),
-              })
+              setLocalTranslation(v === "no-translation" ? null : (v as UrlState["translation"]))
             }
           >
             <SelectTrigger>
@@ -229,9 +266,14 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
         </div>
       </div>
 
-      <Button variant="outline" onClick={reset} className="w-full">
-        Reset Filters
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button onClick={apply} className="w-full" disabled={!hasChanges}>
+          Apply Filters
+        </Button>
+        <Button variant="outline" onClick={reset} className="w-full">
+          Reset Filters
+        </Button>
+      </div>
     </div>
   );
 }

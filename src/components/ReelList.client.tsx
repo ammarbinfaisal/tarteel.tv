@@ -97,32 +97,7 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
                   isMuted={isMuted}
                   onMuteChange={setIsMuted}
                   filterButton={
-                    <Sheet>
-                      <SheetTrigger asChild>
-                        <Button 
-                          variant="ghost"
-                          size="icon" 
-                          className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Filter className="h-6 w-6" />
-                          <span className="sr-only">Filters</span>
-                        </Button>
-                      </SheetTrigger>
-                      <SheetContent side="bottom" className="h-[70vh] rounded-t-[32px] border-none bg-background/80 backdrop-blur-2xl px-6">
-                        <div className="w-12 h-1.5 bg-muted-foreground/20 rounded-full mx-auto mb-6" />
-                        <SheetHeader className="mb-6">
-                          <SheetTitle className="text-xl font-bold">Refine Clips</SheetTitle>
-                        </SheetHeader>
-                        <div className="overflow-y-auto h-full pb-20 scrollbar-hide">
-                          <ClipFilters 
-                            reciters={filterData.reciters} 
-                            riwayat={filterData.riwayat} 
-                            translations={filterData.translations} 
-                          />
-                        </div>
-                      </SheetContent>
-                    </Sheet>
+                    <FilterSheet filterData={filterData} />
                   }
                 />
               ) : (
@@ -135,5 +110,39 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
         })}
       </div>
     </>
+  );
+}
+
+function FilterSheet({ filterData }: { filterData: ReelListProps["filterData"] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button 
+          variant="ghost"
+          size="icon" 
+          className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Filter className="h-6 w-6" />
+          <span className="sr-only">Filters</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="h-[70vh] rounded-t-[32px] border-none bg-background/80 backdrop-blur-2xl px-6">
+        <div className="w-12 h-1.5 bg-muted-foreground/20 rounded-full mx-auto mb-6" />
+        <SheetHeader className="mb-6">
+          <SheetTitle className="text-xl font-bold">Refine Clips</SheetTitle>
+        </SheetHeader>
+        <div className="overflow-y-auto h-full pb-20 scrollbar-hide">
+          <ClipFilters 
+            reciters={filterData.reciters} 
+            riwayat={filterData.riwayat} 
+            translations={filterData.translations} 
+            onApply={() => setOpen(false)}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
