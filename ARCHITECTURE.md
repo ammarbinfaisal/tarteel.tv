@@ -1,95 +1,108 @@
 # Architecture
 
-## Goals
+## Overview
 
-- Store clips as audio objects (R2) and store searchable metadata as a simple, append-only `jsonl`.
-- Keep the Next.js app fast: server-render listings and details; keep client JS limited to filters and the audio player.
-- Support “low/high” fixed variants today; leave room for adaptive streaming later (HLS/DASH).
+This repo is a small Next.js (App Router) app + a Bun-powered CLI for maintaining a catalog of Quran recitation clips:
 
-## Data model
+- **Media** lives in Cloudflare R2 (S3-compatible) or any public object store.
+- **Metadata** is the source of truth in `data/clips.jsonl` (append-only JSON Lines).
+- **A generated index** in `data/clips.index.json` (v3) makes server-side filtering fast.
 
-Each clip is one JSON object per line in `data/clips.jsonl`.
+## Repo layout
+
+- `src/app/**`: Next.js routes/layout (server components by default)
+- `src/lib/server/**`: server-only data access (reads index/JSONL, resolves URLs)
+- `src/components/**`: UI (client components are `*.client.tsx`)
+- `scripts/clip-cli.mjs`: CLI to add/ingest/remove/sync/normalize clips
+- `scripts/build-index.mjs`: validates JSONL + writes `data/clips.index.json`
+- `data/`: `clips.jsonl`, `clips.index.json`, and `.bak` backups (ignored by git)
+- `raw/`: local source media (ignored by git)
+
+## Data model (JSONL)
+
+Each line in `data/clips.jsonl` is one clip object:
 
 Required fields:
-- `id`: stable unique id (CLI generates)
-- `surah`: 1–114
-- `ayahStart`, `ayahEnd`: 1-based ayah range
-- `reciterSlug`: storage/filter slug (e.g. `maher`)
-- `reciterName`: preserved display name (e.g. `Maher al-Mu'aiqly`)
-- `riwayah`: optional slug, default `hafs-an-asim`
-- `translation`: optional slug, default `saheeh-international`
-- `variants`: one or more audio variants, typically `low` and/or `high`
+- `id`: stable unique id (CLI defaults to a canonical form; see below)
+- `surah`: `1..114`
+- `ayahStart`, `ayahEnd`: 1-based inclusive ayah range
+- `reciterSlug`: storage/filter slug (e.g. `maher-al-muaiqly`)
+- `reciterName`: display name (preserved/canonicalized by CLI/indexer)
+- `variants`: one or more playable variants
+
+Optional fields (but treated as required/canonical in the generated index):
+- `riwayah`: defaults to `hafs-an-asim`
+- `translation`: defaults to `khan-al-hilali`
 
 Variant fields:
-- `quality`: `low` | `high`
-- `r2Key`: object key in R2 (or any storage)
-- `md5`: optional hex md5 (CLI can compute)
+- `quality`: currently **`high`** and/or **`hls`**
+- `r2Key`: object key (or path) under your public base URL
+- `md5`: optional hex md5; used for de-dup and integrity checks
 
-The web app resolves `r2Key` to a playable URL using `R2_PUBLIC_BASE_URL`.
+Notes:
+- Historical data may include `low`/`1`/`2`/`3`/`4` qualities; the indexer currently validates for `high`/`hls`.
+- The web app resolves `variant.r2Key → variant.url` using `R2_PUBLIC_BASE_URL` (`src/lib/server/r2.ts`).
+
+### Canonical IDs
+
+`scripts/clip-cli.mjs` and related maintenance scripts use a canonical id shape:
+
+`s{surah}_a{ayahStart}-{ayahEnd}__{reciterSlug}__{riwayah}__{translation}`
+
+This keeps ids stable across rebuilds and makes it easy to locate objects by path.
 
 ## Storage layout (recommended)
 
-Keep object keys predictable to simplify CLI + avoid collisions:
+The CLI generates predictable keys via the same template:
 
-`clips/{reciterSlug}/{riwayah}/{translation}/s{surah}/a{ayahStart}-{ayahEnd}/{quality}.mp4`
+`clips/{reciterSlug}/{riwayah}/{translation}/s{surah}/a{ayahStart}-{ayahEnd}/`
 
-Notes:
-- Use `.mp4` for video clips; `.mp3` also works (player auto-switches).
-- `translation` defaults to `saheeh-international`.
+Within that folder:
 
-If you later add HLS:
+- High-quality source (required):
+  - `high.mp4` (video) or `high.mp3` (audio-only)
+- HLS (optional; generated for mp4 inputs):
+  - `hls/master.m3u8`
+  - `hls/v0/index.m3u8`, `hls/v0/stream.mp4` (and v1/v2 similarly)
 
-`clips/.../{quality}/master.m3u8` (+ segment files)
+For HLS, the CLI uses ffmpeg to produce multi-variant HLS with fragmented MP4 segments.
 
 ## Indexing strategy
 
-At build-time (or after any CLI write), run `scripts/build-index.mjs` to generate:
+`scripts/build-index.mjs` reads `data/clips.jsonl`, validates each line, normalizes legacy reciter fields, and writes `data/clips.index.json`:
 
-- `data/clips.index.json`: a compact JSON index (clips array + basic indexes by surah/reciterSlug/riwayah)
+- `version: 3`
+- `clipsById`: clip objects keyed by id, with canonical `reciterSlug/reciterName/riwayah/translation`
+- `indexes`: precomputed id lists for `bySurah`, `byReciterSlug`, `byRiwayah`, `byTranslation`
 
-The Next.js server loads the index once per process and serves:
-- Listing page filtered by search params (server component)
-- Clip detail page (server component)
+The web app (`src/lib/server/clips.ts`) loads the index once per process using React’s `cache()`, with a JSONL fallback if the index file is missing.
 
-## Next.js structure (server vs client)
+## Web app data flow
 
-Server components:
-- Pages and layout under `src/app/**` (default)
-- Data access under `src/lib/server/**` (enforced by `import "server-only"`)
+- Filters are **URL search params** (`surah`, `start`, `end`, `reciter`, `riwayah`, `translation`, plus `view`/`clipId`).
+- Server component route (`src/app/page.tsx`) calls `listClips(...)` and resolves public media URLs on the server.
+- Client-side filters (`src/components/ClipFilters.client.tsx`) update the URL with `router.replace(...)`, triggering a server re-render (no JSON API needed).
 
-Client components:
-- `src/components/*.client.tsx` (explicit `use client`)
-- Responsibilities: filter UI (updates URL params), audio playback, quality toggle
+## Playback model
 
-Pattern used:
-- Server page reads `searchParams` → queries index → renders list
-- Client filter updates URL via `router.replace(...)` → triggers server re-render without fetching JSON on the client
-- Clip detail page resolves `r2Key` → `url` on the server and passes the final `url` into the client audio player
+- Reel view (`src/components/ReelPlayer.client.tsx`) prefers `hls`, then falls back to `high`.
+- If the chosen URL ends with `.m3u8`, it plays via `hls.js` when supported, otherwise uses native HLS where available.
 
 ## Environment variables
 
-- `R2_PUBLIC_BASE_URL`: public base URL prefix used to build object URLs (e.g. `https://cdn.example.com`)
+Used by the web app:
+- `R2_PUBLIC_BASE_URL`: public prefix used to build playable URLs (e.g. `https://cdn.example.com`)
 
-Required for `bun run clip -- ingest` uploads:
-- `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`
+Required for CLI upload/delete/copy operations (R2 S3 API):
+- `R2_BUCKET`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
 
-Optional (later, for signed URLs / per-request auth):
-- `R2_ACCOUNT_ID`
+Optional upload tuning:
+- `R2_UPLOAD_ATTEMPTS`, `R2_MAX_ATTEMPTS`, `R2_PART_SIZE_MB`, `R2_QUEUE_SIZE`
 
-## CLI workflow
+## Operational scripts
 
-- Append a clip to `data/clips.jsonl` (flags or interactive prompts)
-- Rebuild `data/clips.index.json`
-
-Commands:
-- `bun run clip -- add --surah 2 --start 1 --end 5 --reciter "Maher al-Mu'aiqly" --reciter-slug maher --quality high --r2-key clips/.../high.mp3`
-- `bun run clip -- ingest --input ./clips/high.mp4 --surah 2 --start 1 --end 5 --reciter "Maher al-Mu'aiqly" --reciter-slug maher --translation saheeh-international`
-- `bun run clip -- remove --id <clip_id>`
-- `bun run index`
-
-## Future upgrades
-
-- Add duration + size metadata (CLI can compute via ffprobe)
-- Add HLS/DASH generation (ffmpeg) and store variant playlists
-- Add search (by surah name, reciter display name) + pagination
-- Add “playlist” entities (collections of clips)
+- `bun run clip -- add|ingest|remove|sync-md5|normalize-jsonl|index`: day-to-day workflow
+- `bun scripts/migrate-hls.mjs`: backfill HLS variants from existing `high.mp4` objects
+- `bun scripts/fix-r2-keys.mjs`: copy objects on R2 to expected keys when metadata keys drift
+- `bun scripts/set-clip-translation.mjs`: rewrite a clip’s translation (optionally copy objects on R2)
+- `bun scripts/cleanup-redundant-variants.mjs`: drop historical low/level qualities and delete their objects
