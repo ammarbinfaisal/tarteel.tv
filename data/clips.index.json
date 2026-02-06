@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "generatedAt": "2026-02-06T14:32:38.846Z",
+  "generatedAt": "2026-02-06T14:36:39.741Z",
   "clipCount": 41,
   "clipsById": {
     "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
@@ -786,23 +786,23 @@
       "reciterName": "Aashaam Shafeeq",
       "reciterSlug": "aashaam-shafeeq"
     },
-    "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali": {
-      "id": "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali",
+    "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__saheeh-international": {
+      "id": "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__saheeh-international",
       "surah": 37,
       "ayahStart": 171,
       "ayahEnd": 173,
       "reciter": "ashiq-ur-rahman",
       "riwayah": "hafs-an-asim",
-      "translation": "khan-al-hilali",
+      "translation": "saheeh-international",
       "variants": [
         {
           "quality": "low",
-          "r2Key": "clips/ashiq-ur-rahman/hafs-an-asim/khan-al-hilali/s37/a171-173/low.mp4",
+          "r2Key": "clips/ashiq-ur-rahman/hafs-an-asim/saheeh-international/s37/a171-173/low.mp4",
           "md5": "4772295d3ba464ecc6efefadb636fb5e"
         },
         {
           "quality": "high",
-          "r2Key": "clips/ashiq-ur-rahman/hafs-an-asim/khan-al-hilali/s37/a171-173/high.mp4",
+          "r2Key": "clips/ashiq-ur-rahman/hafs-an-asim/saheeh-international/s37/a171-173/high.mp4",
           "md5": "2fee8d8563b018d74cf0eb671b987a5e"
         }
       ],
@@ -983,7 +983,7 @@
         "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali"
       ],
       "37": [
-        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali"
+        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__saheeh-international"
       ],
       "47": [
         "s47_a67-70__mahmood-al-husary__warsh-an-nafi__khan-al-hilali"
@@ -1064,7 +1064,7 @@
         "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali"
       ],
       "ashiq-ur-rahman": [
-        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali"
+        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__saheeh-international"
       ],
       "peshawa-kurdi": [
         "s57_a16-16__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
@@ -1109,7 +1109,7 @@
         "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
         "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
         "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
-        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali",
+        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__saheeh-international",
         "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
         "s57_a16-16__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
         "s57_a16-17__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
@@ -1154,7 +1154,6 @@
         "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
         "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
         "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
-        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali",
         "s47_a67-70__mahmood-al-husary__warsh-an-nafi__khan-al-hilali",
         "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
         "s57_a16-16__peshawa-kurdi__hafs-an-asim__khan-al-hilali",
@@ -1163,7 +1162,8 @@
       ],
       "saheeh-international": [
         "s9_a46-47__muhammad-mustafa-mahaameed__hafs-an-asim__saheeh-international",
-        "s9_a46-48__saud-ash-shuraim__hafs-an-asim__saheeh-international"
+        "s9_a46-48__saud-ash-shuraim__hafs-an-asim__saheeh-international",
+        "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__saheeh-international"
       ]
     }
   }

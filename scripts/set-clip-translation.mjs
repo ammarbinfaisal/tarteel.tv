@@ -52,16 +52,43 @@ function parseArgs(argv) {
   return { args, rest };
 }
 
-function toInt(value) {
-  if (value == null || value === "") return null;
-  const n = Number(value);
-  return Number.isInteger(n) ? n : null;
+function slugify(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function normalizeTranslation(value) {
+  const s = slugify(value);
+  if (s === "saheeh-international") return s;
+  if (s === "khan-al-hilali") return s;
+  if (s === "khan-hilali") return "khan-al-hilali";
+  if (s === "khan-hilali-translation") return "khan-al-hilali";
+  if (s === "khan-al-hilali-translation") return "khan-al-hilali";
+  return s;
+}
+
+function assertTranslation(value) {
+  const t = normalizeTranslation(value);
+  if (t !== "saheeh-international" && t !== "khan-al-hilali") {
+    throw new Error(`Invalid --translation: ${value}`);
+  }
+  return t;
 }
 
 function requiredEnv(name) {
   const v = process.env[name];
   if (!v) throw new Error(`Missing env ${name}`);
   return v;
+}
+
+function toInt(value) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isInteger(n) ? n : null;
 }
 
 function sleep(ms) {
@@ -132,7 +159,6 @@ async function makeS3Client() {
 }
 
 function encodeCopySource(bucket, key) {
-  // CopySource must be URL-encoded, but slashes should remain slashes.
   const encodedKey = encodeURIComponent(key).replace(/%2F/g, "/");
   return `${bucket}/${encodedKey}`;
 }
@@ -151,11 +177,17 @@ async function headKey(key) {
   }
 }
 
-async function copyKey({ fromKey, toKey }) {
+async function copyKey({ fromKey, toKey, overwrite }) {
   await ensureDepsForR2();
   const { CopyObjectCommand } = await import("@aws-sdk/client-s3");
   const Bucket = requiredEnv("R2_BUCKET");
   const client = await makeS3Client();
+
+  if (!overwrite) {
+    const exists = await headKey(toKey);
+    if (exists) return { copied: false, reason: "dest-exists" };
+  }
+
   await client.send(
     new CopyObjectCommand({
       Bucket,
@@ -164,6 +196,7 @@ async function copyKey({ fromKey, toKey }) {
       MetadataDirective: "COPY"
     })
   );
+  return { copied: true };
 }
 
 async function deleteKey(key) {
@@ -174,193 +207,146 @@ async function deleteKey(key) {
   await client.send(new DeleteObjectCommand({ Bucket, Key: key }));
 }
 
-function extractTranslationSegment(r2Key) {
-  const m = String(r2Key ?? "").match(/\/(saheeh-international|khan-al-hilali)(?=\/)/);
-  return m ? m[1] : null;
-}
-
-function rewriteTranslationSegment(r2Key, translation) {
+function rewriteTranslationSegmentInR2Key(r2Key, translation) {
   return String(r2Key ?? "").replace(/\/(saheeh-international|khan-al-hilali)(?=\/)/, `/${translation}`);
 }
 
-function otherTranslation(t) {
-  if (t === "khan-al-hilali") return "saheeh-international";
-  if (t === "saheeh-international") return "khan-al-hilali";
-  return null;
+function buildCanonicalId({ surah, ayahStart, ayahEnd, reciterSlug, riwayah, translation }) {
+  return `s${surah}_a${ayahStart}-${ayahEnd}__${reciterSlug}__${riwayah}__${translation}`;
 }
 
-function buildCandidateSourceKeys({ expectedKey, clip }) {
-  const out = [];
-  const expectedTranslation = extractTranslationSegment(expectedKey);
-  if (expectedTranslation) {
-    const other = otherTranslation(expectedTranslation);
-    if (other) out.push(rewriteTranslationSegment(expectedKey, other));
-  }
-
-  // If legacy reciter exists and differs, try swapping that segment too.
-  const legacyReciter = typeof clip?.reciter === "string" ? clip.reciter.trim() : "";
-  const currentReciter = typeof clip?.reciterSlug === "string" ? clip.reciterSlug.trim() : "";
-  if (legacyReciter && currentReciter && legacyReciter !== currentReciter) {
-    // Replace only the first occurrence of `/${currentReciter}/` to avoid unexpected replacements.
-    const swapped = expectedKey.replace(`/${currentReciter}/`, `/${legacyReciter}/`);
-    if (swapped !== expectedKey) out.push(swapped);
-    const swappedTranslation = expectedTranslation ? rewriteTranslationSegment(swapped, otherTranslation(expectedTranslation) ?? expectedTranslation) : null;
-    if (swappedTranslation && swappedTranslation !== swapped) out.push(swappedTranslation);
-  }
-
-  // Common riwayah alias (historical misspelling).
-  const riwayahAliasFrom = "/hafs-an-asim/";
-  const riwayahAliasTo = "/hafs-an-aasim/";
-  if (expectedKey.includes(riwayahAliasFrom)) out.push(expectedKey.replace(riwayahAliasFrom, riwayahAliasTo));
-  if (expectedKey.includes(riwayahAliasTo)) out.push(expectedKey.replace(riwayahAliasTo, riwayahAliasFrom));
-
-  // De-dupe while preserving order.
-  const seen = new Set();
-  return out.filter((k) => {
-    if (!k || k === expectedKey) return false;
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
+async function runIndex() {
+  const { spawn } = await import("node:child_process");
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [path.join(process.cwd(), "scripts/build-index.mjs")], {
+      stdio: "inherit"
+    });
+    child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`index failed (${code})`))));
   });
 }
 
 function printHelp() {
   console.log(`
 Usage:
-  bun scripts/fix-r2-keys.mjs [--jsonl <path>] [--clip-id <id>] [--apply] [--delete-sources] [--limit <n>]
+  bun scripts/set-clip-translation.mjs --id <clipId> --translation <slug> [--jsonl <path>] [--apply] [--apply-r2]
 
 What it does:
-  - Reads clips from JSONL and checks each variant r2Key exists on R2.
-  - If a key is missing, tries common "source" keys (e.g. swap translation segment
-    between saheeh-international <-> khan-al-hilali) and copies the existing object
-    to the expected key.
+  - Updates a single clip in JSONL:
+    - clip.translation
+    - clip.id (canonical, includes translation suffix)
+    - each variant.r2Key translation segment
+  - Rebuilds data/clips.index.json after writing JSONL.
+  - Optionally copies objects on R2 from old keys to new keys.
 
 Flags:
-  --jsonl <path>         (default: data/clips.jsonl)
-  --clip-id <id>         Only process variants for a single clip id
-  --apply                Actually perform CopyObject operations (default: dry-run)
-  --delete-sources       Delete source key after successful copy
-  --limit <n>            Process at most n missing keys
+  --jsonl <path>        (default: data/clips.jsonl)
+  --apply               Write JSONL + rebuild index (default: dry-run)
+  --apply-r2            Copy objects on R2 (requires env + network)
+  --delete-sources      Delete old keys after successful copy (only with --apply-r2)
+  --overwrite           Allow overwriting destination keys on R2 (only with --apply-r2)
 `.trim());
 }
 
 await loadDotEnv();
-
 const { args } = parseArgs(process.argv.slice(2));
 if (args.help) {
   printHelp();
   process.exit(0);
 }
 
+const clipId = typeof args.id === "string" ? args.id.trim() : "";
+if (!clipId) throw new Error("Missing --id");
+if (typeof args.translation !== "string") throw new Error("Missing --translation");
+const translation = assertTranslation(args.translation);
+
 const jsonlPath = typeof args.jsonl === "string" ? args.jsonl : DEFAULT_JSONL_PATH;
 const apply = Boolean(args.apply);
+const applyR2 = Boolean(args["apply-r2"]);
 const deleteSources = Boolean(args["delete-sources"]);
-const limit = toInt(args.limit);
-const clipId = typeof args["clip-id"] === "string" ? args["clip-id"].trim() : "";
+const overwrite = Boolean(args.overwrite);
 
 const raw = await fs.readFile(jsonlPath, "utf8");
 const lines = raw.split(/\r?\n/).filter((l) => l.trim());
 const clips = lines.map((l) => JSON.parse(l));
 
-const tasks = [];
-for (const clip of clips) {
-  if (clipId && clip?.id !== clipId) continue;
-  if (!Array.isArray(clip?.variants)) continue;
+const idx = clips.findIndex((c) => c?.id === clipId);
+if (idx === -1) throw new Error(`Clip not found: ${clipId}`);
+
+const clip = clips[idx];
+const oldId = clip.id;
+const oldTranslation = clip.translation;
+const oldVariantKeys = (clip.variants ?? []).map((v) => v?.r2Key).filter(Boolean);
+
+if (!clip.reciterSlug && clip.reciter) clip.reciterSlug = clip.reciter;
+if (!clip.riwayah) clip.riwayah = "hafs-an-asim";
+
+clip.translation = translation;
+clip.id = buildCanonicalId({
+  surah: clip.surah,
+  ayahStart: clip.ayahStart,
+  ayahEnd: clip.ayahEnd,
+  reciterSlug: clip.reciterSlug,
+  riwayah: clip.riwayah,
+  translation: clip.translation
+});
+
+if (Array.isArray(clip.variants)) {
   for (const v of clip.variants) {
-    const key = v?.r2Key;
-    if (!key) continue;
-    tasks.push({ clip, key });
+    if (!v?.r2Key) continue;
+    v.r2Key = rewriteTranslationSegmentInR2Key(v.r2Key, translation);
   }
 }
 
-requiredEnv("R2_ENDPOINT");
-requiredEnv("R2_ACCESS_KEY_ID");
-requiredEnv("R2_SECRET_ACCESS_KEY");
-requiredEnv("R2_BUCKET");
-await ensureDepsForR2();
+const newId = clip.id;
+const newVariantKeys = (clip.variants ?? []).map((v) => v?.r2Key).filter(Boolean);
 
-let checked = 0;
-let alreadyOk = 0;
-let missing = 0;
-let fixed = 0;
-let notFixable = 0;
-let deleted = 0;
+const newIds = new Set(clips.map((c) => c.id));
+if (newIds.size !== clips.length) {
+  throw new Error("Duplicate clip id detected in JSONL (before write).");
+}
 
-for (const { clip, key: expectedKey } of tasks) {
-  checked++;
-  let exists = false;
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      exists = await headKey(expectedKey);
-      break;
-    } catch (err) {
-      if (attempt < 3 && isRetryableNetworkError(err)) {
-        await sleep(500 * attempt);
-        continue;
-      }
-      throw err;
+console.log(JSON.stringify({ oldId, newId, oldTranslation, newTranslation: translation }, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      variants: oldVariantKeys.map((k, i) => ({ from: k, to: newVariantKeys[i] ?? null }))
+    },
+    null,
+    2
+  )
+);
+
+if (applyR2) {
+  requiredEnv("R2_ENDPOINT");
+  requiredEnv("R2_ACCESS_KEY_ID");
+  requiredEnv("R2_SECRET_ACCESS_KEY");
+  requiredEnv("R2_BUCKET");
+  await ensureDepsForR2();
+
+  for (let i = 0; i < oldVariantKeys.length; i++) {
+    const fromKey = oldVariantKeys[i];
+    const toKey = newVariantKeys[i];
+    if (!fromKey || !toKey || fromKey === toKey) continue;
+
+    const fromExists = await headKey(fromKey);
+    const toExists = await headKey(toKey);
+    if (!fromExists && !toExists) {
+      console.log(`R2: missing both from/to: ${fromKey} -> ${toKey}`);
+      continue;
     }
-  }
+    if (toExists && !overwrite) {
+      console.log(`R2: dest exists, skip: ${toKey}`);
+      continue;
+    }
+    if (!fromExists && toExists) {
+      console.log(`R2: source missing but dest exists, ok: ${toKey}`);
+      continue;
+    }
 
-  if (exists) {
-    alreadyOk++;
-    continue;
-  }
-
-  missing++;
-  if (limit != null && fixed + notFixable >= limit) break;
-
-  const candidates = buildCandidateSourceKeys({ expectedKey, clip });
-  let sourceKey = null;
-  for (const candidate of candidates) {
-    let candidateExists = false;
+    console.log(`R2: copy ${fromKey} -> ${toKey}`);
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        candidateExists = await headKey(candidate);
-        break;
-      } catch (err) {
-        if (attempt < 3 && isRetryableNetworkError(err)) {
-          await sleep(500 * attempt);
-          continue;
-        }
-        throw err;
-      }
-    }
-    if (candidateExists) {
-      sourceKey = candidate;
-      break;
-    }
-  }
-
-  if (!sourceKey) {
-    notFixable++;
-    console.log(`MISSING: ${expectedKey} (clip=${clip.id})`);
-    continue;
-  }
-
-  console.log(`FIXABLE: ${expectedKey} <- ${sourceKey} (clip=${clip.id})`);
-  if (!apply) continue;
-
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      await copyKey({ fromKey: sourceKey, toKey: expectedKey });
-      break;
-    } catch (err) {
-      if (attempt < 3 && isRetryableNetworkError(err)) {
-        await sleep(750 * attempt);
-        continue;
-      }
-      throw err;
-    }
-  }
-
-  fixed++;
-
-  if (deleteSources) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        await deleteKey(sourceKey);
-        deleted++;
+        await copyKey({ fromKey, toKey, overwrite });
         break;
       } catch (err) {
         if (attempt < 3 && isRetryableNetworkError(err)) {
@@ -370,23 +356,36 @@ for (const { clip, key: expectedKey } of tasks) {
         throw err;
       }
     }
+
+    if (deleteSources) {
+      console.log(`R2: delete ${fromKey}`);
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await deleteKey(fromKey);
+          break;
+        } catch (err) {
+          if (attempt < 3 && isRetryableNetworkError(err)) {
+            await sleep(750 * attempt);
+            continue;
+          }
+          throw err;
+        }
+      }
+    }
   }
 }
 
-console.log(
-  JSON.stringify(
-    {
-      jsonl: path.relative(process.cwd(), jsonlPath),
-      checked,
-      alreadyOk,
-      missing,
-      fixed: apply ? fixed : 0,
-      wouldFix: apply ? 0 : missing - notFixable,
-      notFixable,
-      deleted: apply ? deleted : 0,
-      dryRun: !apply
-    },
-    null,
-    2
-  )
+if (!apply) {
+  console.log("Dry-run (pass --apply to write JSONL and rebuild index).");
+  process.exit(0);
+}
+
+const backupPath = path.join(
+  DATA_DIR,
+  `clips.jsonl.bak.${new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-")}`
 );
+await fs.copyFile(jsonlPath, backupPath);
+await fs.writeFile(jsonlPath, clips.map((c) => JSON.stringify(c)).join("\n") + "\n", "utf8");
+console.log(`Wrote ${path.relative(process.cwd(), jsonlPath)} (backup: ${path.relative(process.cwd(), backupPath)})`);
+await runIndex();
+
