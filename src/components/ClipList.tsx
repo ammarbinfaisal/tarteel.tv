@@ -32,7 +32,7 @@ export default function ClipList({ clips, view, filterData }: ClipListProps) {
       view === "grid" ? "grid-cols-3" : "flex flex-col max-w-2xl mx-auto w-full gap-8"
     )}>
       {clips.map((c) => (
-        <ClipCard key={c.id} clip={c} view={view} />
+        <ClipCard key={c.id} clip={c} />
       ))}
     </div>
   );

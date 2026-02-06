@@ -1,8 +1,8 @@
 import ClipList from "@/components/ClipList";
 import { FloatingFilters } from "@/components/FloatingFilters";
-import { listClips, listReciters, listRiwayat, listTranslations } from "@/lib/server/clips";
+import { listClips, listReciters, listRiwayat, listTranslations, getClipById, getRelatedClips } from "@/lib/server/clips";
 import { variantToPublicUrl } from "@/lib/server/r2";
-import type { ClipTranslation } from "@/lib/types";
+import type { Clip, ClipTranslation } from "@/lib/types";
 import { Suspense } from "react";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -27,19 +27,21 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
   const reciterSlug = first(sp, "reciter");
   const riwayah = first(sp, "riwayah");
   const rawTranslation = first(sp, "translation");
+  const clipId = first(sp, "clipId");
   const translation: ClipTranslation | undefined =
     rawTranslation === "saheeh-international" || rawTranslation === "khan-al-hilali"
       ? (rawTranslation as ClipTranslation)
       : undefined;
 
-  const [clipsRaw, reciters, riwayat, translations] = await Promise.all([
+  const [clipsRaw, reciters, riwayat, translations, selectedClipRaw] = await Promise.all([
     listClips({ surah, ayahStart, ayahEnd, reciterSlug: reciterSlug ?? undefined, riwayah, translation }),
     listReciters(),
     listRiwayat(),
-    listTranslations()
+    listTranslations(),
+    clipId ? getClipById(clipId) : Promise.resolve(null)
   ]);
 
-  const clips = clipsRaw.map(clip => ({
+  let clips: Clip[] = clipsRaw.map(clip => ({
     ...clip,
     variants: clip.variants.map(v => ({
       ...v,
@@ -48,6 +50,34 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
   }));
 
   const view = first(sp, "view") === "reel" ? "reel" : "grid";
+
+  if (selectedClipRaw && view === "reel") {
+    const selectedClip: Clip = {
+      ...selectedClipRaw,
+      variants: selectedClipRaw.variants.map(v => ({
+        ...v,
+        url: v.url ?? variantToPublicUrl(v) ?? undefined
+      }))
+    };
+
+    const otherClips = clips.filter(c => c.id !== selectedClip.id);
+    clips = [selectedClip, ...otherClips];
+
+    // If the list is too short, add some related clips
+    if (clips.length < 10) {
+      const relatedRaw = await getRelatedClips(selectedClipRaw, 20);
+      const related = relatedRaw
+        .filter(r => !clips.some(c => c.id === r.id))
+        .map(clip => ({
+          ...clip,
+          variants: clip.variants.map(v => ({
+            ...v,
+            url: v.url ?? variantToPublicUrl(v) ?? undefined
+          }))
+        }));
+      clips = [...clips, ...related];
+    }
+  }
 
   return (
     <div className={view === "reel" ? "p-0" : "py-6 flex flex-col gap-6"}>

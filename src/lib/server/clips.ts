@@ -209,6 +209,34 @@ export async function getClipById(id: string): Promise<Clip | null> {
   return idx.clipsById[id] ?? null;
 }
 
+export async function getRelatedClips(clip: Clip, limit = 10): Promise<Clip[]> {
+  const idx = await getClipIndex();
+  
+  // Try same reciter first
+  const sameReciter = (idx.indexes.byReciterSlug[clip.reciterSlug] ?? [])
+    .filter(id => id !== clip.id)
+    .map(id => idx.clipsById[id]);
+  
+  // Try same surah
+  const sameSurah = (idx.indexes.bySurah[String(clip.surah)] ?? [])
+    .filter(id => id !== clip.id)
+    .map(id => idx.clipsById[id]);
+
+  // Combine
+  const related = [...sameReciter, ...sameSurah];
+  
+  // Remove duplicates
+  const uniqueRelated = Array.from(new Map(related.map(c => [c.id, c])).values());
+  
+  // Shuffle
+  for (let i = uniqueRelated.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [uniqueRelated[i], uniqueRelated[j]] = [uniqueRelated[j], uniqueRelated[i]];
+  }
+
+  return uniqueRelated.slice(0, limit);
+}
+
 export async function listReciters(): Promise<{ slug: string; name: string }[]> {
   const idx = await getClipIndex();
   const slugs = Object.keys(idx.indexes.byReciterSlug).sort((a, b) => a.localeCompare(b));

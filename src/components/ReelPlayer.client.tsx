@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Clip, ClipVariant } from "@/lib/types";
 import { cn, isProbablyMp4, isHls, formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { Share2, ExternalLink, Volume2, VolumeX, Play, Pause, Music, Download } from "lucide-react";
-import Link from "next/link";
+import { Share2, Volume2, VolumeX, Play, Music, Download } from "lucide-react";
 import Hls from "hls.js";
 
 interface ReelPlayerProps {
@@ -104,14 +103,15 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const shareUrl = `${window.location.origin}/?view=reel&clipId=${clip.id}`;
     if (navigator.share) {
       navigator.share({
         title: `Quran Clip: Surah ${clip.surah}:${clip.ayahStart}-${clip.ayahEnd}`,
         text: `Listen to this beautiful recitation by ${clip.reciterName}`,
-        url: `${window.location.origin}/clips/${clip.id}`,
+        url: shareUrl,
       });
     } else {
-      navigator.clipboard.writeText(`${window.location.origin}/clips/${clip.id}`);
+      navigator.clipboard.writeText(shareUrl);
       alert("Link copied to clipboard!");
     }
   };
@@ -263,17 +263,6 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
               onClick={handleShare}
             >
               <Share2 className="h-6 w-6" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 h-12 w-12 border border-white/10"
-              asChild
-            >
-              <Link href={`/clips/${clip.id}`} onClick={(e) => e.stopPropagation()}>
-                <ExternalLink className="h-6 w-6" />
-              </Link>
             </Button>
           </div>
         </div>

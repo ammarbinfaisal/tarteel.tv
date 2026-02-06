@@ -34,7 +34,7 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
 
     const observerOptions = {
       root: container,
-      threshold: 0.6, // More than 60% of the item must be visible
+      threshold: 0.6,
     };
 
     const handleIntersection = (entries: IntersectionObserverEntry[]) => {
@@ -63,49 +63,59 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
         ref={containerRef}
         className="fixed inset-0 bg-black overflow-y-scroll snap-y snap-mandatory z-30 scrollbar-hide"
       >
-        {clips.map((clip, index) => (
-          <div 
-            key={clip.id} 
-            data-reel-item 
-            data-index={index}
-            className="h-screen w-full snap-start"
-          >
-            <ReelPlayer 
-              clip={clip} 
-              isActive={index === activeIndex} 
-              isMuted={isMuted}
-              onMuteChange={setIsMuted}
-              filterButton={
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button 
-                      variant="ghost"
-                      size="icon" 
-                      className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Filter className="h-6 w-6" />
-                      <span className="sr-only">Filters</span>
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[70vh] rounded-t-[32px] border-none bg-background/80 backdrop-blur-2xl px-6">
-                    <div className="w-12 h-1.5 bg-muted-foreground/20 rounded-full mx-auto mb-6" />
-                    <SheetHeader className="mb-6">
-                      <SheetTitle className="text-xl font-bold">Refine Clips</SheetTitle>
-                    </SheetHeader>
-                    <div className="overflow-y-auto h-full pb-20 scrollbar-hide">
-                      <ClipFilters 
-                        reciters={filterData.reciters} 
-                        riwayat={filterData.riwayat} 
-                        translations={filterData.translations} 
-                      />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              }
-            />
-          </div>
-        ))}
+        {clips.map((clip, index) => {
+          const isVisible = Math.abs(index - activeIndex) <= 1;
+          
+          return (
+            <div 
+              key={clip.id} 
+              data-reel-item 
+              data-index={index}
+              className="h-screen w-full snap-start"
+            >
+              {isVisible ? (
+                <ReelPlayer 
+                  clip={clip} 
+                  isActive={index === activeIndex} 
+                  isMuted={isMuted}
+                  onMuteChange={setIsMuted}
+                  filterButton={
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button 
+                          variant="ghost"
+                          size="icon" 
+                          className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Filter className="h-6 w-6" />
+                          <span className="sr-only">Filters</span>
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="bottom" className="h-[70vh] rounded-t-[32px] border-none bg-background/80 backdrop-blur-2xl px-6">
+                        <div className="w-12 h-1.5 bg-muted-foreground/20 rounded-full mx-auto mb-6" />
+                        <SheetHeader className="mb-6">
+                          <SheetTitle className="text-xl font-bold">Refine Clips</SheetTitle>
+                        </SheetHeader>
+                        <div className="overflow-y-auto h-full pb-20 scrollbar-hide">
+                          <ClipFilters 
+                            reciters={filterData.reciters} 
+                            riwayat={filterData.riwayat} 
+                            translations={filterData.translations} 
+                          />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  }
+                />
+              ) : (
+                <div className="h-full w-full bg-black flex items-center justify-center">
+                   <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </>
   );
