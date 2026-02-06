@@ -1,7 +1,7 @@
 {
   "version": 3,
-  "generatedAt": "2026-02-06T14:22:18.925Z",
-  "clipCount": 42,
+  "generatedAt": "2026-02-06T14:32:38.846Z",
+  "clipCount": 41,
   "clipsById": {
     "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali": {
       "id": "s3_a25-27__abu-hajar-al-iraqi__hafs-an-asim__khan-al-hilali",
@@ -628,7 +628,7 @@
         }
       ],
       "reciterName": "Maher al-Mu'aiqly",
-      "reciterSlug": "maher-al-mu-aiqly"
+      "reciterSlug": "maher-al-muaiqly"
     },
     "s22_a73-73__maher__hafs-an-asim__khan-al-hilali": {
       "id": "s22_a73-73__maher__hafs-an-asim__khan-al-hilali",
@@ -649,7 +649,7 @@
         }
       ],
       "reciterName": "Maher al-Mu'aiqly",
-      "reciterSlug": "maher"
+      "reciterSlug": "maher-al-muaiqly"
     },
     "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali": {
       "id": "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
@@ -670,7 +670,7 @@
         }
       ],
       "reciterName": "Maher al-Mu'aiqly",
-      "reciterSlug": "maher-al-mu-aiqly"
+      "reciterSlug": "maher-al-muaiqly"
     },
     "s24_a22-22__maher-al-muaiqly__hafs-an-asim__khan-al-hilali": {
       "id": "s24_a22-22__maher-al-muaiqly__hafs-an-asim__khan-al-hilali",
@@ -762,29 +762,6 @@
       ],
       "reciterName": "Muhammad Bouhassoune",
       "reciterSlug": "muhammad-bouhassoune"
-    },
-    "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali": {
-      "id": "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
-      "surah": 29,
-      "ayahStart": 43,
-      "ayahEnd": 45,
-      "reciter": "aashaam-shafeeq",
-      "riwayah": "hafs-an-asim",
-      "translation": "khan-al-hilali",
-      "variants": [
-        {
-          "quality": "low",
-          "r2Key": "clips/aashaam-shafeeq/hafs-an-asim/khan-al-hilali/s29/a43-45/low.mp4",
-          "md5": "e19187a4613bfaa1c115152f67aaee1a"
-        },
-        {
-          "quality": "high",
-          "r2Key": "clips/aashaam-shafeeq/hafs-an-asim/khan-al-hilali/s29/a43-45/high.mp4",
-          "md5": "636eee7523d6e9d0a246042d997ec014"
-        }
-      ],
-      "reciterName": "Aashaam Shafeeq",
-      "reciterSlug": "aashaam-shafeeq"
     },
     "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali": {
       "id": "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
@@ -1003,7 +980,6 @@
         "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali"
       ],
       "29": [
-        "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
         "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali"
       ],
       "37": [
@@ -1052,6 +1028,9 @@
       ],
       "maher-al-muaiqly": [
         "s7_a55-56__maher-al-muaiqly__hafs-an-asim__khan-al-hilali",
+        "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
+        "s22_a73-73__maher__hafs-an-asim__khan-al-hilali",
+        "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
         "s24_a22-22__maher-al-muaiqly__hafs-an-asim__khan-al-hilali"
       ],
       "muhammad-mustafa-mahaameed": [
@@ -1073,13 +1052,6 @@
       "muhammad-siddeeq-al-minshawi": [
         "s14_a34-34__muhammad-siddeeq-al-minshawi__hafs-an-asim__khan-al-hilali"
       ],
-      "maher-al-mu-aiqly": [
-        "s22_a39-40__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali",
-        "s22_a73-73__maher-al-mu-aiqly__hafs-an-asim__khan-al-hilali"
-      ],
-      "maher": [
-        "s22_a73-73__maher__hafs-an-asim__khan-al-hilali"
-      ],
       "abdullah-al-juhany": [
         "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
         "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali"
@@ -1089,7 +1061,6 @@
         "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali"
       ],
       "aashaam-shafeeq": [
-        "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
         "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali"
       ],
       "ashiq-ur-rahman": [
@@ -1137,7 +1108,6 @@
         "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
         "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
         "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
-        "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
         "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
         "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali",
         "s49_a1-2__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
@@ -1183,7 +1153,6 @@
         "s28_a62-63__abdullah-al-juhany__hafs-an-asim__khan-al-hilali",
         "s28_a64-67__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
         "s28_a74-75__muhammad-bouhassoune__hafs-an-asim__khan-al-hilali",
-        "s29_a43-45__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
         "s29_a69-69__aashaam-shafeeq__hafs-an-asim__khan-al-hilali",
         "s37_a171-173__ashiq-ur-rahman__hafs-an-asim__khan-al-hilali",
         "s47_a67-70__mahmood-al-husary__warsh-an-nafi__khan-al-hilali",

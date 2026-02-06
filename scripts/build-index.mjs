@@ -19,6 +19,17 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function canonicalizeReciterSlug(slug) {
+  const map = {
+    maher: "maher-al-muaiqly",
+    "maher-al-muaiqly": "maher-al-muaiqly",
+    "maher-al-mu-aiqly": "maher-al-muaiqly",
+    "maher-al-mu-aiqlee": "maher-al-muaiqly",
+    "maher-al-mu-aiqli": "maher-al-muaiqly"
+  };
+  return map[slug] ?? slug;
+}
+
 function normalizeReciterName(value) {
   const raw = String(value ?? "").trim().replace(/\s+/g, " ");
   if (!raw) return "";
@@ -83,6 +94,8 @@ function deriveReciterFields(clip) {
     reciterSlug = slugify(reciterSlugRaw);
     reciterName = normalizeReciterName(reciterSlugRaw);
   }
+
+  reciterSlug = canonicalizeReciterSlug(reciterSlug);
 
   if (canonicalBySlug[reciterSlug]) reciterName = canonicalBySlug[reciterSlug];
 

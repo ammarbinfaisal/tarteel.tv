@@ -20,6 +20,17 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function canonicalizeReciterSlug(slug: string) {
+  const map: Record<string, string> = {
+    maher: "maher-al-muaiqly",
+    "maher-al-muaiqly": "maher-al-muaiqly",
+    "maher-al-mu-aiqly": "maher-al-muaiqly",
+    "maher-al-mu-aiqlee": "maher-al-muaiqly",
+    "maher-al-mu-aiqli": "maher-al-muaiqly"
+  };
+  return map[slug] ?? slug;
+}
+
 function normalizeReciterName(value: string) {
   const raw = String(value ?? "").trim().replace(/\s+/g, " ");
   if (!raw) return "";
@@ -79,6 +90,7 @@ function deriveReciterFromJsonlClip(c: any): { reciterSlug: string; reciterName:
     }
   }
 
+  reciterSlug = canonicalizeReciterSlug(reciterSlug);
   if (canonicalBySlug[reciterSlug]) reciterName = canonicalBySlug[reciterSlug];
   return { reciterSlug, reciterName };
 }
@@ -162,7 +174,10 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
 
   const sets: Set<string>[] = [];
   if (filters.surah != null) sets.push(new Set(idx.indexes.bySurah[String(filters.surah)] ?? []));
-  if (filters.reciterSlug) sets.push(new Set(idx.indexes.byReciterSlug[filters.reciterSlug] ?? []));
+  if (filters.reciterSlug) {
+    const slug = canonicalizeReciterSlug(filters.reciterSlug);
+    sets.push(new Set(idx.indexes.byReciterSlug[slug] ?? []));
+  }
   if (filters.riwayah) sets.push(new Set(idx.indexes.byRiwayah[filters.riwayah] ?? []));
   if (filters.translation) sets.push(new Set(idx.indexes.byTranslation[filters.translation] ?? []));
 

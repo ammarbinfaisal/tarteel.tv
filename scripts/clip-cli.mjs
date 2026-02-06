@@ -126,6 +126,17 @@ function normalizeReciterName(value) {
   return tokens.join(" ");
 }
 
+function canonicalizeReciterSlug(slug) {
+  const map = {
+    maher: "maher-al-muaiqly",
+    "maher-al-muaiqly": "maher-al-muaiqly",
+    "maher-al-mu-aiqly": "maher-al-muaiqly",
+    "maher-al-mu-aiqlee": "maher-al-muaiqly",
+    "maher-al-mu-aiqli": "maher-al-muaiqly"
+  };
+  return map[slug] ?? slug;
+}
+
 function deriveReciter({ reciterArg, reciterNameArg, reciterSlugArg }) {
   const canonicalBySlug = {
     maher: "Maher al-Mu'aiqly",
@@ -140,12 +151,13 @@ function deriveReciter({ reciterArg, reciterNameArg, reciterSlugArg }) {
 
   if (nameInput) {
     const reciterName = normalizeReciterName(nameInput);
-    const reciterSlug = slugInput ? slugify(slugInput) : slugify(reciterName);
+    let reciterSlug = slugInput ? slugify(slugInput) : slugify(reciterName);
+    reciterSlug = canonicalizeReciterSlug(reciterSlug);
     return { reciterName: canonicalBySlug[reciterSlug] ?? reciterName, reciterSlug };
   }
 
   if (slugInput) {
-    const reciterSlug = slugify(slugInput);
+    const reciterSlug = canonicalizeReciterSlug(slugify(slugInput));
     const reciterName = canonicalBySlug[reciterSlug] ?? normalizeReciterName(reciterSlug.replace(/-/g, " "));
     return { reciterName, reciterSlug };
   }
@@ -154,12 +166,12 @@ function deriveReciter({ reciterArg, reciterNameArg, reciterSlugArg }) {
   if (!r) return { reciterName: "", reciterSlug: "" };
   const looksLikeSlug = /^[a-z0-9-]+$/.test(r);
   if (looksLikeSlug) {
-    const reciterSlug = slugify(r);
+    const reciterSlug = canonicalizeReciterSlug(slugify(r));
     const reciterName = canonicalBySlug[reciterSlug] ?? normalizeReciterName(reciterSlug.replace(/-/g, " "));
     return { reciterName, reciterSlug };
   }
   const reciterName = normalizeReciterName(r);
-  const reciterSlug = slugify(reciterName);
+  const reciterSlug = canonicalizeReciterSlug(slugify(reciterName));
   return { reciterName: canonicalBySlug[reciterSlug] ?? reciterName, reciterSlug };
 }
 
