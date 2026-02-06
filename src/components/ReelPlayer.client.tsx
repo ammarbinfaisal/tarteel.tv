@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Clip, ClipVariant } from "@/lib/types";
-import { cn, isProbablyMp4, formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
+import { cn, isProbablyMp4, isHls, formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Share2, ExternalLink, Volume2, VolumeX, Play, Pause, Music, Download } from "lucide-react";
 import Link from "next/link";
+import Hls from "hls.js";
 
 interface ReelPlayerProps {
   clip: Clip;
@@ -17,16 +18,49 @@ interface ReelPlayerProps {
 
 export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filterButton }: ReelPlayerProps) {
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const variants = clip.variants;
 
-  // Find high quality if available, otherwise any
-  const chosenVariant = variants.find(v => v.quality === "high") || variants[0];
+  // Prefer HLS for Reels if available
+  const chosenVariant = variants.find(v => v.quality === "hls") || variants.find(v => v.quality === "high") || variants[0];
   const src = chosenVariant?.url;
-  const isVideo = isProbablyMp4(src) || isProbablyMp4(chosenVariant?.r2Key);
+  const isVideo = isProbablyMp4(src) || isProbablyMp4(chosenVariant?.r2Key) || isHls(src) || isHls(chosenVariant?.r2Key);
+
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media || !src || !isHls(src)) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      return;
+    }
+
+    if (Hls.isSupported()) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+      const hls = new Hls({
+        capLevelToPlayerSize: true,
+      });
+      hls.loadSource(src);
+      hls.attachMedia(media);
+      hlsRef.current = hls;
+    } else if (media.canPlayType("application/vnd.apple.mpegurl")) {
+      (media as HTMLVideoElement).src = src;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [src]);
 
   useEffect(() => {
     const media = mediaRef.current;
@@ -114,7 +148,7 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
       {isVideo ? (
         <video
           ref={mediaRef as React.RefObject<HTMLVideoElement>}
-          src={src}
+          src={isHls(src) ? undefined : src}
           className="h-full w-full object-contain"
           loop
           playsInline
@@ -128,7 +162,7 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
           </div>
           <audio
             ref={mediaRef as React.RefObject<HTMLAudioElement>}
-            src={src}
+            src={isHls(src) ? undefined : src}
             loop
             muted={isMuted}
             onTimeUpdate={handleTimeUpdate}
@@ -194,7 +228,7 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
                </h2>
                <div className="flex items-center gap-2">
                  <span className="px-1 py-0 rounded bg-white/5 backdrop-blur-md text-[7px] font-bold text-white/30 uppercase tracking-tighter border border-white/5">
-                   {clip.variants.find(v => v.quality === "high") ? "HD" : "SD"}
+                   {clip.variants.some(v => ["hls", "high", "4", "3"].includes(v.quality)) ? "HD" : "SD"}
                  </span>
                </div>
             </div>

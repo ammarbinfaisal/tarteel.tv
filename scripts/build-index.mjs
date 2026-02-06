@@ -124,14 +124,16 @@ function assertClip(clip) {
   if (
     clip.translation != null &&
     clip.translation !== "saheeh-international" &&
-    clip.translation !== "khan-al-hilali"
+    clip.translation !== "khan-al-hilali" &&
+    clip.translation !== "abu-iyaad"
   ) {
     throw new Error(`Clip.translation invalid for id=${clip.id}`);
   }
   if (!Array.isArray(clip.variants) || clip.variants.length === 0) throw new Error(`Clip.variants invalid for id=${clip.id}`);
   for (const v of clip.variants) {
     if (!v || typeof v !== "object") throw new Error(`Variant invalid for id=${clip.id}`);
-    if (v.quality !== "low" && v.quality !== "high") throw new Error(`Variant.quality invalid for id=${clip.id}`);
+    const validQualities = ["high", "hls"];
+    if (!validQualities.includes(v.quality)) throw new Error(`Variant.quality invalid for id=${clip.id}`);
     if (typeof v.r2Key !== "string" || !v.r2Key) throw new Error(`Variant.r2Key invalid for id=${clip.id}`);
     if (v.md5 != null && (typeof v.md5 !== "string" || !/^[a-f0-9]{32}$/i.test(v.md5)))
       throw new Error(`Variant.md5 invalid for id=${clip.id}`);

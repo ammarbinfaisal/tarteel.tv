@@ -15,6 +15,16 @@ export function isProbablyMp4(urlOrKey: string | null | undefined) {
   }
 }
 
+export function isHls(urlOrKey: string | null | undefined) {
+  if (!urlOrKey) return false;
+  try {
+    const u = new URL(urlOrKey);
+    return u.pathname.toLowerCase().endsWith(".m3u8");
+  } catch {
+    return urlOrKey.toLowerCase().split("?")[0].endsWith(".m3u8");
+  }
+}
+
 export const translationMap: Record<string, string> = {
   "saheeh-international": "Saheeh International",
   "khan-al-hilali": "Khan & al-Hilali",

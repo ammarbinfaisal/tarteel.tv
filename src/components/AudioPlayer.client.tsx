@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { ClipQuality, ClipVariant } from "@/lib/types";
 import {
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import Hls from "hls.js";
 
 function isProbablyMp4(urlOrKey: string) {
   try {
@@ -21,17 +22,44 @@ function isProbablyMp4(urlOrKey: string) {
   }
 }
 
-function pickInitialQuality(variants: ClipVariant[]): ClipQuality {
-  const hasLow = variants.some((v) => v.quality === "low");
-  const hasHigh = variants.some((v) => v.quality === "high");
-  if (!hasLow && hasHigh) return "high";
-  if (!hasHigh && hasLow) return "low";
+function isHls(urlOrKey: string) {
+  try {
+    const u = new URL(urlOrKey);
+    return u.pathname.toLowerCase().endsWith(".m3u8");
+  } catch {
+    return urlOrKey.toLowerCase().split("?")[0].endsWith(".m3u8");
+  }
+}
 
+function pickInitialQuality(variants: ClipVariant[]): ClipQuality {
+  // Prefer HLS for automatic adaptive streaming if available
+  const hasHls = variants.some((v) => v.quality === "hls");
+  if (hasHls) return "hls";
+
+  const hasLow = variants.some((v) => v.quality === "low" || v.quality === "1");
+  const hasHigh = variants.some((v) => v.quality === "high" || v.quality === "4");
+  
   const conn = (navigator as any).connection;
   const effectiveType = typeof conn?.effectiveType === "string" ? conn.effectiveType : null;
-  if (effectiveType && ["slow-2g", "2g", "3g"].includes(effectiveType)) return "low";
-  return "high";
+  
+  if (effectiveType && ["slow-2g", "2g", "3g"].includes(effectiveType)) {
+    return (variants.find(v => v.quality === "low")?.quality || variants.find(v => v.quality === "1")?.quality || variants[0].quality) as ClipQuality;
+  }
+  
+  return (variants.find(v => v.quality === "high")?.quality || variants.find(v => v.quality === "4")?.quality || variants[0].quality) as ClipQuality;
 }
+
+const QUALITY_LABELS: Record<string, string> = {
+  hls: "Auto (ABR)",
+  low: "1 (Low)",
+  "1": "1 (Low)",
+  "2": "2 (Med-Low)",
+  "3": "3 (Med-High)",
+  high: "4 (High)",
+  "4": "4 (High)",
+};
+
+const QUALITY_ORDER = ["hls", "low", "1", "2", "3", "high", "4"];
 
 export default function AudioPlayer({ 
   clipId, 
@@ -46,6 +74,8 @@ export default function AudioPlayer({
 }) {
   const [quality, setQuality] = useState<ClipQuality>(() => pickInitialQuality(variants));
   const [stableVhPx, setStableVhPx] = useState<number | null>(null);
+  const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
   useEffect(() => {
     const setOnce = () => setStableVhPx(window.innerHeight);
@@ -69,13 +99,48 @@ export default function AudioPlayer({
 
   const useVideo = useMemo(() => {
     if (!chosen) return false;
-    if (chosen.url && isProbablyMp4(chosen.url)) return true;
-    if (chosen.r2Key && isProbablyMp4(chosen.r2Key)) return true;
+    if (chosen.url && (isProbablyMp4(chosen.url) || isHls(chosen.url))) return true;
+    if (chosen.r2Key && (isProbablyMp4(chosen.r2Key) || isHls(chosen.r2Key))) return true;
     return false;
   }, [chosen]);
 
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media || !src || !isHls(src)) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      return;
+    }
+
+    if (Hls.isSupported()) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+      const hls = new Hls({
+        capLevelToPlayerSize: true,
+      });
+      hls.loadSource(src);
+      hls.attachMedia(media);
+      hlsRef.current = hls;
+    } else if (media.canPlayType("application/vnd.apple.mpegurl")) {
+      // Native HLS (Safari)
+      media.src = src;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [src]);
+
   const qualities = useMemo(
-    () => Array.from(new Set(variants.map((v) => v.quality))).sort() as ClipQuality[],
+    () => 
+      Array.from(new Set(variants.map((v) => v.quality)))
+        .sort((a, b) => QUALITY_ORDER.indexOf(a) - QUALITY_ORDER.indexOf(b)) as ClipQuality[],
     [variants]
   );
 
@@ -86,13 +151,13 @@ export default function AudioPlayer({
           <div className="flex items-center gap-2">
             <Label className="text-muted-foreground text-xs">Quality</Label>
             <Select value={quality} onValueChange={(v) => setQuality(v as ClipQuality)}>
-              <SelectTrigger className="h-8 w-24">
+              <SelectTrigger className="h-8 w-32">
                 <SelectValue placeholder="Quality" />
               </SelectTrigger>
               <SelectContent>
                 {qualities.map((q) => (
                   <SelectItem key={q} value={q}>
-                    {q.toUpperCase()}
+                    {QUALITY_LABELS[q] || q.toUpperCase()}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -111,19 +176,21 @@ export default function AudioPlayer({
           }
         >
           <video
+            ref={mediaRef as React.RefObject<HTMLVideoElement>}
             controls
             preload="metadata"
             playsInline
             className={mode === "clip-page" ? "clip-media" : "w-full rounded-lg shadow-inner bg-black aspect-video"}
-            src={src || undefined}
+            src={isHls(src) ? undefined : (src || undefined)}
           />
         </div>
       ) : (
         <audio 
+          ref={mediaRef as React.RefObject<HTMLAudioElement>}
           controls 
           preload="metadata" 
           className="w-full" 
-          src={src || undefined} 
+          src={isHls(src) ? undefined : (src || undefined)} 
         />
       )}
 

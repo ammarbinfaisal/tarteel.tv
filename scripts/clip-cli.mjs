@@ -84,6 +84,8 @@ function normalizeRiwayah(value) {
   return s;
 }
 
+const VALID_TRANSLATIONS = ["saheeh-international", "khan-al-hilali", "abu-iyaad"];
+
 function normalizeTranslation(value) {
   const s = slugify(value);
   if (s === "saheeh-international") return s;
@@ -91,6 +93,7 @@ function normalizeTranslation(value) {
   if (s === "khan-hilali") return "khan-al-hilali";
   if (s === "khan-hilali-translation") return "khan-al-hilali";
   if (s === "khan-al-hilali-translation") return "khan-al-hilali";
+  if (s === "abu-iyaad") return s;
   return s;
 }
 
@@ -178,7 +181,9 @@ function deriveReciter({ reciterArg, reciterNameArg, reciterSlugArg }) {
 function validateTranslationFlag(value) {
   if (value == null) return null;
   const normalized = normalizeTranslation(value);
-  if (normalized !== "saheeh-international" && normalized !== "khan-al-hilali") throw new Error("Invalid translation");
+  if (!VALID_TRANSLATIONS.includes(normalized)) {
+    throw new Error(`Invalid translation: ${normalized}. Valid options: ${VALID_TRANSLATIONS.join(", ")}`);
+  }
   return normalized;
 }
 
@@ -187,14 +192,14 @@ function rewriteTranslationSuffixInId(id, translation) {
   const parts = id.split("__");
   if (parts.length < 4) return id;
   const last = parts[parts.length - 1];
-  if (last !== "saheeh-international" && last !== "khan-al-hilali") return id;
+  if (!VALID_TRANSLATIONS.includes(last)) return id;
   parts[parts.length - 1] = translation;
   return parts.join("__");
 }
 
 function rewriteTranslationSegmentInR2Key(r2Key, translation) {
   if (typeof r2Key !== "string" || !r2Key) return r2Key;
-  return r2Key.replace(/\/(saheeh-international|khan-al-hilali)(?=\/)/, `/${translation}`);
+  return r2Key.replace(/\/(saheeh-international|khan-al-hilali|abu-iyaad)(?=\/)/, `/${translation}`);
 }
 
 async function ensureJsonlFile() {
@@ -535,6 +540,30 @@ async function uploadToR2WithMd5({ key, filePath, contentType, md5Hex, overwrite
   }
 }
 
+async function uploadDirToR2({ localDir, remotePrefix, overwrite }) {
+  const entries = await fs.readdir(localDir, { recursive: true, withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const fullPath = path.join(entry.parentPath, entry.name);
+    const relPath = path.relative(localDir, fullPath);
+    const key = `${remotePrefix.replace(/\/+$/, "")}/${relPath.replace(/\\/g, "/")}`;
+    const ext = path.extname(entry.name).toLowerCase();
+    let contentType = "application/octet-stream";
+    if (ext === ".m3u8") contentType = "application/x-mpegURL";
+    else if (ext === ".ts") contentType = "video/MP2T";
+    else if (ext === ".mp4") contentType = "video/mp4";
+    
+    // For segments, we might skip MD5 for speed if there are many, 
+    // but for now let's keep it simple.
+    await uploadToR2WithMd5({
+      key,
+      filePath: fullPath,
+      contentType,
+      overwrite
+    });
+  }
+}
+
 async function deleteFromR2(keys) {
   await ensureDepsForUpload();
   const { DeleteObjectsCommand } = await import("@aws-sdk/client-s3");
@@ -626,6 +655,41 @@ async function transcodeLowMp4({ inputPath, outputPath, height, crf, audioKbps }
   });
 }
 
+async function transcodeHls({ inputPath, outputDir }) {
+  const { spawn } = await import("node:child_process");
+  await fs.mkdir(outputDir, { recursive: true });
+
+  // 3 levels: 360p, 720p, Source
+  const args = [
+    "-y",
+    "-i", inputPath,
+    // Level 0: 360p
+    "-map", "0:v", "-map", "0:a", "-s:v:0", "640x360", "-c:v:0", "libx264", "-b:v:0", "400k", "-maxrate:v:0", "440k", "-bufsize:v:0", "800k",
+    // Level 1: 720p
+    "-map", "0:v", "-map", "0:a", "-s:v:1", "1280x720", "-c:v:1", "libx264", "-b:v:1", "1500k", "-maxrate:v:1", "1650k", "-bufsize:v:1", "3000k",
+    // Level 2: Source
+    "-map", "0:v", "-map", "0:a", "-c:v:2", "libx264", "-b:v:2", "3000k", "-maxrate:v:2", "3300k", "-bufsize:v:2", "6000k",
+    
+    "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
+    
+    "-f", "hls",
+    "-hls_time", "6",
+    "-hls_playlist_type", "vod",
+    "-hls_segment_type", "fmp4",
+    "-hls_flags", "single_file",
+    "-master_pl_name", "master.m3u8",
+    "-hls_segment_filename", path.join(outputDir, "v%v/stream.mp4"),
+    "-var_stream_map", "v:0,a:0 v:1,a:1 v:2,a:2",
+    path.join(outputDir, "v%v/index.m3u8")
+  ];
+
+  await new Promise((resolve, reject) => {
+    const child = spawn("ffmpeg", args, { stdio: "inherit" });
+    child.on("error", (err) => reject(err));
+    child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg HLS failed (${code})`))));
+  });
+}
+
 async function addClip({ args }) {
   const rl = readline.createInterface({ input, output });
   try {
@@ -649,18 +713,20 @@ async function addClip({ args }) {
     if (!reciterSlug) throw new Error("Invalid reciter");
     if (!reciterName) throw new Error("Invalid reciter name");
     if (!riwayah) throw new Error("Invalid riwayah");
-    if (translation !== "saheeh-international" && translation !== "khan-al-hilali") throw new Error("Invalid translation");
+    if (!VALID_TRANSLATIONS.includes(translation)) throw new Error(`Invalid translation: ${translation}`);
     const lowKey = typeof args["low-key"] === "string" ? args["low-key"].trim() : "";
     const highKey = typeof args["high-key"] === "string" ? args["high-key"].trim() : "";
+    const hlsKey = typeof args["hls-key"] === "string" ? args["hls-key"].trim() : "";
 
     const variants = [];
-    if (lowKey) variants.push({ quality: "low", r2Key: lowKey });
     if (highKey) variants.push({ quality: "high", r2Key: highKey });
+    if (hlsKey) variants.push({ quality: "hls", r2Key: hlsKey });
 
     if (variants.length === 0) {
-      const quality = (args.quality ?? (await rl.question("Quality (low|high): "))).trim();
+      const quality = (args.quality ?? (await rl.question("Quality (high|hls): "))).trim();
       const r2Key = (args["r2-key"] ?? (await rl.question("R2 key (e.g. clips/.../high.mp3): "))).trim();
-      if (quality !== "low" && quality !== "high") throw new Error("Invalid quality");
+      const validQualities = ["high", "hls"];
+      if (!validQualities.includes(quality)) throw new Error("Invalid quality");
       if (!r2Key) throw new Error("Invalid r2 key");
       variants.push({ quality, r2Key });
     }
@@ -689,7 +755,9 @@ async function addClip({ args }) {
 
 async function ingestClip({ args }) {
   const rl = readline.createInterface({ input, output });
-  let tempLowPath = null;
+  const tempPaths = [];
+  let hlsDir = null;
+
   try {
     const inputPath = (args.input ?? (await rl.question("Input file path (mp4/mp3, high quality): "))).trim();
     if (!inputPath) throw new Error("Missing --input");
@@ -720,30 +788,29 @@ async function ingestClip({ args }) {
     if (!reciterSlug) throw new Error("Invalid reciter");
     if (!reciterName) throw new Error("Invalid reciter name");
     if (!riwayah) throw new Error("Invalid riwayah");
-    if (translation !== "saheeh-international" && translation !== "khan-al-hilali") throw new Error("Invalid translation");
+    if (!VALID_TRANSLATIONS.includes(translation)) throw new Error(`Invalid translation: ${translation}`);
 
     const baseKey = baseR2Key({ prefix, reciterSlug, riwayah, translation, surah, ayahStart, ayahEnd });
     const highKey = `${baseKey}/high${ext}`;
+    const level3Key = `${baseKey}/3${ext}`;
+    const level2Key = `${baseKey}/2${ext}`;
     const lowKey = `${baseKey}/low${ext}`;
+    const hlsPrefix = `${baseKey}/hls`;
 
     const id = idArg || `s${surah}_a${ayahStart}-${ayahEnd}__${reciterSlug}__${riwayah}__${translation}`;
 
     const highMd5 = await md5FileHex(inputPath);
+    const variants = [{ quality: "high", r2Key: highKey, md5: highMd5 }];
 
     if (ext === ".mp3") {
-      const bitrateKbps = toInt(args["low-kbps"]) ?? 48;
-      tempLowPath = path.join(os.tmpdir(), `${id.replace(/[^a-z0-9_-]+/gi, "_")}.low.mp3`);
-      console.log(`Generating low quality mp3 (${bitrateKbps}kbps): ${tempLowPath}`);
-      await transcodeLowMp3({ inputPath, outputPath: tempLowPath, bitrateKbps });
+      // For audio, we still just use the high quality source
     } else {
-      const height = toInt(args["low-height"]) ?? 720;
-      const crf = toInt(args["low-crf"]) ?? 30;
-      const audioKbps = toInt(args["low-audio-kbps"]) ?? 64;
-      tempLowPath = path.join(os.tmpdir(), `${id.replace(/[^a-z0-9_-]+/gi, "_")}.low.mp4`);
-      console.log(`Generating low quality mp4 (${height}p crf=${crf} aac=${audioKbps}k): ${tempLowPath}`);
-      await transcodeLowMp4({ inputPath, outputPath: tempLowPath, height, crf, audioKbps });
+      // HLS
+      hlsDir = path.join(os.tmpdir(), `${id.replace(/[^a-z0-9_-]+/gi, "_")}_hls`);
+      console.log(`Generating HLS (3 variants) in: ${hlsDir}`);
+      await transcodeHls({ inputPath, outputDir: hlsDir });
+      variants.push({ quality: "hls", r2Key: `${hlsPrefix}/master.m3u8` });
     }
-    const lowMd5 = await md5FileHex(tempLowPath);
 
     const upload = args["no-upload"] ? false : true;
     if (upload) {
@@ -755,14 +822,11 @@ async function ingestClip({ args }) {
         md5Hex: highMd5,
         overwrite
       });
-      console.log(`Uploading to R2: ${lowKey}`);
-      await uploadToR2WithMd5({
-        key: lowKey,
-        filePath: tempLowPath,
-        contentType: contentTypeForExt(ext),
-        md5Hex: lowMd5,
-        overwrite
-      });
+
+      if (hlsDir) {
+        console.log(`Uploading HLS directory to R2: ${hlsPrefix}`);
+        await uploadDirToR2({ localDir: hlsDir, remotePrefix: hlsPrefix, overwrite });
+      }
     } else {
       console.log("Skipping upload (--no-upload).");
     }
@@ -776,10 +840,7 @@ async function ingestClip({ args }) {
       reciterName,
       riwayah,
       translation,
-      variants: [
-        { quality: "low", r2Key: lowKey, md5: lowMd5 },
-        { quality: "high", r2Key: highKey, md5: highMd5 }
-      ]
+      variants
     };
 
     await ensureJsonlFile();
@@ -789,9 +850,16 @@ async function ingestClip({ args }) {
     await runIndex();
   } finally {
     rl.close();
-    if (tempLowPath) {
+    for (const p of tempPaths) {
       try {
-        await fs.unlink(tempLowPath);
+        await fs.unlink(p);
+      } catch {
+        // ignore
+      }
+    }
+    if (hlsDir) {
+      try {
+        await fs.rm(hlsDir, { recursive: true, force: true });
       } catch {
         // ignore
       }
@@ -1015,10 +1083,10 @@ Add flags:
   --reciter-slug <slug>       (optional; overrides derived slug)
   --riwayah <slug>            (default: hafs-an-asim)
   --translation <slug>        (default: khan-al-hilali)
-  --low-key <string>          (optional)
-  --high-key <string>         (optional)
-  --quality <low|high>        (used when low/high keys omitted)
-  --r2-key <string>           (used when low/high keys omitted)
+  --high-key <string>
+  --hls-key <string>
+  --quality <high|hls>        (used when specific keys omitted)
+  --r2-key <string>           (used when specific keys omitted)
 
 Ingest flags:
   --input <path.(mp4|mp3)>    (required)
@@ -1026,10 +1094,6 @@ Ingest flags:
   --reciter <name|slug>
   --reciter-name <name>       (optional; overrides --reciter)
   --reciter-slug <slug>       (optional; overrides derived slug)
-  --low-kbps <number>         (default: 48, mp3 only)
-  --low-height <number>       (default: 720, mp4 only)
-  --low-crf <number>          (default: 30, mp4 only)
-  --low-audio-kbps <number>   (default: 64, mp4 only)
   --overwrite                 (replace keys if mismatch)
   --no-upload                 (skip R2 upload)
 
