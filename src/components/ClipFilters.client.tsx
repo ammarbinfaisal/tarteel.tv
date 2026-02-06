@@ -12,7 +12,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { formatSlug, formatTranslation } from "@/lib/utils";
+import { formatSlug, formatTranslation, surahNames } from "@/lib/utils";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type Props = {
   reciters: { slug: string; name: string }[];
@@ -29,6 +44,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
   const router = useRouter();
   const sp = useSearchParams();
   const [, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
 
   const initial = useMemo(
     () => ({
@@ -99,13 +115,52 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="surah">Surah</Label>
-          <Input
-            id="surah"
-            inputMode="numeric"
-            placeholder="1-114"
-            value={form.surah}
-            onChange={(e) => update("surah", e.target.value)}
-          />
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between font-normal"
+              >
+                {form.surah
+                  ? `${form.surah}. ${surahNames[parseInt(form.surah) - 1]}`
+                  : "Select Surah..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+              <Command>
+                <CommandInput placeholder="Search surah..." />
+                <CommandList>
+                  <CommandEmpty>No surah found.</CommandEmpty>
+                  <CommandGroup>
+                    {surahNames.map((name, index) => {
+                      const num = index + 1;
+                      return (
+                        <CommandItem
+                          key={num}
+                          value={`${num} ${name}`}
+                          onSelect={() => {
+                            update("surah", String(num));
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              form.surah === String(num) ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {num}. {name}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

@@ -189,9 +189,26 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
   for (const id of ids) {
     const clip = idx.clipsById[id];
     if (!clip) continue;
-    if (filters.ayahStart != null && clip.ayahStart !== filters.ayahStart) continue;
-    if (filters.ayahEnd != null && clip.ayahEnd !== filters.ayahEnd) continue;
-    clips.push(clip);
+    
+    // Ayah range filtering (overlap logic)
+    let isPartial = false;
+    if (filters.ayahStart != null || filters.ayahEnd != null) {
+      const fStart = filters.ayahStart ?? (filters.ayahEnd != null ? filters.ayahEnd : 1);
+      const fEnd = filters.ayahEnd ?? (filters.ayahStart != null ? filters.ayahStart : 999);
+      
+      if (!(clip.ayahStart <= fEnd && clip.ayahEnd >= fStart)) {
+        continue;
+      }
+
+      // It's a partial match if it's not EXACTLY the same range
+      // e.g. user asks for 10-15, clip is 9-16 -> partial
+      // e.g. user asks for 10, clip is 10-12 -> partial
+      if (clip.ayahStart !== fStart || clip.ayahEnd !== fEnd) {
+        isPartial = true;
+      }
+    }
+
+    clips.push({ ...clip, isPartial });
   }
 
   clips.sort((a, b) => {

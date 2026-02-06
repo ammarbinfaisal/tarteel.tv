@@ -19,6 +19,7 @@ export type Clip = {
   riwayah?: string;
   translation?: ClipTranslation;
   variants: ClipVariant[];
+  isPartial?: boolean;
 };
 
 export type ClipIndexV3 = {
