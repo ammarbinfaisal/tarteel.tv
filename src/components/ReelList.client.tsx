@@ -43,6 +43,21 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
         return;
       }
 
+      // Don't interfere with scrollable elements in portals/modals
+      const target = e.target as HTMLElement;
+      if (!container.contains(target) || document.body.style.overflow === "hidden") {
+        return;
+      }
+
+      // If we're scrolling inside something that's already scrollable, don't trigger reel scroll
+      let current: HTMLElement | null = target;
+      while (current && current !== container) {
+        const style = window.getComputedStyle(current);
+        const isScrollable = (style.overflowY === "auto" || style.overflowY === "scroll") && current.scrollHeight > current.clientHeight;
+        if (isScrollable) return;
+        current = current.parentElement;
+      }
+
       // Only handle significant vertical scrolls
       if (Math.abs(e.deltaY) < 30) return;
 
