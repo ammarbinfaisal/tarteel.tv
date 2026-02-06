@@ -25,7 +25,7 @@ export default function ClipList({ clips, view, filterData }: ClipListProps) {
             <div className="space-y-2">
               <h3 className="text-white font-semibold text-lg">No recitations found</h3>
               <p className="text-white/50 text-sm">
-                We couldn't find any clips matching your current filters. Try adjusting your criteria.
+                We couldn&apos;t find any clips matching your current filters. Try adjusting your criteria.
               </p>
             </div>
             <div className="mt-4 pointer-events-auto">
