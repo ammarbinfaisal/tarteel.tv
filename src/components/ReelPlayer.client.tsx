@@ -51,7 +51,6 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
         // Be more aggressive with quality switching
         abrBandWidthFactor: 0.9,
         abrBandWidthUpFactor: 0.7,
-        abrMaxVaryingBandwidth: 0,
       });
       hls.loadSource(src);
       hls.attachMedia(media);
