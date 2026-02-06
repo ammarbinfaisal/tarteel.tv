@@ -53,7 +53,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
     <div className={view === "reel" ? "p-0" : "py-6 flex flex-col gap-6"}>
       {view !== "reel" && (
         <div className="flex flex-col gap-1 px-2">
-          <h1 className="text-2xl font-bold tracking-tight">Discover Clips</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Quran Recitation Clips</h1>
           <p className="text-muted-foreground text-sm">
             {clips.length} recitation{clips.length === 1 ? "" : "s"} found
           </p>
