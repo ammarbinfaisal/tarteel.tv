@@ -1,44 +1,30 @@
 import ClipList from "@/components/ClipList";
 import { FloatingFilters } from "@/components/FloatingFilters";
 import { listClips, listReciters, listRiwayat, listTranslations, getClipById, getRelatedClips } from "@/lib/server/clips";
+import { searchParamsCache } from "@/lib/searchparams.server";
 import { variantToPublicUrl } from "@/lib/server/r2";
 import type { Clip, ClipTranslation } from "@/lib/types";
 import { Suspense } from "react";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-function first(sp: SearchParams, key: string): string | undefined {
-  const v = sp[key];
-  return Array.isArray(v) ? v[0] : v;
-}
-
-function toInt(v: string | undefined): number | undefined {
-  if (!v) return undefined;
-  const n = Number(v);
-  if (!Number.isInteger(n)) return undefined;
-  return n;
-}
-
 export default async function Home({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const sp = await searchParams;
-  const surah = toInt(first(sp, "surah"));
-  const ayahStart = toInt(first(sp, "start"));
-  const ayahEnd = toInt(first(sp, "end"));
-  const reciterSlug = first(sp, "reciter");
-  const riwayah = first(sp, "riwayah");
-  const rawTranslation = first(sp, "translation");
-  const clipId = first(sp, "clipId");
-  const translation: ClipTranslation | undefined =
-    rawTranslation === "saheeh-international" || rawTranslation === "khan-al-hilali"
-      ? (rawTranslation as ClipTranslation)
-      : undefined;
+  const { surah, start, end, reciter, riwayah, translation, view, clipId } = await searchParamsCache.parse(searchParams);
+  const translationFilter: ClipTranslation | undefined = translation ?? undefined;
 
   const [clipsRaw, reciters, riwayat, translations, selectedClipRaw] = await Promise.all([
-    listClips({ surah, ayahStart, ayahEnd, reciterSlug: reciterSlug ?? undefined, riwayah, translation }),
+    listClips({
+      surah: surah ?? undefined,
+      ayahStart: start ?? undefined,
+      ayahEnd: end ?? undefined,
+      reciterSlug: reciter ?? undefined,
+      riwayah: riwayah ?? undefined,
+      translation: translationFilter,
+    }),
     listReciters(),
     listRiwayat(),
     listTranslations(),
-    clipId ? getClipById(clipId) : Promise.resolve(null)
+    clipId && view === "reel" ? getClipById(clipId) : Promise.resolve(null)
   ]);
 
   let clips: Clip[] = clipsRaw.map(clip => ({
@@ -48,8 +34,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
       url: v.url ?? variantToPublicUrl(v) ?? undefined
     }))
   }));
-
-  const view = first(sp, "view") === "reel" ? "reel" : "grid";
 
   if (selectedClipRaw && view === "reel") {
     const selectedClip: Clip = {

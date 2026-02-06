@@ -5,6 +5,7 @@ import Script from "next/script";
 import "@/app/globals.css";
 import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import NuqsProvider from "@/components/NuqsProvider.client";
 
 export const metadata: Metadata = {
   title: {
@@ -65,10 +66,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           forcedTheme="dark"
           disableTransitionOnChange
         >
-          <Suspense fallback={<div className="h-14 border-b bg-background" />}>
-            <Header />
-          </Suspense>
-          <main className="container">{children}</main>
+          <NuqsProvider>
+            <Suspense fallback={<div className="h-14 border-b bg-background" />}>
+              <Header />
+            </Suspense>
+            <main className="container">{children}</main>
+          </NuqsProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { ViewModeToggle } from "./ViewModeToggle";
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useQueryState } from "nuqs";
 import { cn } from "@/lib/utils";
+import { searchParamsParsers } from "@/lib/searchparams";
 
 export default function Header() {
-  const searchParams = useSearchParams();
-  const isReelView = searchParams.get("view") === "reel";
+  const [view] = useQueryState("view", searchParamsParsers.view);
+  const isReelView = view === "reel";
 
   return (
     <header className={cn(

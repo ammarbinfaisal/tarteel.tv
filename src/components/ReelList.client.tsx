@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQueryState } from "nuqs";
 import type { Clip } from "@/lib/types";
 import ReelPlayer from "./ReelPlayer.client";
 import { Filter } from "lucide-react";
@@ -13,6 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import ClipFilters from "./ClipFilters.client";
+import { searchParamsParsers } from "@/lib/searchparams";
 
 interface ReelListProps {
   clips: Clip[];
@@ -27,6 +29,7 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [clipId, setClipId] = useQueryState("clipId", searchParamsParsers.clipId);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -55,6 +58,18 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
       children.forEach((child) => observer.unobserve(child));
       observer.disconnect();
     };
+  }, [clips]);
+
+  useEffect(() => {
+    const activeId = clips[activeIndex]?.id;
+    if (!activeId) return;
+    if (activeId === clipId) return;
+    setClipId(activeId, { history: "replace", shallow: true });
+  }, [activeIndex, clipId, clips, setClipId]);
+
+  useEffect(() => {
+    setActiveIndex(0);
+    containerRef.current?.scrollTo({ top: 0 });
   }, [clips]);
 
   return (

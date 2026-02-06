@@ -119,7 +119,7 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const shareUrl = `${window.location.origin}/?view=reel&clipId=${clip.id}`;
+    const shareUrl = window.location.href;
     if (navigator.share) {
       navigator.share({
         title: `Quran Clip: Surah ${clip.surah}:${clip.ayahStart}-${clip.ayahEnd}`,

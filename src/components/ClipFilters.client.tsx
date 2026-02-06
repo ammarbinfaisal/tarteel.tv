@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useQueryStates } from "nuqs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,6 +28,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { searchParamsParsers } from "@/lib/searchparams";
 
 type Props = {
   reciters: { slug: string; name: string }[];
@@ -35,80 +36,55 @@ type Props = {
   translations: string[];
 };
 
-function toParam(v: string) {
-  const t = v.trim();
-  return t ? t : null;
+function toOptionalPositiveInt(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^\d+$/.test(trimmed)) return null;
+  const n = Number(trimmed);
+  if (!Number.isInteger(n) || n < 1) return null;
+  return n;
 }
 
 export default function ClipFilters({ reciters, riwayat, translations }: Props) {
-  const router = useRouter();
-  const sp = useSearchParams();
-  const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
 
-  const initial = useMemo(
-    () => ({
-      surah: sp.get("surah") ?? "",
-      start: sp.get("start") ?? "",
-      end: sp.get("end") ?? "",
-      reciter: sp.get("reciter") ?? "",
-      riwayah: sp.get("riwayah") ?? "",
-      translation: sp.get("translation") ?? ""
-    }),
-    [sp]
-  );
+  const [query, setQuery] = useQueryStates(searchParamsParsers);
 
-  const [form, setForm] = useState(initial);
+  const update = (
+    values: Partial<Pick<typeof query, "surah" | "start" | "end" | "reciter" | "riwayah" | "translation">>
+  ) => {
+    setQuery(
+      (old) => ({
+        ...values,
+        ...(old.view === "reel" ? { clipId: null } : {}),
+      }),
+      { history: "replace", shallow: false, scroll: true }
+    );
+  };
 
-  useEffect(() => {
-    setForm(initial);
-  }, [initial]);
+  const reset = () => {
+    setQuery(
+      (old) => ({
+        surah: null,
+        start: null,
+        end: null,
+        reciter: null,
+        riwayah: null,
+        translation: null,
+        ...(old.view === "reel" ? { clipId: null } : {}),
+      }),
+      { history: "replace", shallow: false, scroll: true }
+    );
+  };
 
-  function apply(next: typeof form) {
-    const params = new URLSearchParams();
-    const surah = toParam(next.surah);
-    const start = toParam(next.start);
-    const end = toParam(next.end);
-    const reciter = toParam(next.reciter);
-    const riwayah = toParam(next.riwayah);
-    const translation = toParam(next.translation);
-
-    if (surah) params.set("surah", surah);
-    if (start) params.set("start", start);
-    if (end) params.set("end", end);
-    if (reciter) params.set("reciter", reciter);
-    if (riwayah) params.set("riwayah", riwayah);
-    if (translation) params.set("translation", translation);
-
-    // Preserve view mode
-    const view = sp.get("view");
-    if (view) params.set("view", view);
-
-    const qs = params.toString();
-    startTransition(() => router.replace(qs ? `/?${qs}` : "/"));
-  }
-
-  function update<K extends keyof typeof form>(key: K, value: string) {
-    let finalValue = value;
-    if (value === "all-reciters" || value === "all-riwayah" || value === "no-translation") {
-      finalValue = "";
-    }
-    const next = { ...form, [key]: finalValue };
-    setForm(next);
-    apply(next);
-  }
-
-  function reset() {
-    const next = { surah: "", start: "", end: "", reciter: "", riwayah: "", translation: "" };
-    setForm(next);
-    
-    const params = new URLSearchParams();
-    const view = sp.get("view");
-    if (view) params.set("view", view);
-    
-    const qs = params.toString();
-    startTransition(() => router.replace(qs ? `/?${qs}` : "/"));
-  }
+  const form = {
+    surah: query.surah ? String(query.surah) : "",
+    start: query.start ? String(query.start) : "",
+    end: query.end ? String(query.end) : "",
+    reciter: query.reciter ?? "",
+    riwayah: query.riwayah ?? "",
+    translation: query.translation ?? "",
+  };
 
   return (
     <div className="flex flex-col gap-6 p-1">
@@ -142,7 +118,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
                           key={num}
                           value={`${num} ${name}`}
                           onSelect={() => {
-                            update("surah", String(num));
+                            update({ surah: num });
                             setOpen(false);
                           }}
                         >
@@ -171,7 +147,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
               inputMode="numeric"
               placeholder="e.g. 1"
               value={form.start}
-              onChange={(e) => update("start", e.target.value)}
+              onChange={(e) => update({ start: toOptionalPositiveInt(e.target.value) })}
             />
           </div>
           <div className="grid gap-2">
@@ -181,7 +157,7 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
               inputMode="numeric"
               placeholder="e.g. 7"
               value={form.end}
-              onChange={(e) => update("end", e.target.value)}
+              onChange={(e) => update({ end: toOptionalPositiveInt(e.target.value) })}
             />
           </div>
         </div>
@@ -190,7 +166,10 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label>Reciter</Label>
-          <Select value={form.reciter || "all-reciters"} onValueChange={(v) => update("reciter", v)}>
+          <Select
+            value={form.reciter || "all-reciters"}
+            onValueChange={(v) => update({ reciter: v === "all-reciters" ? null : v })}
+          >
             <SelectTrigger>
               <SelectValue placeholder="All Reciters" />
             </SelectTrigger>
@@ -207,7 +186,10 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
 
         <div className="grid gap-2">
           <Label>Riwayah</Label>
-          <Select value={form.riwayah || "all-riwayah"} onValueChange={(v) => update("riwayah", v)}>
+          <Select
+            value={form.riwayah || "all-riwayah"}
+            onValueChange={(v) => update({ riwayah: v === "all-riwayah" ? null : v })}
+          >
             <SelectTrigger>
               <SelectValue placeholder="All Riwayah" />
             </SelectTrigger>
@@ -224,7 +206,14 @@ export default function ClipFilters({ reciters, riwayat, translations }: Props) 
 
         <div className="grid gap-2">
           <Label>Translation</Label>
-          <Select value={form.translation || "no-translation"} onValueChange={(v) => update("translation", v)}>
+          <Select
+            value={form.translation || "no-translation"}
+            onValueChange={(v) =>
+              update({
+                translation: v === "no-translation" ? null : (v as NonNullable<typeof query.translation>),
+              })
+            }
+          >
             <SelectTrigger>
               <SelectValue placeholder="No Translation" />
             </SelectTrigger>

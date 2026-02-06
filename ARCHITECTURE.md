@@ -81,7 +81,7 @@ The web app (`src/lib/server/clips.ts`) loads the index once per process using R
 
 - Filters are **URL search params** (`surah`, `start`, `end`, `reciter`, `riwayah`, `translation`, plus `view`/`clipId`).
 - Server component route (`src/app/page.tsx`) calls `listClips(...)` and resolves public media URLs on the server.
-- Client-side filters (`src/components/ClipFilters.client.tsx`) update the URL with `router.replace(...)`, triggering a server re-render (no JSON API needed).
+- URL state is managed with `nuqs` (Next.js App Router adapter), so client components update query state via `useQueryState(s)` while the server parses it via `createSearchParamsCache`.
 
 ## Playback model
 

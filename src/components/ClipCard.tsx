@@ -4,18 +4,20 @@ import Link from "next/link";
 import { Play, Layers } from "lucide-react";
 import type { Clip } from "@/lib/types";
 import { getSurahName } from "@/lib/utils";
-import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { useQueryStates } from "nuqs";
+import { searchParamsParsers, serialize } from "@/lib/searchparams";
 
 export default function ClipCard({ clip }: { clip: Clip }) {
-  const searchParams = useSearchParams();
+  const [query] = useQueryStates(searchParamsParsers);
   const variants = clip.variants;
 
   const getReelUrl = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("view", "reel");
-    params.set("clipId", clip.id);
-    return `/?${params.toString()}`;
+    return serialize("/", {
+      ...query,
+      view: "reel",
+      clipId: clip.id,
+    });
   };
 
   const videoUrl = variants.find(v => v.quality === "low")?.url || variants[0]?.url;

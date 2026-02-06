@@ -2,20 +2,27 @@
 
 import * as React from "react"
 import { LayoutGrid, Film } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useQueryStates } from "nuqs"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { searchParamsParsers } from "@/lib/searchparams"
 
 export function ViewModeToggle() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const view = searchParams.get("view") === "reel" ? "reel" : "grid"
+  const [{ view }, setQuery] = useQueryStates({
+    view: searchParamsParsers.view,
+    clipId: searchParamsParsers.clipId,
+  })
 
   const setView = (newView: "grid" | "reel") => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("view", newView)
-    router.push(`?${params.toString()}`)
+    if (newView === view) return
+    setQuery(
+      {
+        view: newView,
+        ...(newView === "grid" ? { clipId: null } : {}),
+      },
+      { history: "push", shallow: false, scroll: true }
+    )
   }
 
   return (
