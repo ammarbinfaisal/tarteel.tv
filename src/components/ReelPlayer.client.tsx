@@ -140,9 +140,13 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (src) {
+    // Use high quality variant for download instead of HLS
+    const downloadVariant = variants.find(v => v.quality === "high") || variants.find(v => v.quality === "4") || variants[0];
+    const downloadUrl = downloadVariant?.url;
+
+    if (downloadUrl) {
       const link = document.createElement('a');
-      link.href = src;
+      link.href = downloadUrl;
       link.download = `quran-clip-${clip.id}.mp4`;
       link.target = '_blank';
       document.body.appendChild(link);
