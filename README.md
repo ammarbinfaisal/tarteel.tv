@@ -1,0 +1,55 @@
+# tarteel.tv
+
+Catalog a library of Quran recitation clips with metadata (surah, ayah range, reciter, optional qira'at/riwayah) and audio stored in Cloudflare R2 (or any public base URL).
+
+- Web app: Next.js App Router (`src/app`) with server components for data fetching + client components for interactivity and playback.
+- Metadata source of truth: `data/clips.jsonl`
+- Generated index for fast queries: `data/clips.index.json` (built by `bun run index`)
+- CLI: `bun run clip -- ...` (adds clips to JSONL and rebuilds the index)
+
+See `ARCHITECTURE.md` for the full design and folder responsibilities.
+
+## Quickstart
+
+1. Install deps: `bun i`
+2. Build the index: `bun run index`
+3. Set env: copy `.env.example` → `.env.local` and fill `R2_PUBLIC_BASE_URL`
+4. Run: `bun run dev`
+
+## Add a clip
+
+- Interactive: `bun run clip -- add`
+- Flags (single variant):
+  - `bun run clip -- add --surah 1 --start 1 --end 7 --reciter mishary-alafasy --quality high --r2-key clips/.../high.mp3`
+- Flags (both variants):
+  - `bun run clip -- add --surah 1 --start 1 --end 7 --reciter mishary-alafasy --low-key clips/.../low.mp3 --high-key clips/.../high.mp3`
+
+## Ingest (auto low-quality + upload)
+
+Creates a low-quality variant with `ffmpeg`, uploads both `high` (your input) and `low` to R2, then appends metadata.
+
+- Video (mp4): `bun run clip -- ingest --input ./clips/high.mp4 --surah 1 --start 1 --end 7 --reciter mishary-alafasy --translation saheeh-international`
+- Audio (mp3): `bun run clip -- ingest --input ./clips/high.mp3 --surah 1 --start 1 --end 7 --reciter mishary-alafasy --translation saheeh-international`
+- Single-ayah clip: set `--end` equal to `--start` (or omit `--end` and it defaults to `--start`)
+- Requires `.env.local` (or env) vars: `R2_BUCKET`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
+- Requires `ffmpeg` on your PATH
+
+Optional upload tuning (env):
+- `R2_UPLOAD_ATTEMPTS` (default `3`)
+- `R2_MAX_ATTEMPTS` (default `5`, per-request)
+- `R2_PART_SIZE_MB` (default `10`)
+- `R2_QUEUE_SIZE` (default `4`)
+
+## Remove a clip (cleanup)
+
+Removes the JSONL entry (rewrites `data/clips.jsonl`, creates a backup) and deletes the clip variant objects from R2.
+
+- Dry run: `bun run clip -- remove --id <clip_id> --dry-run`
+- Delete: `bun run clip -- remove --id <clip_id>`
+- Non-interactive: add `--yes`
+
+## MD5 de-dup / sync
+
+- `ingest` computes `md5` for `high` and `low`, stores it in JSONL, and uploads to R2 with object metadata `md5` so future ingests can skip uploading when the key already has identical content.
+- If a key already exists but the remote `md5` can’t be determined, `ingest` refuses to overwrite unless you pass `--overwrite`.
+- Fill missing `md5` fields from R2: `bun run clip -- sync-md5` (uses `HeadObject` metadata/ETag; if an old object has no md5 metadata, it may not be recoverable without downloading).
