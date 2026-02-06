@@ -73,10 +73,10 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
-      }
-    };
-  }, [src]);
-
+              }
+            };
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+          }, [src]);
   useEffect(() => {
     const media = mediaRef.current;
     if (!media) return;

@@ -61,7 +61,7 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
     <>
       <div 
         ref={containerRef}
-        className="fixed inset-0 bg-black overflow-y-scroll snap-y snap-mandatory z-30 scrollbar-hide"
+        className="fixed inset-0 bg-black overflow-y-scroll snap-y snap-mandatory z-30 scrollbar-hide overscroll-contain"
       >
         {clips.map((clip, index) => {
           const isVisible = Math.abs(index - activeIndex) <= 1;
@@ -71,7 +71,7 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
               key={clip.id} 
               data-reel-item 
               data-index={index}
-              className="h-screen w-full snap-start"
+              className="h-full w-full snap-start snap-normal"
             >
               {isVisible ? (
                 <ReelPlayer 
