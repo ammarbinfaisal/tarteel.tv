@@ -21,6 +21,8 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
 
   const variants = clip.variants;
 
@@ -57,7 +59,7 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
       hlsRef.current = hls;
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (isActive && media) {
+        if (isActiveRef.current && media) {
           media.play().catch(() => {
              // Autoplay might be blocked until interaction
           });
