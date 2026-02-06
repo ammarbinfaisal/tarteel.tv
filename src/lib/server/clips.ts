@@ -226,14 +226,88 @@ export async function getClipById(id: string): Promise<Clip | null> {
   return idx.clipsById[id] ?? null;
 }
 
+/**
+ * Calculates a similarity score between two clips.
+ * Higher score = more similar.
+ *
+ * Tier 1 (1000): Same surah OR same reciter OR both (all equal priority)
+ * Tier 2 (200-149): Close surah (distance 1-3)
+ * Tier 3 (100-59): Medium distance (4-10)
+ * Tier 4 (0-49): Far surahs
+ */
+function calculateSimilarityScore(reference: Clip, candidate: Clip): number {
+  const isSameReciter = reference.reciterSlug === candidate.reciterSlug;
+  const isSameSurah = reference.surah === candidate.surah;
+  const surahDistance = Math.abs(reference.surah - candidate.surah);
+
+  // Tier 1: Same surah OR same reciter OR both = all equal priority
+  // They will be randomized together in the same tier
+  if (isSameSurah || isSameReciter) {
+    return 1000;
+  }
+
+  // Tier 2: Close surah (distance 1-3)
+  if (surahDistance <= 3) {
+    return 200 - (surahDistance * 17);
+  }
+
+  // Tier 3: Medium distance (4-10)
+  if (surahDistance <= 10) {
+    return 100 - (surahDistance * 6);
+  }
+
+  // Tier 4: Far surahs
+  return Math.max(0, 50 - surahDistance);
+}
+
+/**
+ * Orders clips by similarity to a reference clip with controlled randomness.
+ * Clips are grouped into similarity tiers, and randomized within each tier.
+ */
+export function orderBySimilarity(reference: Clip, clips: Clip[]): Clip[] {
+  // Calculate scores
+  const clipsWithScores = clips.map(clip => ({
+    clip,
+    score: calculateSimilarityScore(reference, clip)
+  }));
+
+  // Group by score tiers (buckets of 100 points)
+  const tierMap = new Map<number, typeof clipsWithScores>();
+  for (const item of clipsWithScores) {
+    const tier = Math.floor(item.score / 100);
+    if (!tierMap.has(tier)) {
+      tierMap.set(tier, []);
+    }
+    tierMap.get(tier)!.push(item);
+  }
+
+  // Sort tiers descending
+  const sortedTiers = Array.from(tierMap.entries())
+    .sort((a, b) => b[0] - a[0]);
+
+  // Shuffle within each tier and combine
+  const result: Clip[] = [];
+  for (const [, tierClips] of sortedTiers) {
+    // Shuffle this tier
+    const shuffled = [...tierClips];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    result.push(...shuffled.map(item => item.clip));
+  }
+
+  return result;
+}
+
 export async function getRelatedClips(clip: Clip, limit = 10): Promise<Clip[]> {
   const idx = await getClipIndex();
-  
+
   // Try same reciter first
   const sameReciter = (idx.indexes.byReciterSlug[clip.reciterSlug] ?? [])
     .filter(id => id !== clip.id)
     .map(id => idx.clipsById[id]);
-  
+
   // Try same surah
   const sameSurah = (idx.indexes.bySurah[String(clip.surah)] ?? [])
     .filter(id => id !== clip.id)
@@ -241,17 +315,14 @@ export async function getRelatedClips(clip: Clip, limit = 10): Promise<Clip[]> {
 
   // Combine
   const related = [...sameReciter, ...sameSurah];
-  
+
   // Remove duplicates
   const uniqueRelated = Array.from(new Map(related.map(c => [c.id, c])).values());
-  
-  // Shuffle
-  for (let i = uniqueRelated.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [uniqueRelated[i], uniqueRelated[j]] = [uniqueRelated[j], uniqueRelated[i]];
-  }
 
-  return uniqueRelated.slice(0, limit);
+  // Order by similarity instead of random shuffle
+  const ordered = orderBySimilarity(clip, uniqueRelated);
+
+  return ordered.slice(0, limit);
 }
 
 export async function listReciters(): Promise<{ slug: string; name: string }[]> {

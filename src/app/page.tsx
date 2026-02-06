@@ -1,6 +1,6 @@
 import ClipList from "@/components/ClipList";
 import { FloatingFilters } from "@/components/FloatingFilters";
-import { listClips, listReciters, listRiwayat, listTranslations, getClipById, getRelatedClips } from "@/lib/server/clips";
+import { listClips, listReciters, listRiwayat, listTranslations, getClipById, getRelatedClips, orderBySimilarity } from "@/lib/server/clips";
 import { searchParamsCache } from "@/lib/searchparams.server";
 import { variantToPublicUrl } from "@/lib/server/r2";
 import type { Clip, ClipTranslation } from "@/lib/types";
@@ -44,8 +44,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
       }))
     };
 
+    // Order other clips by similarity to the selected clip
     const otherClips = clips.filter(c => c.id !== selectedClip.id);
-    clips = [selectedClip, ...otherClips];
+    const orderedOtherClips = orderBySimilarity(selectedClip, otherClips);
+    clips = [selectedClip, ...orderedOtherClips];
 
     // If the list is too short, add some related clips
     if (clips.length < 10) {
