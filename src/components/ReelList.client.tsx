@@ -31,6 +31,45 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [view] = useQueryState("view", searchParamsParsers.view);
   const [clipId, setClipId] = useQueryState("clipId", searchParamsParsers.clipId);
+  const scrollLocked = useRef(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (scrollLocked.current) {
+        e.preventDefault();
+        return;
+      }
+
+      // Only handle significant vertical scrolls
+      if (Math.abs(e.deltaY) < 30) return;
+
+      e.preventDefault();
+      scrollLocked.current = true;
+
+      const direction = e.deltaY > 0 ? 1 : -1;
+      const nextIndex = Math.max(0, Math.min(clips.length - 1, activeIndex + direction));
+
+      if (nextIndex !== activeIndex) {
+        const target = container.querySelector(`[data-index="${nextIndex}"]`) as HTMLElement;
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+
+      // Unlock after the smooth scroll is likely to have finished
+      setTimeout(() => {
+        scrollLocked.current = false;
+      }, 600);
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, [activeIndex, clips]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -88,7 +127,7 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
               key={clip.id} 
               data-reel-item 
               data-index={index}
-              className="h-full w-full snap-start snap-normal"
+              className="h-full w-full snap-start snap-always"
             >
               {isVisible ? (
                 <ReelPlayer 
