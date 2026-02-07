@@ -23,12 +23,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { searchParamsParsers, type UrlState } from "@/lib/searchparams";
+import { trackEvent } from "@/lib/analytics";
 
 type Props = {
   reciters: { slug: string; name: string }[];
@@ -70,6 +67,14 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
   }, [query.surah, query.start, query.end, query.reciter, query.riwayah, query.translation]);
 
   const apply = () => {
+    trackEvent('apply_filters', {
+      surah_num: localSurah,
+      surah_name: localSurah ? surahNames[localSurah - 1] : null,
+      reciter_slug: localReciter,
+      riwayah: localRiwayah,
+      translation: localTranslation,
+    });
+
     setQuery(
       (old) => ({
         ...old,

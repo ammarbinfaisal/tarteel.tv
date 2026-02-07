@@ -6,6 +6,7 @@ import { cn, isProbablyMp4, isHls, formatSlug, formatTranslation, getSurahName }
 import { Button } from "./ui/button";
 import { Share2, Volume2, VolumeX, Play, Music, Download } from "lucide-react";
 import Hls from "hls.js";
+import { trackEvent } from "@/lib/analytics";
 
 interface ReelPlayerProps {
   clip: Clip;
@@ -82,6 +83,14 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
     if (!media) return;
 
     if (isActive) {
+      trackEvent('clip_play', {
+        clip_id: clip.id,
+        surah_num: clip.surah,
+        surah_name: getSurahName(clip.surah),
+        reciter_name: clip.reciterName,
+        reciter_slug: clip.reciterSlug,
+      });
+
       const playPromise = media.play();
       playPromise?.catch((err) => {
         const message = err instanceof Error ? err.message : String(err);
@@ -125,6 +134,15 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    trackEvent('clip_share', {
+      clip_id: clip.id,
+      surah_num: clip.surah,
+      surah_name: getSurahName(clip.surah),
+      reciter_name: clip.reciterName,
+      reciter_slug: clip.reciterSlug,
+    });
+
     const shareUrl = window.location.href;
     if (navigator.share) {
       navigator.share({
@@ -140,6 +158,15 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    trackEvent('clip_download', {
+      clip_id: clip.id,
+      surah_num: clip.surah,
+      surah_name: getSurahName(clip.surah),
+      reciter_name: clip.reciterName,
+      reciter_slug: clip.reciterSlug,
+    });
+
     // Use high quality variant for download instead of HLS
     const downloadVariant = variants.find(v => v.quality === "high") || variants.find(v => v.quality === "4") || variants[0];
     const downloadUrl = downloadVariant?.url;
