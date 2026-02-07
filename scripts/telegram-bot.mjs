@@ -13,6 +13,8 @@ import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { eq, asc } from "drizzle-orm";
+import pino from "pino";
+import { createStream } from "rotating-file-stream";
 
 // Load env from .env or .env.local
 async function loadEnv() {
@@ -28,6 +30,31 @@ async function loadEnv() {
   }
 }
 await loadEnv();
+
+// Set up logging with file rotation
+const logsDir = path.join(process.cwd(), "logs");
+await fs.mkdir(logsDir, { recursive: true });
+
+const stream = createStream("telegram-bot.log", {
+  interval: "1d", // Rotate daily
+  maxFiles: 14, // Keep 14 days of logs
+  path: logsDir,
+  compress: "gzip", // Compress rotated logs
+});
+
+const logger = pino(
+  {
+    level: process.env.LOG_LEVEL || "info",
+    formatters: {
+      level: (label) => ({ level: label }),
+    },
+    timestamp: pino.stdTimeFunctions.isoTime,
+  },
+  pino.multistream([
+    { stream: stream },
+    { stream: process.stdout },
+  ])
+);
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ALLOWED_USER_ID = parseInt(process.env.TELEGRAM_ALLOWED_USER_ID || "0");
@@ -174,6 +201,7 @@ bot.on("message:video", async (ctx) => {
     step: "init"
   };
 
+  logger.info({ userId: ctx.from.id, surah: session.surah, ayahRange: `${session.start}-${session.end}`, reciterSlug }, "New video upload session started");
   sessions.set(ctx.from.id, session);
 
   if (!session.reciterSlug) return promptReciter(ctx);
@@ -258,8 +286,10 @@ async function startIngestion(ctx) {
   const finalRiwayah = riwayah || "hafs-an-asim";
   const finalTranslation = translation || "saheeh-international";
 
+  logger.info({ userId, surah, ayahRange: `${start}-${end}`, reciterSlug, riwayah: finalRiwayah, translation: finalTranslation }, "Starting clip ingestion");
+
   const status = await ctx.reply(`Ingesting: Surah ${surah} (${start}-${end}) by ${reciterSlug}...`);
-  
+
   try {
     const file = await ctx.api.getFile(videoFileId);
     const tempDir = path.join(os.tmpdir(), `bot_${Date.now()}`);
@@ -268,18 +298,23 @@ async function startIngestion(ctx) {
     
     const response = await fetch(`https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`);
     await fs.writeFile(inputPath, Buffer.from(await response.arrayBuffer()));
+    logger.info({ userId, videoSize: ctx.message.video.file_size }, "Video downloaded from Telegram");
 
     await ctx.api.editMessageText(ctx.chat.id, status.message_id, "Processing (HLS & MD5)...");
-    
+
     const id = `s${surah}_a${start}-${end}__${reciterSlug}__${finalRiwayah}__${finalTranslation}`;
     const md5 = await md5FileHex(inputPath);
+    logger.info({ userId, id, md5 }, "MD5 calculated");
+
     const hlsDir = path.join(tempDir, "hls");
     await transcodeHls(inputPath, hlsDir);
+    logger.info({ userId, id }, "HLS transcoding completed");
 
     await ctx.api.editMessageText(ctx.chat.id, status.message_id, "Uploading to R2...");
     const baseKey = `clips/${reciterSlug}/${finalRiwayah}/${finalTranslation}/s${surah}/a${start}-${end}`;
     await uploadFile(`${baseKey}/high.mp4`, inputPath, "video/mp4", md5);
     await uploadDir(hlsDir, `${baseKey}/hls`);
+    logger.info({ userId, id, baseKey }, "Upload to R2 completed");
 
     await ctx.api.editMessageText(ctx.chat.id, status.message_id, "Updating database...");
     
@@ -306,7 +341,7 @@ async function startIngestion(ctx) {
     await fs.rm(tempDir, { recursive: true, force: true });
     await ctx.api.editMessageText(ctx.chat.id, status.message_id, `✅ Ingested: ${id}`);
   } catch (err) {
-    console.error(err);
+    logger.error({ err, userId }, "Failed to ingest clip");
     await ctx.reply(`❌ Failed to ingest: ${err.message}`);
   }
 }
@@ -314,7 +349,7 @@ async function startIngestion(ctx) {
 if (WEBHOOK_URL) {
   const webhookPath = `/api/webhook/${BOT_TOKEN}`;
   await bot.api.setWebhook(`${WEBHOOK_URL}${webhookPath}`);
-  console.log(`Webhook set to ${WEBHOOK_URL}${webhookPath}`);
+  logger.info({ webhookUrl: `${WEBHOOK_URL}${webhookPath}` }, "Webhook configured");
 }
 
 const handleUpdate = webhookCallback(bot, "bun");
@@ -335,4 +370,4 @@ Bun.serve({
   },
 });
 
-console.log(`Bot/API running on port ${PORT}`);
+logger.info({ port: PORT }, "Bot/API server started");
