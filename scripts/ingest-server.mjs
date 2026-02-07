@@ -43,21 +43,21 @@ Bun.serve({
 
       try {
         const formData = await req.formData();
-        const video = formData.get("video") as File;
+        const video = formData.get("video");
         if (!video) throw new Error("No video file uploaded");
 
-        const surah = parseInt(formData.get("surah") as string);
-        const ayahStart = parseInt(formData.get("ayahStart") as string);
-        const ayahEnd = parseInt(formData.get("ayahEnd") as string);
-        let reciterSlug = formData.get("reciterSlug") as string;
-        let reciterName = formData.get("reciterName") as string;
-        if (reciterSlug === "custom") reciterSlug = formData.get("customReciterSlug") as string;
+        const surah = parseInt(formData.get("surah"));
+        const ayahStart = parseInt(formData.get("ayahStart"));
+        const ayahEnd = parseInt(formData.get("ayahEnd"));
+        let reciterSlug = formData.get("reciterSlug");
+        let reciterName = formData.get("reciterName");
+        if (reciterSlug === "custom") reciterSlug = formData.get("customReciterSlug");
 
-        let riwayah = formData.get("riwayah") as string;
-        if (riwayah === "custom") riwayah = formData.get("customRiwayah") as string;
+        let riwayah = formData.get("riwayah");
+        if (riwayah === "custom") riwayah = formData.get("customRiwayah");
 
-        let translation = formData.get("translation") as string;
-        if (translation === "custom") translation = formData.get("customTranslation") as string;
+        let translation = formData.get("translation");
+        if (translation === "custom") translation = formData.get("customTranslation");
 
         const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ingest-"));
         const videoPath = path.join(tempDir, video.name);
