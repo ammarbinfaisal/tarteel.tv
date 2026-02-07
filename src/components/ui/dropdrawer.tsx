@@ -102,9 +102,8 @@ function DropDrawerContent({
     "forward" | "backward"
   >("forward");
 
-  // Create a ref to store submenu content by ID
-  const submenuContentRef = React.useRef<Map<string, React.ReactNode[]>>(
-    new Map()
+  const [submenuContentById, setSubmenuContentById] = React.useState(
+    () => new Map<string, React.ReactNode[]>()
   );
 
   // Function to navigate to a submenu
@@ -140,7 +139,11 @@ function DropDrawerContent({
   // Function to register submenu content
   const registerSubmenuContent = React.useCallback(
     (id: string, content: React.ReactNode[]) => {
-      submenuContentRef.current.set(id, content);
+      setSubmenuContentById((prev) => {
+        const next = new Map(prev);
+        next.set(id, content);
+        return next;
+      });
     },
     []
   );
@@ -224,27 +227,11 @@ function DropDrawerContent({
   // Get submenu content (either from cache or extract it)
   const getSubmenuContent = React.useCallback(
     (id: string) => {
-      // Check if we have the content in our ref
-      const cachedContent = submenuContentRef.current.get(id || "");
-      if (cachedContent && cachedContent.length > 0) {
-        return cachedContent;
-      }
-
-      // If not in cache, extract it
-      const submenuContent = extractSubmenuContent(children, id);
-
-      if (submenuContent.length === 0) {
-        return [];
-      }
-
-      // Store in cache for future use
-      if (id) {
-        submenuContentRef.current.set(id, submenuContent);
-      }
-
-      return submenuContent;
+      const registered = submenuContentById.get(id);
+      if (registered && registered.length > 0) return registered;
+      return extractSubmenuContent(children, id);
     },
-    [children, extractSubmenuContent]
+    [children, extractSubmenuContent, submenuContentById]
   );
 
   // Animation variants for Framer Motion

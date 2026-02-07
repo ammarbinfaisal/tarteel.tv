@@ -25,7 +25,7 @@ interface ReelListProps {
   };
 }
 
-export default function ReelList({ clips, filterData }: ReelListProps) {
+function ReelListInner({ clips, filterData }: ReelListProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -123,11 +123,6 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
     setClipId(activeId, { history: "replace", shallow: true });
   }, [activeIndex, clipId, clips, setClipId, view]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-    containerRef.current?.scrollTo({ top: 0 });
-  }, [clips]);
-
   return (
     <>
       <div 
@@ -165,6 +160,11 @@ export default function ReelList({ clips, filterData }: ReelListProps) {
       </div>
     </>
   );
+}
+
+export default function ReelList(props: ReelListProps) {
+  const clipsKey = props.clips.map((clip) => clip.id).join("|");
+  return <ReelListInner key={clipsKey} {...props} />;
 }
 
 export function FilterSheet({ 

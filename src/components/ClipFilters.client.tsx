@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQueryStates } from "nuqs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,13 +42,20 @@ function toOptionalPositiveInt(value: string): number | null {
   return n;
 }
 
-export default function ClipFilters({ reciters, riwayat, translations, onApply }: Props) {
+type QuerySetter = ReturnType<typeof useQueryStates<typeof searchParamsParsers>>[1];
+
+function ClipFiltersForm({
+  reciters,
+  riwayat,
+  translations,
+  onApply,
+  query,
+  setQuery,
+}: Props & { query: UrlState; setQuery: QuerySetter }) {
   const [surahOpen, setSurahOpen] = useState(false);
   const [reciterOpen, setReciterOpen] = useState(false);
   const [riwayahOpen, setRiwayahOpen] = useState(false);
   const [translationOpen, setTranslationOpen] = useState(false);
-
-  const [query, setQuery] = useQueryStates(searchParamsParsers);
 
   // Local state for the form
   const [localSurah, setLocalSurah] = useState<number | null>(query.surah);
@@ -57,16 +64,6 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
   const [localReciter, setLocalReciter] = useState<string | null>(query.reciter);
   const [localRiwayah, setLocalRiwayah] = useState<string | null>(query.riwayah);
   const [localTranslation, setLocalTranslation] = useState<UrlState["translation"]>(query.translation);
-
-  // Sync local state when query changes from outside (e.g. reset)
-  useEffect(() => {
-    setLocalSurah(query.surah);
-    setLocalStart(query.start);
-    setLocalEnd(query.end);
-    setLocalReciter(query.reciter);
-    setLocalRiwayah(query.riwayah);
-    setLocalTranslation(query.translation);
-  }, [query.surah, query.start, query.end, query.reciter, query.riwayah, query.translation]);
 
   const apply = () => {
     trackEvent('apply_filters', {
@@ -304,4 +301,18 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
       </div>
     </div>
   );
+}
+
+export default function ClipFilters(props: Props) {
+  const [query, setQuery] = useQueryStates(searchParamsParsers);
+  const key = [
+    query.surah ?? "",
+    query.start ?? "",
+    query.end ?? "",
+    query.reciter ?? "",
+    query.riwayah ?? "",
+    query.translation ?? "",
+  ].join("|");
+
+  return <ClipFiltersForm key={key} {...props} query={query} setQuery={setQuery} />;
 }

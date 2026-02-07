@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Clip, ClipVariant } from "@/lib/types";
+import type { Clip } from "@/lib/types";
 import { cn, isProbablyMp4, isHls, formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Share2, Volume2, VolumeX, Play, Music, Download } from "lucide-react";
@@ -23,7 +23,10 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
   const [progress, setProgress] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const isActiveRef = useRef(isActive);
-  isActiveRef.current = isActive;
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   const variants = clip.variants;
 
@@ -31,6 +34,9 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
   const chosenVariant = variants.find(v => v.quality === "hls") || variants.find(v => v.quality === "high") || variants[0];
   const src = chosenVariant?.url;
   const isVideo = isProbablyMp4(src) || isProbablyMp4(chosenVariant?.r2Key) || isHls(src) || isHls(chosenVariant?.r2Key);
+
+  const handleMediaPlay = () => setIsPlaying(true);
+  const handleMediaPause = () => setIsPlaying(false);
 
   useEffect(() => {
     const media = mediaRef.current;
@@ -74,10 +80,9 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
-              }
-            };
-          // eslint-disable-next-line react-hooks/exhaustive-deps
-          }, [src]);
+      }
+    };
+  }, [src]);
   useEffect(() => {
     const media = mediaRef.current;
     if (!media) return;
@@ -97,12 +102,9 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
         const name = err && typeof err === "object" && "name" in err ? String((err as any).name) : "";
         if (name === "AbortError" || message.includes("interrupted by a call to pause")) return;
         console.warn("Playback failed:", err);
-        setIsPlaying(false);
       });
-      setIsPlaying(true);
     } else {
       media.pause();
-      setIsPlaying(false);
     }
   }, [isActive, clip.id, clip.surah, clip.reciterName, clip.reciterSlug]);
 
@@ -111,13 +113,9 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
     if (!media) return;
 
     if (media.paused) {
-      media.play().catch(() => {
-        setIsPlaying(false);
-      });
-      setIsPlaying(true);
+      media.play().catch(() => {});
     } else {
       media.pause();
-      setIsPlaying(false);
     }
   };
 
@@ -206,6 +204,8 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
           loop
           playsInline
           muted={isMuted}
+          onPlay={handleMediaPlay}
+          onPause={handleMediaPause}
           onTimeUpdate={handleTimeUpdate}
         />
       ) : (
@@ -218,6 +218,8 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
             src={isHls(src) ? undefined : src}
             loop
             muted={isMuted}
+            onPlay={handleMediaPlay}
+            onPause={handleMediaPause}
             onTimeUpdate={handleTimeUpdate}
           />
         </div>
