@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Clip } from "@/lib/types";
 import { cn, isProbablyMp4, isHls, formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { Share2, Volume2, VolumeX, Play, Music, Download } from "lucide-react";
+import { Share2, Volume2, VolumeX, Play, Music, Download, MousePointer2, Repeat } from "lucide-react";
 import Hls from "hls.js";
 import { trackEvent } from "@/lib/analytics";
 
@@ -13,10 +13,22 @@ interface ReelPlayerProps {
   isActive: boolean;
   isMuted: boolean;
   onMuteChange: (muted: boolean) => void;
+  autoScroll: boolean;
+  onAutoScrollChange: (autoScroll: boolean) => void;
+  onClipEnd: () => void;
   filterButton?: React.ReactNode;
 }
 
-export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filterButton }: ReelPlayerProps) {
+export default function ReelPlayer({ 
+  clip, 
+  isActive, 
+  isMuted, 
+  onMuteChange, 
+  autoScroll,
+  onAutoScrollChange,
+  onClipEnd,
+  filterButton 
+}: ReelPlayerProps) {
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -180,6 +192,12 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
     }
   };
 
+  const handleEnded = () => {
+    if (autoScroll) {
+      onClipEnd();
+    }
+  };
+
   if (!src) {
     return (
       <div className="relative h-full w-full bg-black flex flex-col items-center justify-center snap-start">
@@ -201,12 +219,13 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
           ref={mediaRef as React.RefObject<HTMLVideoElement>}
           src={isHls(src) ? undefined : src}
           className="h-full w-full object-contain"
-          loop
+          loop={!autoScroll}
           playsInline
           muted={isMuted}
           onPlay={handleMediaPlay}
           onPause={handleMediaPause}
           onTimeUpdate={handleTimeUpdate}
+          onEnded={handleEnded}
         />
       ) : (
         <div className="flex flex-col items-center gap-4">
@@ -216,11 +235,12 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
           <audio
             ref={mediaRef as React.RefObject<HTMLAudioElement>}
             src={isHls(src) ? undefined : src}
-            loop
+            loop={!autoScroll}
             muted={isMuted}
             onPlay={handleMediaPlay}
             onPause={handleMediaPause}
             onTimeUpdate={handleTimeUpdate}
+            onEnded={handleEnded}
           />
         </div>
       )}
@@ -292,6 +312,31 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
           {/* Action buttons */}
           <div className="absolute right-4 bottom-24 flex flex-col gap-6 pointer-events-auto">
             {filterButton}
+
+            <div 
+              className="relative flex flex-col items-center bg-black/20 backdrop-blur-md rounded-full border border-white/10 p-1 h-[88px] w-12 cursor-pointer transition-colors hover:bg-black/40"
+              onClick={(e) => { e.stopPropagation(); onAutoScrollChange(!autoScroll); }}
+              title={autoScroll ? "Auto-scroll enabled" : "Looping enabled"}
+            >
+              <div 
+                className={cn(
+                  "absolute left-1 w-10 h-10 bg-white rounded-full shadow-lg transition-transform duration-300 ease-in-out z-0",
+                  autoScroll ? "translate-y-0" : "translate-y-10"
+                )}
+              />
+              <div className={cn(
+                "relative z-10 flex items-center justify-center w-10 h-10 transition-colors duration-200",
+                autoScroll ? "text-black" : "text-white/60"
+              )}>
+                <MousePointer2 className="h-5 w-5" />
+              </div>
+              <div className={cn(
+                "relative z-10 flex items-center justify-center w-10 h-10 transition-colors duration-200",
+                !autoScroll ? "text-black" : "text-white/60"
+              )}>
+                <Repeat className="h-5 w-5" />
+              </div>
+            </div>
 
             <Button
               variant="ghost"
