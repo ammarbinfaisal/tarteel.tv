@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Script from "next/script";
 
 import "@/app/globals.css";
 import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import NuqsProvider from "@/components/NuqsProvider.client";
+import { PHProvider } from "@/components/PostHogProvider.client";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://tarteel.tv'),
@@ -49,31 +49,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-NM6Z6SHFG3"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            window.gtag = function(){window.dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-NM6Z6SHFG3');
-          `}
-        </Script>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          forcedTheme="dark"
-          disableTransitionOnChange
-        >
-          <NuqsProvider>
-            <Suspense fallback={<div className="h-14 border-b bg-background" />}>
-              <Header />
-            </Suspense>
-            <main className="container">{children}</main>
-          </NuqsProvider>
-        </ThemeProvider>
+        <PHProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            forcedTheme="dark"
+            disableTransitionOnChange
+          >
+            <NuqsProvider>
+              <Suspense fallback={<div className="h-14 border-b bg-background" />}>
+                <Header />
+              </Suspense>
+              <main className="container">{children}</main>
+            </NuqsProvider>
+          </ThemeProvider>
+        </PHProvider>
       </body>
     </html>
   );

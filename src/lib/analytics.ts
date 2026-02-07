@@ -1,8 +1,9 @@
 // src/lib/analytics.ts
+import posthog from 'posthog-js'
 
-type GTagEvent = 'clip_play' | 'clip_share' | 'clip_download' | 'apply_filters';
+type PostHogEvent = 'clip_play' | 'clip_share' | 'clip_download' | 'apply_filters';
 
-interface GTagParams {
+interface EventParams {
   clip_id?: string;
   surah_num?: number | null;
   surah_name?: string | null;
@@ -13,8 +14,6 @@ interface GTagParams {
   [key: string]: any;
 }
 
-export const trackEvent = (event: GTagEvent, params: GTagParams) => {
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', event, params);
-  }
+export const trackEvent = (event: PostHogEvent, params: EventParams) => {
+  posthog.capture(event, params);
 };
