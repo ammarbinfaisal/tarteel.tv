@@ -1,6 +1,5 @@
 import "server-only";
 
-import { cache } from "react";
 import { db } from "@/db";
 import { clips as clipsTable, clipVariants } from "@/db/schema/clips";
 import { eq, and, gte, lte, or, asc, sql } from "drizzle-orm";
