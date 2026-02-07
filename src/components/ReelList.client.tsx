@@ -200,7 +200,7 @@ export function FilterSheet({
           <Button 
             variant="ghost"
             size="icon" 
-            className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10"
+            className="h-12 w-12 rounded-full bg-muted/50 backdrop-blur-md text-foreground hover:bg-muted/70 border border-white/5"
             onClick={(e) => e.stopPropagation()}
           >
             <Filter className="h-6 w-6" />

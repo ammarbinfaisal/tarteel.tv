@@ -314,25 +314,25 @@ export default function ReelPlayer({
             {filterButton}
 
             <div 
-              className="relative flex flex-col items-center bg-black/20 backdrop-blur-md rounded-full border border-white/10 p-1 h-[88px] w-12 cursor-pointer transition-colors hover:bg-black/40"
+              className="relative flex flex-col items-center bg-muted/50 backdrop-blur-md rounded-full border border-white/5 p-1 h-[88px] w-12 cursor-pointer transition-colors hover:bg-muted/70"
               onClick={(e) => { e.stopPropagation(); onAutoScrollChange(!autoScroll); }}
               title={autoScroll ? "Auto-scroll enabled" : "Looping enabled"}
             >
               <div 
                 className={cn(
-                  "absolute left-1 w-10 h-10 bg-white rounded-full shadow-lg transition-transform duration-300 ease-in-out z-0",
+                  "absolute left-1 w-10 h-10 bg-background rounded-full shadow-md transition-transform duration-300 ease-in-out z-0",
                   autoScroll ? "translate-y-0" : "translate-y-10"
                 )}
               />
               <div className={cn(
                 "relative z-10 flex items-center justify-center w-10 h-10 transition-colors duration-200",
-                autoScroll ? "text-black" : "text-white/60"
+                autoScroll ? "text-foreground" : "text-muted-foreground/60"
               )}>
                 <MousePointer2 className="h-5 w-5" />
               </div>
               <div className={cn(
                 "relative z-10 flex items-center justify-center w-10 h-10 transition-colors duration-200",
-                !autoScroll ? "text-black" : "text-white/60"
+                !autoScroll ? "text-foreground" : "text-muted-foreground/60"
               )}>
                 <Repeat className="h-5 w-5" />
               </div>
@@ -341,7 +341,7 @@ export default function ReelPlayer({
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 h-12 w-12 border border-white/10"
+              className="rounded-full bg-muted/50 backdrop-blur-md text-foreground hover:bg-muted/70 h-12 w-12 border border-white/5"
               onClick={toggleMute}
             >
               {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
@@ -350,7 +350,7 @@ export default function ReelPlayer({
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 h-12 w-12 border border-white/10"
+              className="rounded-full bg-muted/50 backdrop-blur-md text-foreground hover:bg-muted/70 h-12 w-12 border border-white/5"
               onClick={handleDownload}
             >
               <Download className="h-6 w-6" />
@@ -359,7 +359,7 @@ export default function ReelPlayer({
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 h-12 w-12 border border-white/10"
+              className="rounded-full bg-muted/50 backdrop-blur-md text-foreground hover:bg-muted/70 h-12 w-12 border border-white/5"
               onClick={handleShare}
             >
               <Share2 className="h-6 w-6" />

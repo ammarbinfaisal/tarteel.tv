@@ -141,12 +141,11 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
   }
 
   return (
-    <div className={view === "reel" ? "p-0" : "py-6 flex flex-col gap-6"}>
+    <div className={view === "reel" ? "p-0" : "flex flex-col"}>
       {view !== "reel" && (
-        <div className="flex flex-col gap-1 px-2">
-          <h1 className="text-2xl font-bold tracking-tight">Quran Recitation Clips</h1>
-          <p className="text-muted-foreground text-sm">
-            {clips.length} recitation{clips.length === 1 ? "" : "s"} found
+        <div className="px-4 pt-5 pb-3">
+          <p className="text-muted-foreground text-[10px] uppercase tracking-[0.3em] font-semibold opacity-60">
+            {clips.length} recitation{clips.length === 1 ? "" : "s"}
           </p>
         </div>
       )}

@@ -71,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Suspense fallback={<div className="h-14 border-b bg-background" />}>
               <Header />
             </Suspense>
-            <main className="container">{children}</main>
+            <main>{children}</main>
           </NuqsProvider>
         </ThemeProvider>
       </body>
