@@ -82,8 +82,10 @@ const s3 = new S3Client({
   requestHandler: new NodeHttpHandler({ connectionTimeout: 30000, socketTimeout: 600000 }),
 });
 
-// Simple in-memory session
+// Simple in-memory session and queue
 const sessions = new Map();
+const userQueues = new Map();
+const processingUser = new Set();
 
 async function md5FileHex(filePath) {
   const hash = crypto.createHash("md5");
@@ -184,14 +186,41 @@ async function promptRiwayah(ctx) {
   await ctx.reply("Select Riwayah:", { reply_markup: keyboard });
 }
 
-bot.on("message:video", async (ctx) => {
+async function processNextInQueue(ctx) {
+  const userId = ctx.from.id;
+  const queue = userQueues.get(userId);
+  
+  if (!queue || queue.length === 0) {
+    processingUser.delete(userId);
+    sessions.delete(userId);
+    return;
+  }
+
+  const nextUpdate = queue.shift();
+  await handleVideoMessage(nextUpdate);
+}
+
+async function handleVideoMessage(ctx) {
+  const userId = ctx.from.id;
+  const video = ctx.message.video;
   const caption = ctx.message.caption || "";
+  
+  if (video.file_size > 20 * 1024 * 1024) {
+    await ctx.reply("❌ Video is too large (max 20MB for Telegram bots). Please compress it or send a shorter clip.");
+    return processNextInQueue(ctx);
+  }
+
   const parts = caption.split(/\s+/);
-  if (parts.length < 3) return ctx.reply("Invalid caption. Need at least: `surah start end`.");
+  if (parts.length < 3) {
+    await ctx.reply("Invalid caption. Need at least: `surah start end`.");
+    return processNextInQueue(ctx);
+  }
 
   const [surah, start, end, reciterSlug, translation, riwayah] = parts;
   const session = {
-    videoFileId: ctx.message.video.file_id,
+    videoFileId: video.file_id,
+    videoFileUniqueId: video.file_unique_id,
+    caption: caption,
     surah: parseInt(surah),
     start: parseInt(start),
     end: parseInt(end),
@@ -201,14 +230,52 @@ bot.on("message:video", async (ctx) => {
     step: "init"
   };
 
-  logger.info({ userId: ctx.from.id, surah: session.surah, ayahRange: `${session.start}-${session.end}`, reciterSlug }, "New video upload session started");
-  sessions.set(ctx.from.id, session);
+  logger.info({ userId, surah: session.surah, ayahRange: `${session.start}-${session.end}`, reciterSlug }, "New video upload session started");
+  sessions.set(userId, session);
 
   if (!session.reciterSlug) return promptReciter(ctx);
   if (!session.translation) return promptTranslation(ctx);
   if (!session.riwayah) return promptRiwayah(ctx);
   
   await startIngestion(ctx);
+}
+
+bot.on("message:video", async (ctx) => {
+  const userId = ctx.from.id;
+  const video = ctx.message.video;
+  const caption = ctx.message.caption || "";
+
+  // Check if this is a duplicate of the current session or something in the queue
+  const currentSession = sessions.get(userId);
+  if (currentSession && currentSession.videoFileUniqueId === video.file_unique_id && currentSession.caption === caption) {
+    logger.info({ userId, fileUniqueId: video.file_unique_id }, "Ignoring duplicate video message (active session)");
+    return;
+  }
+
+  let queue = userQueues.get(userId);
+  if (!queue) {
+    queue = [];
+    userQueues.set(userId, queue);
+  }
+
+  const isDuplicateInQueue = queue.some(qCtx => 
+    qCtx.message.video.file_unique_id === video.file_unique_id && 
+    (qCtx.message.caption || "") === caption
+  );
+
+  if (isDuplicateInQueue) {
+    logger.info({ userId, fileUniqueId: video.file_unique_id }, "Ignoring duplicate video message (in queue)");
+    return;
+  }
+
+  if (processingUser.has(userId)) {
+    queue.push(ctx);
+    await ctx.reply("Queued. I will process this after the current video is done.");
+    return;
+  }
+
+  processingUser.add(userId);
+  await handleVideoMessage(ctx);
 });
 
 bot.on("callback_query:data", async (ctx) => {
@@ -280,7 +347,8 @@ async function startIngestion(ctx) {
   const userId = ctx.from.id;
   const session = sessions.get(userId);
   if (!session) return;
-  sessions.delete(userId); // Clear session early to prevent double triggers
+  // Note: We don't delete session here anymore because we use processingUser flag
+  // and we want to keep the session until ingestion is complete to avoid concurrent prompts if another message arrives.
 
   const { surah, start, end, reciterSlug, translation, riwayah, videoFileId } = session;
   const finalRiwayah = riwayah || "hafs-an-asim";
@@ -298,7 +366,7 @@ async function startIngestion(ctx) {
     
     const response = await fetch(`https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`);
     await fs.writeFile(inputPath, Buffer.from(await response.arrayBuffer()));
-    logger.info({ userId, videoSize: ctx.message.video.file_size }, "Video downloaded from Telegram");
+    logger.info({ userId, videoSize: ctx.message.video?.file_size }, "Video downloaded from Telegram");
 
     await ctx.api.editMessageText(ctx.chat.id, status.message_id, "Processing (HLS & MD5)...");
 
@@ -320,7 +388,7 @@ async function startIngestion(ctx) {
         await ctx.api.editMessageText(ctx.chat.id, status.message_id, `❌ Conflict: This video content (MD5: ${md5}) already exists as clip: ${existingClipId}\n\nDuplicate content with different metadata is not allowed.`);
       }
       await fs.rm(tempDir, { recursive: true, force: true });
-      return;
+      return await processNextInQueue(ctx);
     }
 
     const hlsDir = path.join(tempDir, "hls");
@@ -360,6 +428,8 @@ async function startIngestion(ctx) {
   } catch (err) {
     logger.error({ err, userId }, "Failed to ingest clip");
     await ctx.reply(`❌ Failed to ingest: ${err.message}`);
+  } finally {
+    await processNextInQueue(ctx);
   }
 }
 
