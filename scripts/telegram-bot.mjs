@@ -1,4 +1,4 @@
-import { Bot, InlineKeyboard } from "grammy";
+import { Bot, InlineKeyboard, webhookCallback } from "grammy";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "../src/db/schema/clips.ts";
@@ -32,6 +32,8 @@ await loadEnv();
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ALLOWED_USER_ID = parseInt(process.env.TELEGRAM_ALLOWED_USER_ID || "0");
 const R2_BUCKET = process.env.R2_BUCKET;
+const PORT = process.env.PORT || 3000;
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
 if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is missing");
 
@@ -309,5 +311,28 @@ async function startIngestion(ctx) {
   }
 }
 
-console.log("Bot is running...");
-bot.start();
+if (WEBHOOK_URL) {
+  const webhookPath = `/api/webhook/${BOT_TOKEN}`;
+  await bot.api.setWebhook(`${WEBHOOK_URL}${webhookPath}`);
+  console.log(`Webhook set to ${WEBHOOK_URL}${webhookPath}`);
+}
+
+const handleUpdate = webhookCallback(bot, "bun");
+
+Bun.serve({
+  port: parseInt(PORT.toString()),
+  async fetch(req) {
+    const url = new URL(req.url);
+    if (url.pathname === `/api/webhook/${BOT_TOKEN}`) {
+      return handleUpdate(req);
+    }
+    if (url.pathname === "/health") {
+      return new Response(JSON.stringify({ status: "ok", bot: "running" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("Not Found", { status: 404 });
+  },
+});
+
+console.log(`Bot/API running on port ${PORT}`);
