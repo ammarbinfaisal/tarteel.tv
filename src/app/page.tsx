@@ -8,6 +8,8 @@ import { Suspense } from "react";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
+export const runtime = 'edge'
+
 export default async function Home({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const { surah, start, end, reciter, riwayah, translation, view, clipId } = await searchParamsCache.parse(searchParams);
   const translationFilter: ClipTranslation | undefined = translation ?? undefined;
