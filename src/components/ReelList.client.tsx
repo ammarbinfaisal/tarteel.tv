@@ -196,7 +196,7 @@ export function FilterSheet({
         <SheetHeader className="mb-6">
           <SheetTitle className="text-xl font-bold">Refine Clips</SheetTitle>
         </SheetHeader>
-        <div className="overflow-y-auto h-full pb-20 scrollbar-hide">
+        <div className="overflow-y-auto h-full pb-24">
           <ClipFilters 
             reciters={filterData.reciters} 
             riwayat={filterData.riwayat} 

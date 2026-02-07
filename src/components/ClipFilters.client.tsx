@@ -130,7 +130,7 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="surah">Surah</Label>
-          <Popover open={open} onOpenChange={setOpen}>
+          <Popover open={open} onOpenChange={setOpen} modal={false}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -144,10 +144,16 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-              <Command>
-                <CommandInput placeholder="Search surah..." />
-                <CommandList>
+            <PopoverContent 
+              className="w-[calc(100vw-3rem)] sm:w-[var(--radix-popover-trigger-width)] p-0" 
+              align="start"
+            >
+              <Command title="Surah search">
+                <CommandInput 
+                  placeholder="Search surah..." 
+                  onPointerDown={(e) => e.stopPropagation()}
+                />
+                <CommandList className="max-h-[40vh] sm:max-h-[300px]">
                   <CommandEmpty>No surah found.</CommandEmpty>
                   <CommandGroup>
                     {surahNames.map((name, index) => {
