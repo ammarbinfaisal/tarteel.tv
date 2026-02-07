@@ -1,4 +1,4 @@
-import { ingestClip } from "../src/lib/server/ingestion";
+import { ingestClip } from "../src/lib/server/ingestion.impl";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -82,7 +82,7 @@ Bun.serve({
             "Access-Control-Allow-Origin": "*" 
           },
         });
-      } catch (err: any) {
+      } catch (err) {
         console.error("Ingestion error:", err);
         return new Response(JSON.stringify({ success: false, error: err.message }), {
           status: 500,
