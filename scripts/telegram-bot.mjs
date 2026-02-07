@@ -306,6 +306,23 @@ async function startIngestion(ctx) {
     const md5 = await md5FileHex(inputPath);
     logger.info({ userId, id, md5 }, "MD5 calculated");
 
+    // Check for MD5 conflict
+    const existingVariant = await db.select({ clipId: clipVariants.clipId })
+      .from(clipVariants)
+      .where(eq(clipVariants.md5, md5))
+      .limit(1);
+
+    if (existingVariant.length > 0) {
+      const existingClipId = existingVariant[0].clipId;
+      if (existingClipId === id) {
+        await ctx.api.editMessageText(ctx.chat.id, status.message_id, `⚠️ This clip is already ingested as ${existingClipId}.`);
+      } else {
+        await ctx.api.editMessageText(ctx.chat.id, status.message_id, `❌ Conflict: This video content (MD5: ${md5}) already exists as clip: ${existingClipId}\n\nDuplicate content with different metadata is not allowed.`);
+      }
+      await fs.rm(tempDir, { recursive: true, force: true });
+      return;
+    }
+
     const hlsDir = path.join(tempDir, "hls");
     await transcodeHls(inputPath, hlsDir);
     logger.info({ userId, id }, "HLS transcoding completed");
