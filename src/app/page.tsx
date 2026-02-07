@@ -73,6 +73,14 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 }
 
 export default async function Home({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  return (
+    <Suspense fallback={<div className="p-8 text-center animate-pulse text-muted-foreground">Loading recitations...</div>}>
+      <HomeContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function HomeContent({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const { surah, start, end, reciter, riwayah, translation, view, clipId } = await searchParamsCache.parse(searchParams);
   const translationFilter: ClipTranslation | undefined = translation ?? undefined;
 

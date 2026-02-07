@@ -3,7 +3,6 @@ import { getClipById } from '@/lib/server/clips';
 import { searchParamsCache } from '@/lib/searchparams.server';
 import { getSurahName } from '@/lib/utils';
 
-export const runtime = 'edge';
 export const alt = 'Quran Recitation Clip';
 export const size = {
   width: 1200,

@@ -3,8 +3,6 @@ import { NextRequest } from 'next/server';
 import { getClipById } from '@/lib/server/clips';
 import { getSurahName } from '@/lib/utils';
 
-export const runtime = 'edge';
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

@@ -19,10 +19,10 @@ const logger = pino({
 export async function md5FileHex(filePath: string): Promise<string> {
   const hash = crypto.createHash("md5");
   const stream = fsSync.createReadStream(filePath);
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     stream.on("data", (chunk) => hash.update(chunk));
     stream.on("error", reject);
-    stream.on("end", resolve);
+    stream.on("end", () => resolve());
   });
   return hash.digest("hex");
 }
