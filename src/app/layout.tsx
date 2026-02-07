@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import NuqsProvider from "@/components/NuqsProvider.client";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://tarteel.tv'),
   title: {
     default: "tarteel.tv",
     template: "%s | tarteel.tv",
