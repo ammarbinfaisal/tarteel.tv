@@ -28,10 +28,24 @@ interface ReelListProps {
 function ReelListInner({ clips, filterData }: ReelListProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
+  const [autoScroll, setAutoScroll] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const [view] = useQueryState("view", searchParamsParsers.view);
   const [clipId, setClipId] = useQueryState("clipId", searchParamsParsers.clipId);
   const scrollLocked = useRef(false);
+
+  const scrollToNext = () => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const nextIndex = activeIndex + 1;
+    if (nextIndex < clips.length) {
+      const target = container.querySelector(`[data-index="${nextIndex}"]`) as HTMLElement;
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
 
   useEffect(() => {
     const container = containerRef.current;
@@ -145,6 +159,9 @@ function ReelListInner({ clips, filterData }: ReelListProps) {
                   isActive={index === activeIndex} 
                   isMuted={isMuted}
                   onMuteChange={setIsMuted}
+                  autoScroll={autoScroll}
+                  onAutoScrollChange={setAutoScroll}
+                  onClipEnd={scrollToNext}
                   filterButton={
                     <FilterSheet filterData={filterData} />
                   }
