@@ -1,0 +1,13 @@
+[Unit]
+Description=Quran Clips Telegram Bot
+After=network.target
+
+[Service]
+User=ammar
+WorkingDirectory=/home/ammar/tarteel.tv
+ExecStart=/usr/local/bin/bun scripts/telegram-bot.mjs
+Restart=always
+EnvironmentFile=/home/ammar/tarteel.tv/.env
+
+[Install]
+WantedBy=multi-user.target
