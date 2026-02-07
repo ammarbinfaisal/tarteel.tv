@@ -104,7 +104,7 @@ export default function ReelPlayer({ clip, isActive, isMuted, onMuteChange, filt
       media.pause();
       setIsPlaying(false);
     }
-  }, [isActive]);
+  }, [isActive, clip.id, clip.surah, clip.reciterName, clip.reciterSlug]);
 
   const togglePlay = () => {
     const media = mediaRef.current;

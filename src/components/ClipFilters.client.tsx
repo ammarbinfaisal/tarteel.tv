@@ -4,13 +4,6 @@ import { useState, useEffect } from "react";
 import { useQueryStates } from "nuqs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { formatSlug, formatTranslation, surahNames } from "@/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
@@ -23,7 +16,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropDrawer,
+  DropDrawerContent,
+  DropDrawerGroup,
+  DropDrawerItem,
+  DropDrawerTrigger,
+} from "@/components/ui/dropdrawer";
 import { searchParamsParsers, type UrlState } from "@/lib/searchparams";
 import { trackEvent } from "@/lib/analytics";
 
@@ -44,7 +43,10 @@ function toOptionalPositiveInt(value: string): number | null {
 }
 
 export default function ClipFilters({ reciters, riwayat, translations, onApply }: Props) {
-  const [open, setOpen] = useState(false);
+  const [surahOpen, setSurahOpen] = useState(false);
+  const [reciterOpen, setReciterOpen] = useState(false);
+  const [riwayahOpen, setRiwayahOpen] = useState(false);
+  const [translationOpen, setTranslationOpen] = useState(false);
 
   const [query, setQuery] = useQueryStates(searchParamsParsers);
 
@@ -135,24 +137,23 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="surah">Surah</Label>
-          <Popover open={open} onOpenChange={setOpen} modal={false}>
-            <PopoverTrigger asChild>
+          <DropDrawer open={surahOpen} onOpenChange={setSurahOpen}>
+            <DropDrawerTrigger asChild>
               <Button
                 variant="outline"
                 role="combobox"
-                aria-expanded={open}
-                className="w-full justify-between font-normal"
+                aria-expanded={surahOpen}
+                className="w-full justify-between font-normal px-3"
               >
-                {form.surah
-                  ? `${form.surah}. ${surahNames[parseInt(form.surah) - 1]}`
-                  : "Select Surah..."}
+                <span className="truncate">
+                  {form.surah
+                    ? `${form.surah}. ${surahNames[parseInt(form.surah) - 1]}`
+                    : "Select Surah..."}
+                </span>
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
-            </PopoverTrigger>
-            <PopoverContent 
-              className="w-[calc(100vw-3rem)] sm:w-[var(--radix-popover-trigger-width)] p-0" 
-              align="start"
-            >
+            </DropDrawerTrigger>
+            <DropDrawerContent className="p-0">
               <Command title="Surah search">
                 <CommandInput 
                   placeholder="Search surah..." 
@@ -169,7 +170,7 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
                           value={`${num} ${name}`}
                           onSelect={() => {
                             setLocalSurah(num);
-                            setOpen(false);
+                            setSurahOpen(false);
                           }}
                         >
                           <Check
@@ -185,8 +186,8 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
                   </CommandGroup>
                 </CommandList>
               </Command>
-            </PopoverContent>
-          </Popover>
+            </DropDrawerContent>
+          </DropDrawer>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -216,64 +217,80 @@ export default function ClipFilters({ reciters, riwayat, translations, onApply }
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label>Reciter</Label>
-          <Select
-            value={form.reciter || "all-reciters"}
-            onValueChange={(v) => setLocalReciter(v === "all-reciters" ? null : v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All Reciters" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-reciters">All Reciters</SelectItem>
-              {reciters.map((r) => (
-                <SelectItem key={r.slug} value={r.slug}>
-                  {r.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DropDrawer open={reciterOpen} onOpenChange={setReciterOpen}>
+            <DropDrawerTrigger asChild>
+              <Button variant="outline" className="w-full justify-between font-normal px-3">
+                <span className="truncate">
+                  {localReciter ? reciters.find(r => r.slug === localReciter)?.name : "All Reciters"}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </DropDrawerTrigger>
+            <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
+              <DropDrawerGroup>
+                <DropDrawerItem onSelect={() => setLocalReciter(null)}>
+                  All Reciters
+                </DropDrawerItem>
+                {reciters.map((r) => (
+                  <DropDrawerItem key={r.slug} onSelect={() => setLocalReciter(r.slug)}>
+                    {r.name}
+                  </DropDrawerItem>
+                ))}
+              </DropDrawerGroup>
+            </DropDrawerContent>
+          </DropDrawer>
         </div>
 
         <div className="grid gap-2">
           <Label>Riwayah</Label>
-          <Select
-            value={form.riwayah || "all-riwayah"}
-            onValueChange={(v) => setLocalRiwayah(v === "all-riwayah" ? null : v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All Riwayah" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-riwayah">All Riwayah</SelectItem>
-              {riwayat.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {formatSlug(r)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DropDrawer open={riwayahOpen} onOpenChange={setRiwayahOpen}>
+            <DropDrawerTrigger asChild>
+              <Button variant="outline" className="w-full justify-between font-normal px-3">
+                <span className="truncate">
+                  {localRiwayah ? formatSlug(localRiwayah) : "All Riwayah"}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </DropDrawerTrigger>
+            <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
+              <DropDrawerGroup>
+                <DropDrawerItem onSelect={() => setLocalRiwayah(null)}>
+                  All Riwayah
+                </DropDrawerItem>
+                {riwayat.map((r) => (
+                  <DropDrawerItem key={r} onSelect={() => setLocalRiwayah(r)}>
+                    {formatSlug(r)}
+                  </DropDrawerItem>
+                ))}
+              </DropDrawerGroup>
+            </DropDrawerContent>
+          </DropDrawer>
         </div>
 
         <div className="grid gap-2">
           <Label>Translation</Label>
-          <Select
-            value={form.translation || "no-translation"}
-            onValueChange={(v) =>
-              setLocalTranslation(v === "no-translation" ? null : (v as UrlState["translation"]))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="No Translation" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="no-translation">No Translation</SelectItem>
-              {translations.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {formatTranslation(t)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DropDrawer open={translationOpen} onOpenChange={setTranslationOpen}>
+            <DropDrawerTrigger asChild>
+              <Button variant="outline" className="w-full justify-between font-normal px-3">
+                <span className="truncate">
+                  {localTranslation ? formatTranslation(localTranslation) : "No Translation"}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </DropDrawerTrigger>
+            <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
+              <DropDrawerGroup>
+                <DropDrawerItem onSelect={() => setLocalTranslation(null)}>
+                  No Translation
+                </DropDrawerItem>
+                {translations.map((t) => (
+                  <DropDrawerItem key={t} onSelect={() => setLocalTranslation(t as UrlState["translation"])}>
+                    {formatTranslation(t)}
+                  </DropDrawerItem>
+                ))}
+              </DropDrawerGroup>
+            </DropDrawerContent>
+          </DropDrawer>
         </div>
       </div>
 
