@@ -5,51 +5,50 @@
 This repo is a small Next.js (App Router) app + a Bun-powered CLI for maintaining a catalog of Quran recitation clips:
 
 - **Media** lives in Cloudflare R2 (S3-compatible) or any public object store.
-- **Metadata** is the source of truth in `data/clips.jsonl` (append-only JSON Lines).
-- **A generated index** in `data/clips.index.json` (v3) makes server-side filtering fast.
+- **Metadata** lives in a SQLite/Turso (libSQL) database (default: `file:local.db`).
+- **The web app and CLI** query/update the database via Drizzle ORM.
 
 ## Repo layout
 
 - `src/app/**`: Next.js routes/layout (server components by default)
-- `src/lib/server/**`: server-only data access (reads index/JSONL, resolves URLs)
+- `src/lib/server/**`: server-only data access (queries DB, resolves public URLs)
 - `src/components/**`: UI (client components are `*.client.tsx`)
-- `scripts/clip-cli.mjs`: CLI to add/ingest/remove/sync/normalize clips
-- `scripts/build-index.mjs`: validates JSONL + writes `data/clips.index.json`
-- `data/`: `clips.jsonl`, `clips.index.json`, and `.bak` backups (ignored by git)
+- `src/db/**`: libSQL client + Drizzle schema
+- `drizzle/**`: Drizzle migrations / metadata
+- `scripts/clip-cli.mjs`: CLI to add/ingest/remove clips (DB + R2)
+- `scripts/migrate-to-db.mjs`: one-off import from legacy JSONL into the DB
+- `data/`: legacy JSONL/index artifacts (not used by the app anymore)
 - `raw/`: local source media (ignored by git)
 
-## Data model (JSONL)
+## Data model (SQLite/Turso)
 
-Each line in `data/clips.jsonl` is one clip object:
+The schema lives in `src/db/schema/clips.ts` and is managed with Drizzle.
 
-Required fields:
-- `id`: stable unique id (CLI defaults to a canonical form; see below)
-- `surah`: `1..114`
-- `ayahStart`, `ayahEnd`: 1-based inclusive ayah range
-- `reciterSlug`: storage/filter slug (e.g. `maher-al-muaiqly`)
-- `reciterName`: display name (preserved/canonicalized by CLI/indexer)
-- `variants`: one or more playable variants
-
-Optional fields (but treated as required/canonical in the generated index):
-- `riwayah`: defaults to `hafs-an-asim`
-- `translation`: defaults to `khan-al-hilali`
-
-Variant fields:
-- `quality`: currently **`high`** and/or **`hls`**
-- `r2Key`: object key (or path) under your public base URL
-- `md5`: optional hex md5; used for de-dup and integrity checks
+Tables:
+- `clips`
+  - `id` (text, primary key)
+  - `surah` (int), `ayah_start` (int), `ayah_end` (int)
+  - `reciter_slug` (text), `reciter_name` (text)
+  - `riwayah` (text, default `hafs-an-asim`)
+  - `translation` (text, default `saheeh-international`)
+  - `created_at` (timestamp)
+- `clip_variants`
+  - `id` (int, autoincrement primary key)
+  - `clip_id` (text, FK → `clips.id`, cascade delete)
+  - `quality` (text; e.g. `high`, `hls`)
+  - `r2_key` (text)
+  - `md5` (text, nullable)
 
 Notes:
-- Historical data may include `low`/`1`/`2`/`3`/`4` qualities; the indexer currently validates for `high`/`hls`.
 - The web app resolves `variant.r2Key → variant.url` using `R2_PUBLIC_BASE_URL` (`src/lib/server/r2.ts`).
 
 ### Canonical IDs
 
-`scripts/clip-cli.mjs` and related maintenance scripts use a canonical id shape:
+`scripts/clip-cli.mjs` uses this canonical id shape by default for `ingest`:
 
 `s{surah}_a{ayahStart}-{ayahEnd}__{reciterSlug}__{riwayah}__{translation}`
 
-This keeps ids stable across rebuilds and makes it easy to locate objects by path.
+`add` generates a random id unless you pass `--id`.
 
 ## Storage layout (recommended)
 
@@ -67,15 +66,12 @@ Within that folder:
 
 For HLS, the CLI uses ffmpeg to produce multi-variant HLS with fragmented MP4 segments.
 
-## Indexing strategy
+## Query strategy
 
-`scripts/build-index.mjs` reads `data/clips.jsonl`, validates each line, normalizes legacy reciter fields, and writes `data/clips.index.json`:
+The web app queries the database directly (`src/lib/server/clips.ts`) using Drizzle:
 
-- `version: 3`
-- `clipsById`: clip objects keyed by id, with canonical `reciterSlug/reciterName/riwayah/translation`
-- `indexes`: precomputed id lists for `bySurah`, `byReciterSlug`, `byRiwayah`, `byTranslation`
-
-The web app (`src/lib/server/clips.ts`) loads the index once per process using React’s `cache()`, with a JSONL fallback if the index file is missing.
+- Simple filters (`surah`, `reciterSlug`, `riwayah`, `translation`) map to indexed columns.
+- Ayah filtering uses an overlap query (`clip.ayahStart <= filterEnd` AND `clip.ayahEnd >= filterStart`) so partial overlaps are included.
 
 ## Web app data flow
 
@@ -92,6 +88,8 @@ The web app (`src/lib/server/clips.ts`) loads the index once per process using R
 
 Used by the web app:
 - `R2_PUBLIC_BASE_URL`: public prefix used to build playable URLs (e.g. `https://cdn.example.com`)
+- `TURSO_DATABASE_URL`: `file:local.db` for local dev, or `libsql://...` for Turso
+- `TURSO_AUTH_TOKEN`: required for Turso-hosted databases
 
 Required for CLI upload/delete/copy operations (R2 S3 API):
 - `R2_BUCKET`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
@@ -101,7 +99,9 @@ Optional upload tuning:
 
 ## Operational scripts
 
-- `bun run clip -- add|ingest|remove|sync-md5|normalize-jsonl|index`: day-to-day workflow
+- `bun run db:push`: create/update DB tables in your configured SQLite/Turso DB
+- `bun run clip -- add|ingest|remove`: day-to-day workflow (DB + R2)
+- `bun scripts/migrate-to-db.mjs`: one-off import of legacy JSONL metadata into the database
 - `bun scripts/migrate-hls.mjs`: backfill HLS variants from existing `high.mp4` objects
 - `bun scripts/fix-r2-keys.mjs`: copy objects on R2 to expected keys when metadata keys drift
 - `bun scripts/set-clip-translation.mjs`: rewrite a clip’s translation (optionally copy objects on R2)

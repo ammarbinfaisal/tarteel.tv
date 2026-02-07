@@ -3,9 +3,8 @@
 Catalog a library of Quran recitation clips with metadata (surah, ayah range, reciter, riwayah, translation) and media stored in Cloudflare R2 (or any public base URL).
 
 - Web app: Next.js App Router (`src/app`) with server components for data fetching + client components for interactivity and playback.
-- Metadata source of truth: `data/clips.jsonl`
-- Generated index for fast queries: `data/clips.index.json` (built by `bun run index`)
-- CLI: `bun run clip -- ...` (adds/ingests/removes clips and rebuilds the index)
+- Metadata source of truth: SQLite/Turso (libSQL) database (default: `file:local.db`)
+- CLI: `bun run clip -- ...` (adds/ingests/removes clips and uploads media to R2)
 - Telegram bot: Interactive bot for uploading and ingesting clips
 
 See `ARCHITECTURE.md` for the full design and folder responsibilities.
@@ -17,8 +16,8 @@ See `ARCHITECTURE.md` for the full design and folder responsibilities.
   - [Clone and Install](#1-clone-and-install)
   - [Set Up Storage](#2-set-up-storage-cloudflare-r2)
   - [Configure Environment](#3-configure-environment)
-  - [Initialize Database](#4-initialize-the-database-telegram-bot-only)
-  - [Build Index](#5-build-the-initial-index)
+  - [Initialize Database](#4-initialize-the-database)
+  - [Migrate Legacy JSONL](#5-optional-migrate-legacy-jsonl)
   - [Run Web App](#6-run-the-web-app)
   - [Run Telegram Bot](#7-run-the-telegram-bot-optional)
 - [Adding Clips via CLI](#adding-clips-via-cli)
@@ -66,7 +65,7 @@ R2_ENDPOINT=https://<accountid>.r2.cloudflarestorage.com
 R2_ACCESS_KEY_ID=your-access-key
 R2_SECRET_ACCESS_KEY=your-secret-key
 
-# Database (for Telegram bot)
+# Database (required for web app + CLI + bot)
 # Option 1: Local SQLite (development)
 TURSO_DATABASE_URL=file:local.db
 
@@ -81,11 +80,9 @@ WEBHOOK_URL=https://yourdomain.com  # for production webhooks
 PORT=3000
 ```
 
-### 4. Initialize the Database (Telegram Bot Only)
+### 4. Initialize the Database
 
-**Note:** The database is only required if you're running the Telegram bot. The web app reads from `data/clips.jsonl` and `data/clips.index.json` files directly.
-
-If you plan to use the Telegram bot, initialize the database schema:
+Initialize the database schema:
 
 ```bash
 bun run db:push
@@ -93,23 +90,13 @@ bun run db:push
 
 This creates the necessary tables (`clips` and `clip_variants`) in your configured database.
 
-### 5. Build the Initial Index
+### 5. (Optional) Migrate Legacy JSONL
 
-If you have existing clips in `data/clips.jsonl`, build the index:
+If you have data from older versions that stored clip metadata in `data/clips.jsonl`, migrate it into the database:
 
 ```bash
-bun run index
+bun scripts/migrate-to-db.mjs
 ```
-
-This generates `data/clips.index.json` for fast queries.
-
-**Starting Fresh?** If `data/clips.jsonl` doesn't exist or is empty, create it as an empty file:
-```bash
-mkdir -p data
-touch data/clips.jsonl
-```
-
-**Note:** The CLI automatically rebuilds the index after `add`, `ingest`, or `remove` operations.
 
 ### 6. Run the Web App
 
@@ -182,8 +169,7 @@ bun run clip -- ingest --input ./clip.mp4 \
 - Computes MD5 hash for deduplication
 - Transcodes `.mp4` to multi-bitrate HLS with ffmpeg
 - Uploads files to R2 with proper content types
-- Adds/updates metadata in `data/clips.jsonl`
-- Automatically rebuilds the index
+- Adds/updates metadata in SQLite/Turso (`clips` + `clip_variants`)
 
 ### Method 2: Add (Metadata Only)
 
@@ -297,22 +283,22 @@ The app is a standard Next.js app and can be deployed to:
 
 ## Remove a clip (cleanup)
 
-Removes the JSONL entry (rewrites `data/clips.jsonl`, creates a backup) and deletes the clip variant objects from R2.
+Removes the clip from the database and (by default) deletes its variant objects from R2.
 
-- Dry run: `bun run clip -- remove --id <clip_id> --dry-run`
-- Delete: `bun run clip -- remove --id <clip_id>`
-- Non-interactive: add `--yes`
+- Delete (prompts): `bun run clip -- remove --id <clip_id>`
+- Delete (non-interactive): `bun run clip -- remove --id <clip_id> --yes`
+- Keep R2 objects: `bun run clip -- remove --id <clip_id> --keep-r2`
 
 ## MD5 de-dup / sync
 
-- `ingest` computes `md5` for the `high` source, stores it in JSONL, and uploads to R2 with object metadata `md5` so future ingests can skip uploading when the key already has identical content.
+- `ingest` computes `md5` for the `high` source, stores it in the database (`clip_variants.md5`), and uploads to R2 with object metadata `md5` so future ingests can skip uploading when the key already has identical content.
 - If a key already exists but the remote `md5` can’t be determined, `ingest` refuses to overwrite unless you pass `--overwrite`.
-- Fill missing `md5` fields from R2: `bun run clip -- sync-md5` (uses `HeadObject` metadata/ETag; if an old object has no md5 metadata, it may not be recoverable without downloading).
 
 ## Maintenance scripts
 
 These are one-off utilities for cleaning up or migrating existing libraries:
 
+- Migrate legacy JSONL metadata into the database: `bun scripts/migrate-to-db.mjs`
 - Fix missing/misaligned objects on R2: `bun scripts/fix-r2-keys.mjs --apply`
 - Change a single clip’s translation (optionally copy objects on R2): `bun scripts/set-clip-translation.mjs --id <clipId> --translation khan-al-hilali --apply [--apply-r2]`
 - Backfill HLS variants for existing `high.mp4`: `bun scripts/migrate-hls.mjs` (requires R2 creds + `ffmpeg`)
