@@ -3,6 +3,7 @@ import fsSync from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { spawn } from "node:child_process";
+import sharp from "sharp";
 import { db } from "@/db";
 import { clips as clipsTable, clipVariants } from "@/db/schema/clips";
 import { eq } from "drizzle-orm";
@@ -23,6 +24,39 @@ export async function md5FileHex(filePath: string): Promise<string> {
     stream.on("end", () => resolve());
   });
   return hash.digest("hex");
+}
+
+export async function generateBlurDataUrl(videoPath: string): Promise<string> {
+  const tempImagePath = path.join(path.dirname(videoPath), `thumb-${Date.now()}.jpg`);
+  
+  // Extract a frame from the middle of the video (approx 1s in)
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn("ffmpeg", [
+      "-y",
+      "-ss", "00:00:01",
+      "-i", videoPath,
+      "-vframes", "1",
+      "-q:v", "2",
+      tempImagePath
+    ]);
+    child.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg thumbnail extraction failed with code ${code}`));
+    });
+  });
+
+  try {
+    const buffer = await sharp(tempImagePath)
+      .resize(20, 20, { fit: "cover" })
+      .blur(10)
+      .toBuffer();
+    
+    await fs.rm(tempImagePath).catch(() => {});
+    return `data:image/jpeg;base64,${buffer.toString("base64")}`;
+  } catch (err) {
+    await fs.rm(tempImagePath).catch(() => {});
+    throw err;
+  }
 }
 
 export async function transcodeHls(inputPath: string, outputDir: string): Promise<void> {
@@ -93,6 +127,12 @@ export async function ingestClip(videoPath: string, params: IngestionParams): Pr
   logger.info({ id }, "Transcoding HLS...");
   await transcodeHls(videoPath, hlsDir);
 
+  logger.info({ id }, "Generating blurred thumbnail...");
+  const thumbnailBlur = await generateBlurDataUrl(videoPath).catch(err => {
+    logger.error({ err }, "Failed to generate blurred thumbnail");
+    return null;
+  });
+
   logger.info({ id }, "Uploading to R2...");
   const baseKey = `clips/${reciterSlug}/${riwayah}/${translation}/s${surah}/a${ayahStart}-${ayahEnd}`;
   await uploadFile(`${baseKey}/high.mp4`, videoPath, "video/mp4", md5);
@@ -109,10 +149,10 @@ export async function ingestClip(videoPath: string, params: IngestionParams): Pr
     }
 
     await tx.insert(clipsTable).values({
-      id, surah, ayahStart, ayahEnd, reciterSlug, reciterName, riwayah, translation,
+      id, surah, ayahStart, ayahEnd, reciterSlug, reciterName, riwayah, translation, thumbnailBlur
     }).onConflictDoUpdate({
       target: clipsTable.id,
-      set: { surah, ayahStart, ayahEnd, reciterName, riwayah, translation },
+      set: { surah, ayahStart, ayahEnd, reciterName, riwayah, translation, thumbnailBlur },
     });
 
     await tx.delete(clipVariants).where(eq(clipVariants.clipId, id));

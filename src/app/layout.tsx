@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import Script from "next/script";
 
@@ -7,6 +7,14 @@ import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import NuqsProvider from "@/components/NuqsProvider.client";
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://tarteel.tv'),
   title: {
@@ -14,6 +22,12 @@ export const metadata: Metadata = {
     template: "%s | tarteel.tv",
   },
   description: "Clips of Quran Recitations.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "tarteel.tv",
+  },
   keywords: ["Quran", "Recitation", "Tarteel", "Islamic Clips", "Quran Reels"],
   authors: [{ name: "tarteel.tv" }],
   creator: "tarteel.tv",

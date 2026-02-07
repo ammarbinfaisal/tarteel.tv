@@ -18,6 +18,7 @@ export type Clip = {
   reciterName: string;
   riwayah?: string;
   translation?: ClipTranslation;
+  thumbnailBlur?: string;
   variants: ClipVariant[];
   isPartial?: boolean;
 };

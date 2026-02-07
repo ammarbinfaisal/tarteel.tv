@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Play, Layers } from "lucide-react";
 import type { Clip } from "@/lib/types";
 import { getSurahName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useQueryStates } from "nuqs";
 import { searchParamsParsers, serialize } from "@/lib/searchparams";
+import { useState } from "react";
 
 export default function ClipCard({ clip }: { clip: Clip }) {
   const [query] = useQueryStates(searchParamsParsers);
+  const [isHovered, setIsHovered] = useState(false);
   const variants = clip.variants;
 
   const getReelUrl = () => {
@@ -20,24 +23,44 @@ export default function ClipCard({ clip }: { clip: Clip }) {
     });
   };
 
-  const videoUrl = variants.find(v => v.quality === "low")?.url || variants[0]?.url;
+  const videoUrl = variants.find(v => v.quality === "low")?.url || variants.find(v => v.quality === "high")?.url || variants[0]?.url;
 
   return (
-    <Link href={getReelUrl() as any} className="relative block aspect-[4/5] bg-muted group overflow-hidden">
-      {videoUrl ? (
+    <Link 
+      href={getReelUrl() as any} 
+      className="relative block aspect-[4/5] bg-muted group overflow-hidden"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {clip.thumbnailBlur && (
+        <img
+          src={clip.thumbnailBlur}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover blur-sm scale-105"
+        />
+      )}
+      
+      {videoUrl && (
         <video
           src={videoUrl}
-          className="absolute inset-0 w-full h-full object-cover"
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
           muted
           loop
           playsInline
-          onMouseEnter={(e) => e.currentTarget.play()}
-          onMouseLeave={(e) => {
-            e.currentTarget.pause();
-            e.currentTarget.currentTime = 0;
+          autoPlay={false}
+          ref={(el) => {
+            if (el) {
+              if (isHovered) el.play().catch(() => {});
+              else {
+                el.pause();
+                el.currentTime = 0;
+              }
+            }
           }}
         />
-      ) : (
+      )}
+
+      {!videoUrl && !clip.thumbnailBlur && (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-2 text-center">
           <span className="text-[10px] font-medium leading-tight">
             {getSurahName(clip.surah)}<br/>{clip.ayahStart}-{clip.ayahEnd}

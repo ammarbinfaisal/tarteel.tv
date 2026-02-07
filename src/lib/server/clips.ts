@@ -72,6 +72,7 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
       reciterName: c.reciterName,
       riwayah: c.riwayah as any,
       translation: c.translation as ClipTranslation,
+      thumbnailBlur: c.thumbnailBlur ?? undefined,
       variants: c.variants.map(v => ({
         quality: v.quality as any,
         r2Key: v.r2Key,
@@ -101,6 +102,7 @@ export async function getClipById(id: string): Promise<Clip | null> {
     reciterName: result.reciterName,
     riwayah: result.riwayah as any,
     translation: result.translation as ClipTranslation,
+    thumbnailBlur: result.thumbnailBlur ?? undefined,
     variants: result.variants.map(v => ({
       quality: v.quality as any,
       r2Key: v.r2Key,
@@ -172,6 +174,7 @@ export async function getRelatedClips(clip: Clip, limit = 10): Promise<Clip[]> {
     reciterName: c.reciterName,
     riwayah: c.riwayah as any,
     translation: c.translation as ClipTranslation,
+    thumbnailBlur: c.thumbnailBlur ?? undefined,
     variants: c.variants.map(v => ({
       quality: v.quality as any,
       r2Key: v.r2Key,

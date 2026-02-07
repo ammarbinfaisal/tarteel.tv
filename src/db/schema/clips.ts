@@ -10,6 +10,7 @@ export const clips = sqliteTable("clips", {
   reciterName: text("reciter_name").notNull(),
   riwayah: text("riwayah").default("hafs-an-asim").notNull(),
   translation: text("translation").default("saheeh-international").notNull(),
+  thumbnailBlur: text("thumbnail_blur"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 }, (table) => [
   index("surah_idx").on(table.surah),
