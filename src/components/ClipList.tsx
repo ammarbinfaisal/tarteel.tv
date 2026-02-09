@@ -58,7 +58,7 @@ export default function ClipList({ clips, view, filterData }: ClipListProps) {
   return (
     <div className={cn(
       "grid gap-px",
-      view === "grid" ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" : "flex flex-col max-w-2xl mx-auto w-full gap-8"
+      view === "grid" ? "grid-cols-3 md:max-w-2xl md:mx-auto w-full" : "flex flex-col max-w-2xl mx-auto w-full gap-8"
     )}>
       {clips.map((c) => (
         <ClipCard key={c.id} clip={c} />

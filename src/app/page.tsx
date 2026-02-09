@@ -143,7 +143,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
   return (
     <div className={view === "reel" ? "p-0" : "flex flex-col"}>
       {view !== "reel" && (
-        <div className="px-4 pt-5 pb-3">
+        <div className="pt-5 pb-3 md:max-w-2xl md:mx-auto w-full px-4 md:px-0">
           <p className="text-muted-foreground text-[10px] uppercase tracking-[0.3em] font-semibold opacity-60">
             {clips.length} recitation{clips.length === 1 ? "" : "s"}
           </p>
