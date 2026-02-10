@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface ReelPlayerProps {
   clip: Clip;
@@ -202,6 +203,10 @@ export default function ReelPlayer({
     const downloadUrl = downloadVariant?.url;
 
     if (downloadUrl) {
+      toast.success("Download started", {
+        description: `Saving ${getSurahName(clip.surah)}:${clip.ayahStart}-${clip.ayahEnd}`,
+      });
+
       const link = document.createElement('a');
       link.href = downloadUrl;
       const ext = downloadVariant?.r2Key?.toLowerCase().endsWith(".mp3") ? "mp3" : "mp4";
@@ -220,11 +225,14 @@ export default function ReelPlayer({
       setOfflineBusy(true);
       if (offlineRecord) {
         await removeOfflineDownload(clip.id);
+        toast.success("Offline download removed");
         return;
       }
 
       if (!online) {
-        alert("You are offline. Go online to download this clip.");
+        toast.error("You are offline", {
+          description: "Go online to download this clip.",
+        });
         return;
       }
 
@@ -237,10 +245,20 @@ export default function ReelPlayer({
         download_type: "offline",
       });
 
+      toast.success("Download started", {
+        description: `Downloading ${getSurahName(clip.surah)}:${clip.ayahStart}-${clip.ayahEnd} for offline`,
+      });
+
       await downloadClipForOffline(clip);
+
+      toast.success("Download complete", {
+        description: "Clip is now available offline",
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      alert(message);
+      toast.error("Download failed", {
+        description: message,
+      });
     } finally {
       setOfflineBusy(false);
     }

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { searchParamsParsers, serialize } from "@/lib/searchparams";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { PwaInstallButton } from "./PwaInstallButton";
 
 export default function Header() {
   const pathname = usePathname();
@@ -44,6 +45,11 @@ export default function Header() {
               <Download className="h-5 w-5" />
             </Link>
           </Button>
+          <PwaInstallButton
+            className={cn(
+              isReelView ? "bg-white/10 text-white hover:bg-white/20" : "bg-muted/40"
+            )}
+          />
           <Suspense fallback={<div className="w-20 h-8 bg-muted animate-pulse rounded-md" />}>
             <ViewModeToggle />
           </Suspense>

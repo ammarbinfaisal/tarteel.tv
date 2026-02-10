@@ -6,6 +6,7 @@ import "@/app/globals.css";
 import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import NuqsProvider from "@/components/NuqsProvider.client";
+import { Toaster } from "sonner";
 
 export const viewport: Viewport = {
   themeColor: "#000000",
@@ -86,6 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Header />
             </Suspense>
             <main>{children}</main>
+            <Toaster />
           </NuqsProvider>
         </ThemeProvider>
       </body>
