@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -51,7 +51,7 @@ export function PwaInstallButton({ className }: { className?: string }) {
       title="Install app"
       aria-label="Install app"
     >
-      <Download className="h-5 w-5" />
+      <Smartphone className="h-5 w-5" />
     </Button>
   );
 }
