@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryState } from "nuqs";
 import type { Clip } from "@/lib/types";
 import ReelPlayer from "./ReelPlayer.client";
-import { Filter } from "lucide-react";
+import { Filter, WifiOff } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Sheet,
@@ -23,9 +23,10 @@ interface ReelListProps {
     riwayat: string[];
     translations: string[];
   };
+  isOffline?: boolean;
 }
 
-function ReelListInner({ clips, filterData }: ReelListProps) {
+function ReelListInner({ clips, filterData, isOffline = false }: ReelListProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -139,7 +140,15 @@ function ReelListInner({ clips, filterData }: ReelListProps) {
 
   return (
     <>
-      <div 
+      {isOffline && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <div className="px-4 py-2 rounded-full bg-black/60 text-white text-sm backdrop-blur-md border border-white/10 flex items-center gap-2 shadow-lg">
+            <WifiOff className="w-4 h-4" />
+            <span>You're offline · Showing {clips.length} downloaded clip{clips.length === 1 ? "" : "s"}</span>
+          </div>
+        </div>
+      )}
+      <div
         ref={containerRef}
         className="fixed inset-0 bg-black overflow-y-scroll snap-y snap-mandatory z-30 scrollbar-hide overscroll-contain"
       >

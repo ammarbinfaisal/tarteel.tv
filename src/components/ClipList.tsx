@@ -13,9 +13,10 @@ interface ClipListProps {
     riwayat: string[];
     translations: string[];
   };
+  isOffline?: boolean;
 }
 
-export default function ClipList({ clips, view, filterData }: ClipListProps) {
+export default function ClipList({ clips, view, filterData, isOffline = false }: ClipListProps) {
   if (clips.length === 0) {
     if (view === "reel") {
       return (
@@ -52,7 +53,7 @@ export default function ClipList({ clips, view, filterData }: ClipListProps) {
   }
 
   if (view === "reel") {
-    return <ReelList clips={clips} filterData={filterData} />;
+    return <ReelList clips={clips} filterData={filterData} isOffline={isOffline} />;
   }
 
   return (

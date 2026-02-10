@@ -1,5 +1,5 @@
-import ClipList from "@/components/ClipList";
 import { FloatingFilters } from "@/components/FloatingFilters";
+import HomePage from "@/components/HomePage.client";
 import { listClips, listReciters, listRiwayat, listTranslations, getClipById, getRelatedClips, orderBySimilarity } from "@/lib/server/clips";
 import { searchParamsCache } from "@/lib/searchparams.server";
 import { variantToPublicUrl } from "@/lib/server/r2";
@@ -141,30 +141,23 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
   }
 
   return (
-    <div className={view === "reel" ? "p-0" : "flex flex-col"}>
-      {view !== "reel" && (
-        <div className="pt-5 pb-3 md:max-w-2xl md:mx-auto w-full px-4 md:px-0">
-          <p className="text-muted-foreground text-[10px] uppercase tracking-[0.3em] font-semibold opacity-60">
-            {clips.length} recitation{clips.length === 1 ? "" : "s"}
-          </p>
-        </div>
-      )}
-
-      <ClipList 
-        clips={clips} 
-        view={view} 
+    <>
+      <HomePage
+        clips={clips}
+        view={view}
         filterData={{ reciters, riwayat, translations }}
+        clipsCount={clips.length}
       />
 
       {view !== "reel" && (
         <Suspense>
-          <FloatingFilters 
-            reciters={reciters} 
-            riwayat={riwayat} 
-            translations={translations} 
+          <FloatingFilters
+            reciters={reciters}
+            riwayat={riwayat}
+            translations={translations}
           />
         </Suspense>
       )}
-    </div>
+    </>
   );
 }
