@@ -4,9 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import type { Clip } from "@/lib/types";
 import { cn, isProbablyMp4, isHls, formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { Share2, Volume2, VolumeX, Play, Music, Download, MousePointer2, Repeat } from "lucide-react";
+import { Share2, Volume2, VolumeX, Play, Music, Download, MousePointer2, Repeat, Trash2 } from "lucide-react";
 import Hls from "hls.js";
 import { trackEvent } from "@/lib/analytics";
+import { downloadClipForOffline, removeOfflineDownload } from "@/lib/client/downloads";
+import { useDownloadRecord, useOnlineStatus } from "@/lib/client/downloads-hooks";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ReelPlayerProps {
   clip: Clip;
@@ -35,6 +44,9 @@ export default function ReelPlayer({
   const [progress, setProgress] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const isActiveRef = useRef(isActive);
+  const online = useOnlineStatus();
+  const { record: offlineRecord } = useDownloadRecord(clip.id);
+  const [offlineBusy, setOfflineBusy] = useState(false);
 
   useEffect(() => {
     isActiveRef.current = isActive;
@@ -43,7 +55,14 @@ export default function ReelPlayer({
   const variants = clip.variants;
 
   // Prefer HLS for Reels if available
-  const chosenVariant = variants.find(v => v.quality === "hls") || variants.find(v => v.quality === "high") || variants[0];
+  let chosenVariant = variants.find(v => v.quality === "hls") || variants.find(v => v.quality === "high") || variants[0];
+  if (!online && offlineRecord?.offlineUrl) {
+    const offlineBase = variants.find(v => v.quality === "high") || variants.find(v => v.quality === "4") || variants[0];
+    if (offlineBase) {
+      chosenVariant = { ...offlineBase, url: offlineRecord.offlineUrl };
+    }
+  }
+
   const src = chosenVariant?.url;
   const isVideo = isProbablyMp4(src) || isProbablyMp4(chosenVariant?.r2Key) || isHls(src) || isHls(chosenVariant?.r2Key);
 
@@ -166,7 +185,7 @@ export default function ReelPlayer({
     }
   };
 
-  const handleDownload = (e: React.MouseEvent) => {
+  const handleSaveToDevice = (e: React.MouseEvent) => {
     e.stopPropagation();
 
     trackEvent('clip_download', {
@@ -175,6 +194,7 @@ export default function ReelPlayer({
       surah_name: getSurahName(clip.surah),
       reciter_name: clip.reciterName,
       reciter_slug: clip.reciterSlug,
+      download_type: "file",
     });
 
     // Use high quality variant for download instead of HLS
@@ -184,11 +204,45 @@ export default function ReelPlayer({
     if (downloadUrl) {
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = `quran-clip-${clip.id}.mp4`;
+      const ext = downloadVariant?.r2Key?.toLowerCase().endsWith(".mp3") ? "mp3" : "mp4";
+      link.download = `quran-clip-${clip.id}.${ext}`;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+  };
+
+  const handleToggleOfflineDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    try {
+      setOfflineBusy(true);
+      if (offlineRecord) {
+        await removeOfflineDownload(clip.id);
+        return;
+      }
+
+      if (!online) {
+        alert("You are offline. Go online to download this clip.");
+        return;
+      }
+
+      trackEvent("clip_download", {
+        clip_id: clip.id,
+        surah_num: clip.surah,
+        surah_name: getSurahName(clip.surah),
+        reciter_name: clip.reciterName,
+        reciter_slug: clip.reciterSlug,
+        download_type: "offline",
+      });
+
+      await downloadClipForOffline(clip);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(message);
+    } finally {
+      setOfflineBusy(false);
     }
   };
 
@@ -214,6 +268,14 @@ export default function ReelPlayer({
       className="relative h-full w-full bg-black flex items-center justify-center snap-start overflow-hidden group"
       onClick={togglePlay}
     >
+      {!online && (
+        <div className="absolute top-4 right-4 z-30 pointer-events-none">
+          <div className="px-3 py-1 rounded-full bg-black/40 text-white text-xs backdrop-blur-md border border-white/10">
+            Offline{offlineRecord ? "" : " · not downloaded"}
+          </div>
+        </div>
+      )}
+
       {isVideo ? (
         <video
           ref={mediaRef as React.RefObject<HTMLVideoElement>}
@@ -347,14 +409,36 @@ export default function ReelPlayer({
               {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
             </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full bg-muted/50 backdrop-blur-md text-foreground hover:bg-muted/70 h-12 w-12 border border-white/5"
-              onClick={handleDownload}
-            >
-              <Download className="h-6 w-6" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full bg-muted/50 backdrop-blur-md text-foreground hover:bg-muted/70 h-12 w-12 border border-white/5"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Download options"
+                >
+                  <Download className="h-6 w-6" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="left" className="bg-popover/80 backdrop-blur-md border-white/10">
+                <DropdownMenuItem onClick={handleToggleOfflineDownload} disabled={offlineBusy || (!online && !offlineRecord)}>
+                  {offlineBusy ? (
+                    <div className="w-4 h-4 border-2 border-current/20 border-t-current/80 rounded-full animate-spin" />
+                  ) : offlineRecord ? (
+                    <Trash2 />
+                  ) : (
+                    <Download />
+                  )}
+                  {offlineRecord ? "Remove offline download" : "Download for offline"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSaveToDevice}>
+                  <Download />
+                  Save file to device
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               variant="ghost"

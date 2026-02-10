@@ -12,10 +12,15 @@ const withPWA = withPWAInit({
   swcMinify: true,
   fallbacks: {
     // image: "/static/images/fallback.png",
-    // document: "/offline", // if you want to fallback to a custom page
+    document: "/offline",
   },
   workboxOptions: {
     disableDevLogs: true,
+    additionalManifestEntries: [
+      { url: "/offline", revision: "1" },
+      { url: "/downloads", revision: "1" },
+      { url: "/downloads/reel", revision: "1" },
+    ],
   },
 });
 
@@ -30,4 +35,3 @@ const nextConfig: NextConfig = {
 };
 
 export default withPWA(nextConfig);
-
