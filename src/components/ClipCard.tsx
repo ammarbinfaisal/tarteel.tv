@@ -13,6 +13,7 @@ import { useState } from "react";
 export default function ClipCard({ clip }: { clip: Clip }) {
   const [query] = useQueryStates(searchParamsParsers);
   const [isHovered, setIsHovered] = useState(false);
+  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const variants = clip.variants;
 
   const getReelUrl = () => {
@@ -36,28 +37,38 @@ export default function ClipCard({ clip }: { clip: Clip }) {
         <img
           src={clip.thumbnailBlur}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover blur-sm scale-105"
+          className={`absolute inset-0 w-full h-full object-cover blur-sm scale-105 transition-opacity duration-200 ${thumbnailLoaded ? 'opacity-0' : 'opacity-100'}`}
         />
       )}
-      
+
       {videoUrl && (
-        <video
-          src={videoUrl}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
-          muted
-          loop
-          playsInline
-          autoPlay={false}
-          ref={(el) => {
-            if (el) {
-              if (isHovered) el.play().catch(() => {});
-              else {
-                el.pause();
-                el.currentTime = 0;
+        <>
+          <video
+            src={videoUrl}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${thumbnailLoaded ? 'opacity-100' : 'opacity-0'} ${isHovered ? 'opacity-0' : ''}`}
+            muted
+            playsInline
+            preload="metadata"
+            onLoadedData={() => setThumbnailLoaded(true)}
+          />
+          <video
+            src={videoUrl}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+            muted
+            loop
+            playsInline
+            autoPlay={false}
+            ref={(el) => {
+              if (el) {
+                if (isHovered) el.play().catch(() => {});
+                else {
+                  el.pause();
+                  el.currentTime = 0;
+                }
               }
-            }
-          }}
-        />
+            }}
+          />
+        </>
       )}
 
       {!videoUrl && !clip.thumbnailBlur && (
