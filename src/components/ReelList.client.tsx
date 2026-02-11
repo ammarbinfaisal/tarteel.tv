@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, memo } from "react";
+import { useMemo, useState, memo } from "react";
 import type { Clip } from "@/lib/types";
 import ReelPlayer from "./ReelPlayer.client";
 import { Filter, WifiOff } from "lucide-react";
@@ -15,6 +15,7 @@ import {
 import ClipFilters from "./ClipFilters.client";
 import type { HomeUiFilters } from "@/lib/home-ui-state";
 import { useHomeUiState } from "./HomeUiState.client";
+import { useSnapReelController } from "@/lib/client/useSnapReelController";
 
 interface ReelListProps {
   clips: Clip[];
@@ -80,140 +81,20 @@ const ReelItem = memo(function ReelItem({
 
 function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilters, isOffline = false }: ReelListProps) {
   const { state, setClipId } = useHomeUiState();
-  const initialIndex = (() => {
-    if (!state.clipId) return 0;
-    const idx = clips.findIndex((c) => c.id === state.clipId);
-    return idx >= 0 ? idx : 0;
-  })();
-  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const clipIds = useMemo(() => clips.map((clip) => clip.id), [clips]);
   const [isMuted, setIsMuted] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const scrollLocked = useRef(false);
-  const initialScrollDone = useRef(false);
   const view = state.view;
   const clipId = state.clipId;
-  const maxIndex = Math.max(0, clips.length - 1);
-  const safeActiveIndex = Math.min(activeIndex, maxIndex);
-
-  const scrollToNext = () => {
-    const container = containerRef.current;
-    if (!container) return;
-    
-    const nextIndex = safeActiveIndex + 1;
-    if (nextIndex < clips.length) {
-      const target = container.querySelector(`[data-index="${nextIndex}"]`) as HTMLElement;
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth" });
-      }
-    }
-  };
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      if (scrollLocked.current) {
-        e.preventDefault();
-        return;
-      }
-
-      // Don't interfere with scrollable elements in portals/modals
-      const target = e.target as HTMLElement;
-      if (!container.contains(target) || document.body.style.overflow === "hidden") {
-        return;
-      }
-
-      // If we're scrolling inside something that's already scrollable, don't trigger reel scroll
-      let current: HTMLElement | null = target;
-      while (current && current !== container) {
-        const style = window.getComputedStyle(current);
-        const isScrollable = (style.overflowY === "auto" || style.overflowY === "scroll") && current.scrollHeight > current.clientHeight;
-        if (isScrollable) return;
-        current = current.parentElement;
-      }
-
-      // Only handle significant vertical scrolls
-      if (Math.abs(e.deltaY) < 30) return;
-
-      e.preventDefault();
-      scrollLocked.current = true;
-
-      const direction = e.deltaY > 0 ? 1 : -1;
-      const nextIndex = Math.max(0, Math.min(clips.length - 1, safeActiveIndex + direction));
-
-      if (nextIndex !== safeActiveIndex) {
-        const target = container.querySelector(`[data-index="${nextIndex}"]`) as HTMLElement;
-        if (target) {
-          target.scrollIntoView({ behavior: "smooth" });
-        }
-      }
-
-      // Unlock after the smooth scroll is likely to have finished
-      setTimeout(() => {
-        scrollLocked.current = false;
-      }, 600);
-    };
-
-    container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      container.removeEventListener("wheel", handleWheel);
-    };
-  }, [clips.length, safeActiveIndex]);
-
-  // Instantly scroll to the initial clip on mount (before IntersectionObserver fires)
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || initialIndex === 0) {
-      initialScrollDone.current = true;
-      return;
-    }
-    const target = container.querySelector(`[data-index="${initialIndex}"]`) as HTMLElement;
-    if (target) {
-      container.scrollTop = target.offsetTop;
-    }
-    initialScrollDone.current = true;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally only on mount
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observerOptions = {
-      root: container,
-      threshold: 0.6,
-    };
-
-    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-      if (!initialScrollDone.current) return;
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const index = Number(entry.target.getAttribute("data-index"));
-          setActiveIndex(index);
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(handleIntersection, observerOptions);
-
-    const children = container.querySelectorAll("[data-reel-item]");
-    children.forEach((child) => observer.observe(child));
-
-    return () => {
-      children.forEach((child) => observer.unobserve(child));
-      observer.disconnect();
-    };
-  }, [clips]);
-
-  useEffect(() => {
-    if (view !== "reel") return;
-    const activeId = clips[safeActiveIndex]?.id;
-    if (!activeId) return;
-    if (activeId === clipId) return;
-    setClipId(activeId);
-  }, [clipId, clips, safeActiveIndex, setClipId, view]);
+  const { containerRef, activeIndex: safeActiveIndex, scrollToNext } = useSnapReelController({
+    itemIds: clipIds,
+    initialItemId: clipId,
+    onActiveItemChange: (activeId) => {
+      if (view !== "reel") return;
+      if (activeId === clipId) return;
+      setClipId(activeId);
+    },
+  });
 
   const filterButton = useMemo(() => (
     <FilterSheet
