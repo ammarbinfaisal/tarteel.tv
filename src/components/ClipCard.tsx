@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import { Play, Layers } from "lucide-react";
 import type { Clip } from "@/lib/types";
 import { getSurahName } from "@/lib/utils";
@@ -13,7 +13,7 @@ import Link from "next/link";
 // Avoids the blur→fade transition on revisits / re-renders.
 const loadedThumbnails = new Set<string>();
 
-export default function ClipCard({ clip }: { clip: Clip }) {
+function ClipCard({ clip }: { clip: Clip }) {
   const { state, openReel } = useHomeUiState();
 
   const getReelUrl = () => {
@@ -111,3 +111,5 @@ export default function ClipCard({ clip }: { clip: Clip }) {
     </Link>
   );
 }
+
+export default memo(ClipCard);

@@ -1,14 +1,49 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { useOnlineStatus, useDownloadsList } from "@/lib/client/downloads-hooks";
 import type { Clip } from "@/lib/types";
 import ClipList from "./ClipList";
 import { WifiOff } from "lucide-react";
 import { useHomeUiState } from "./HomeUiState.client";
-import { filterClips, type HomeUiFilters } from "@/lib/home-ui-state";
+import { filterClips, type HomeUiFilters, type HomeUiSort } from "@/lib/home-ui-state";
 import SortControl from "./SortControl";
 import { FloatingFilters } from "./FloatingFilters";
+
+const OfflineBanner = memo(function OfflineBanner({ count }: { count: number }) {
+  return (
+    <div className="pt-5 pb-3 px-4 md:px-0 md:max-w-2xl md:mx-auto w-full">
+      <div className="rounded-2xl border bg-muted/40 p-4 flex items-start gap-3">
+        <WifiOff className="w-5 h-5 mt-0.5 text-muted-foreground shrink-0" />
+        <div className="space-y-1">
+          <p className="font-semibold text-sm">You&apos;re offline</p>
+          <p className="text-sm text-muted-foreground">
+            Showing your {count} downloaded clip{count === 1 ? "" : "s"} for offline viewing.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const GridHeader = memo(function GridHeader({
+  count,
+  sort,
+  onSortChange,
+}: {
+  count: number;
+  sort: HomeUiSort;
+  onSortChange: (s: HomeUiSort) => void;
+}) {
+  return (
+    <div className="pt-5 pb-3 md:max-w-2xl md:mx-auto w-full px-4 md:px-0 flex items-center justify-between">
+      <p className="text-muted-foreground text-[10px] uppercase tracking-[0.3em] font-semibold opacity-60">
+        {count} recitation{count === 1 ? "" : "s"}
+      </p>
+      <SortControl sort={sort} onSortChange={onSortChange} />
+    </div>
+  );
+});
 
 interface HomePageProps {
   clips: Clip[];
@@ -72,27 +107,10 @@ export default function HomePage({ clips, filterData }: HomePageProps) {
 
   return (
     <div className={view === "reel" ? "p-0" : "flex flex-col"}>
-      {showOfflineMessage && view !== "reel" && (
-        <div className="pt-5 pb-3 px-4 md:px-0 md:max-w-2xl md:mx-auto w-full">
-          <div className="rounded-2xl border bg-muted/40 p-4 flex items-start gap-3">
-            <WifiOff className="w-5 h-5 mt-0.5 text-muted-foreground shrink-0" />
-            <div className="space-y-1">
-              <p className="font-semibold text-sm">You&apos;re offline</p>
-              <p className="text-sm text-muted-foreground">
-                Showing your {offlineClips.length} downloaded clip{offlineClips.length === 1 ? "" : "s"} for offline viewing.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {showOfflineMessage && view !== "reel" && <OfflineBanner count={offlineClips.length} />}
 
       {view !== "reel" && !showOfflineMessage && (
-        <div className="pt-5 pb-3 md:max-w-2xl md:mx-auto w-full px-4 md:px-0 flex items-center justify-between">
-          <p className="text-muted-foreground text-[10px] uppercase tracking-[0.3em] font-semibold opacity-60">
-            {displayCount} recitation{displayCount === 1 ? "" : "s"}
-          </p>
-          <SortControl sort={state.sort} onSortChange={setSort} />
-        </div>
+        <GridHeader count={displayCount} sort={state.sort} onSortChange={setSort} />
       )}
 
       <ClipList

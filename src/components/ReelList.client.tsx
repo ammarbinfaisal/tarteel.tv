@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, memo } from "react";
 import type { Clip } from "@/lib/types";
 import ReelPlayer from "./ReelPlayer.client";
 import { Filter, WifiOff } from "lucide-react";
@@ -28,6 +28,55 @@ interface ReelListProps {
   onResetFilters: () => void;
   isOffline?: boolean;
 }
+
+const ReelItem = memo(function ReelItem({
+  clip,
+  index,
+  isActive,
+  isVisible,
+  isMuted,
+  onMuteChange,
+  autoScroll,
+  onAutoScrollChange,
+  onClipEnd,
+  filterButton,
+}: {
+  clip: Clip;
+  index: number;
+  isActive: boolean;
+  isVisible: boolean;
+  isMuted: boolean;
+  onMuteChange: (muted: boolean) => void;
+  autoScroll: boolean;
+  onAutoScrollChange: (v: boolean) => void;
+  onClipEnd: () => void;
+  filterButton: React.ReactNode;
+}) {
+  return (
+    <div
+      data-reel-item
+      data-index={index}
+      className="h-full w-full snap-start snap-always"
+    >
+      {isVisible ? (
+        <ReelPlayer
+          clip={clip}
+          isActive={isActive}
+          isMuted={isMuted}
+          onMuteChange={onMuteChange}
+          autoScroll={autoScroll}
+          onAutoScrollChange={onAutoScrollChange}
+          onClipEnd={onClipEnd}
+          filterButton={filterButton}
+        />
+      ) : (
+        <div className="h-full w-full bg-black flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+        </div>
+      )}
+    </div>
+  );
+});
 
 function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilters, isOffline = false }: ReelListProps) {
   const { state, setClipId } = useHomeUiState();
@@ -166,6 +215,15 @@ function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilt
     setClipId(activeId);
   }, [clipId, clips, safeActiveIndex, setClipId, view]);
 
+  const filterButton = useMemo(() => (
+    <FilterSheet
+      filterData={filterData}
+      filters={filters}
+      onApplyFilters={onApplyFilters}
+      onResetFilters={onResetFilters}
+    />
+  ), [filterData, filters, onApplyFilters, onResetFilters]);
+
   return (
     <>
       {isOffline && (
@@ -180,42 +238,21 @@ function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilt
         ref={containerRef}
         className="fixed inset-0 bg-black overflow-y-scroll snap-y snap-mandatory z-30 scrollbar-hide overscroll-contain"
       >
-        {clips.map((clip, index) => {
-          const isVisible = Math.abs(index - safeActiveIndex) <= 1;
-          
-          return (
-            <div 
-              key={clip.id} 
-              data-reel-item 
-              data-index={index}
-              className="h-full w-full snap-start snap-always"
-            >
-              {isVisible ? (
-                <ReelPlayer 
-                  clip={clip} 
-                  isActive={index === safeActiveIndex}
-                  isMuted={isMuted}
-                  onMuteChange={setIsMuted}
-                  autoScroll={autoScroll}
-                  onAutoScrollChange={setAutoScroll}
-                  onClipEnd={scrollToNext}
-                  filterButton={
-                    <FilterSheet
-                      filterData={filterData}
-                      filters={filters}
-                      onApplyFilters={onApplyFilters}
-                      onResetFilters={onResetFilters}
-                    />
-                  }
-                />
-              ) : (
-                <div className="h-full w-full bg-black flex items-center justify-center">
-                   <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {clips.map((clip, index) => (
+          <ReelItem
+            key={clip.id}
+            clip={clip}
+            index={index}
+            isActive={index === safeActiveIndex}
+            isVisible={Math.abs(index - safeActiveIndex) <= 1}
+            isMuted={isMuted}
+            onMuteChange={setIsMuted}
+            autoScroll={autoScroll}
+            onAutoScrollChange={setAutoScroll}
+            onClipEnd={scrollToNext}
+            filterButton={filterButton}
+          />
+        ))}
       </div>
     </>
   );
