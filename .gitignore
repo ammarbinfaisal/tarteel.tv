@@ -6,6 +6,8 @@ dist
 *.log
 .env.local
 .env.*.local
+local.db
+local.db-*
 
 raw/*
 data/clips.jsonl.bak*
