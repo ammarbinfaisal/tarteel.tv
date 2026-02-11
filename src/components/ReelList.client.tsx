@@ -31,15 +31,17 @@ interface ReelListProps {
 
 function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilters, isOffline = false }: ReelListProps) {
   const { state, setClipId } = useHomeUiState();
-  const [activeIndex, setActiveIndex] = useState(() => {
+  const initialIndex = (() => {
     if (!state.clipId) return 0;
     const idx = clips.findIndex((c) => c.id === state.clipId);
     return idx >= 0 ? idx : 0;
-  });
+  })();
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [isMuted, setIsMuted] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollLocked = useRef(false);
+  const initialScrollDone = useRef(false);
   const view = state.view;
   const clipId = state.clipId;
   const maxIndex = Math.max(0, clips.length - 1);
@@ -111,6 +113,21 @@ function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilt
     };
   }, [clips.length, safeActiveIndex]);
 
+  // Instantly scroll to the initial clip on mount (before IntersectionObserver fires)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || initialIndex === 0) {
+      initialScrollDone.current = true;
+      return;
+    }
+    const target = container.querySelector(`[data-index="${initialIndex}"]`) as HTMLElement;
+    if (target) {
+      container.scrollTop = target.offsetTop;
+    }
+    initialScrollDone.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally only on mount
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -121,6 +138,7 @@ function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilt
     };
 
     const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      if (!initialScrollDone.current) return;
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const index = Number(entry.target.getAttribute("data-index"));

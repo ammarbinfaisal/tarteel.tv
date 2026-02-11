@@ -42,8 +42,8 @@ function parseSurah(value: string | null): number | null {
 
 export function parseHomeUiStateFromSearch(search: string): Partial<HomeUiState> {
   const params = new URLSearchParams(search);
-  const view = params.get("view") === "reel" ? "reel" : "grid";
-  const clipId = params.get("clipId");
+  const clipId = params.get("clipId") || null;
+  const view: HomeUiView = params.get("view") === "reel" || clipId != null ? "reel" : "grid";
 
   return {
     surah: parseSurah(params.get("surah")),
@@ -53,7 +53,7 @@ export function parseHomeUiStateFromSearch(search: string): Partial<HomeUiState>
     riwayah: params.get("riwayah"),
     translation: params.get("translation") as ClipTranslation | null,
     view,
-    clipId: clipId || null,
+    clipId,
   };
 }
 
