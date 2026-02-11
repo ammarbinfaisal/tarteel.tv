@@ -19,11 +19,9 @@ export default function ClipCard({ clip }: { clip: Clip }) {
     });
   };
 
-  // Prefer the smallest variant for a fast first-frame decode
-  const videoUrl =
-    clip.variants.find((v) => v.quality === "low")?.url ??
-    clip.variants.find((v) => v.quality === "high")?.url ??
-    clip.variants[0]?.url;
+  const thumbnailUrl = clip.variants.find((v) => v.quality === "thumbnail")?.url;
+  // Fall back to the blur data URI if the real thumbnail hasn't been backfilled yet
+  const imgSrc = thumbnailUrl ?? clip.thumbnailBlur;
 
   return (
     <Link
@@ -35,24 +33,12 @@ export default function ClipCard({ clip }: { clip: Clip }) {
         openReel(clip.id);
       }}
     >
-      {videoUrl ? (
-        // Single video with the blur data-URI as poster.
-        // Browser shows poster immediately; once it fetches the first frame
-        // (preload="metadata") the poster is replaced by the sharp frame.
-        // No JS state needed — the browser handles the transition natively.
-        <video
-          src={videoUrl}
-          poster={clip.thumbnailBlur}
-          className="absolute inset-0 w-full h-full object-cover"
-          muted
-          playsInline
-          preload="metadata"
-        />
-      ) : clip.thumbnailBlur ? (
+      {imgSrc ? (
         <img
-          src={clip.thumbnailBlur}
+          src={imgSrc}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
         />
       ) : (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-2 text-center">
