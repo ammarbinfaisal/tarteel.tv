@@ -21,7 +21,7 @@ export default function DownloadsReelPage() {
         reciterName: r.reciterName,
         reciterSlug: r.reciterSlug,
         riwayah: r.riwayah,
-        translation: r.translation as any,
+        translation: r.translation,
         variants: [
           {
             quality: "high",
@@ -67,4 +67,3 @@ export default function DownloadsReelPage() {
     </>
   );
 }
-

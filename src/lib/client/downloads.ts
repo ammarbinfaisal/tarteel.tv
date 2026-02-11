@@ -1,4 +1,5 @@
 import type { Clip, ClipVariant } from "@/lib/types";
+import { selectOfflineBaseVariant } from "@/lib/clip-variants";
 
 export type DownloadRecord = {
   clipId: string;
@@ -65,20 +66,7 @@ export function buildOfflineMediaUrl(r2Key: string) {
 }
 
 function pickOfflineVariant(clip: Clip): ClipVariant | null {
-  const candidates = [...clip.variants];
-  const byQuality = (q: string) => candidates.find((v) => v.quality === (q as any));
-  const preferred =
-    byQuality("high") ||
-    byQuality("4") ||
-    byQuality("3") ||
-    byQuality("2") ||
-    byQuality("1") ||
-    candidates.find((v) => v.r2Key.toLowerCase().endsWith(".mp4") || v.r2Key.toLowerCase().endsWith(".mp3")) ||
-    null;
-
-  if (!preferred) return null;
-  if (preferred.r2Key.toLowerCase().endsWith(".m3u8")) return null;
-  return preferred;
+  return selectOfflineBaseVariant(clip.variants) ?? null;
 }
 
 export async function getDownloadRecord(clipId: string): Promise<DownloadRecord | null> {
@@ -203,4 +191,3 @@ export async function clearOfflineDownloads(): Promise<void> {
 
   notifyDownloadsChanged();
 }
-

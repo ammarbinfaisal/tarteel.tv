@@ -1,4 +1,14 @@
-export type ClipQuality = "hls" | "low" | "1" | "2" | "3" | "high" | "4" | "thumbnail";
+export type ClipQuality =
+  | "hls"
+  | "low"
+  | "1"
+  | "2"
+  | "3"
+  | "high"
+  | "4"
+  | "thumbnail"
+  | "offline"
+  | (string & {});
 
 export type ClipVariant = {
   quality: ClipQuality;

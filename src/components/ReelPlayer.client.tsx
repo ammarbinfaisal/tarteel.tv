@@ -17,6 +17,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import {
+  hasHdVariant,
+  selectDownloadVariant,
+  selectOfflineBaseVariant,
+  selectPlaybackVariant,
+} from "@/lib/clip-variants";
 
 interface ReelPlayerProps {
   clip: Clip;
@@ -80,7 +86,7 @@ const ClipInfo = memo(function ClipInfo({ clip, isExpanded, onToggleExpanded }: 
         </h2>
         <div className="flex items-center gap-2">
           <span className="px-1 py-0 rounded bg-white/5 backdrop-blur-md text-[7px] font-bold text-white/30 uppercase tracking-tighter border border-white/5">
-            {clip.variants.some(v => ["hls", "high", "4", "3"].includes(v.quality)) ? "HD" : "SD"}
+            {hasHdVariant(clip.variants) ? "HD" : "SD"}
           </span>
         </div>
       </div>
@@ -337,9 +343,9 @@ export default function ReelPlayer({
   const variants = clip.variants;
 
   // Prefer HLS for Reels if available
-  let chosenVariant = variants.find(v => v.quality === "hls") || variants.find(v => v.quality === "high") || variants[0];
+  let chosenVariant = selectPlaybackVariant(variants);
   if (!online && offlineRecord?.offlineUrl) {
-    const offlineBase = variants.find(v => v.quality === "high") || variants.find(v => v.quality === "4") || variants[0];
+    const offlineBase = selectOfflineBaseVariant(variants) ?? chosenVariant;
     if (offlineBase) {
       chosenVariant = { ...offlineBase, url: offlineRecord.offlineUrl };
     }
@@ -474,7 +480,7 @@ export default function ReelPlayer({
       reciter_slug: clip.reciterSlug,
       download_type: "file",
     });
-    const downloadVariant = variants.find(v => v.quality === "high") || variants.find(v => v.quality === "4") || variants[0];
+    const downloadVariant = selectDownloadVariant(variants);
     const downloadUrl = downloadVariant?.url;
     if (downloadUrl) {
       toast.success("Download started", {

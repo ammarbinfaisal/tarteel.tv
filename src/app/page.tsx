@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getSurahName } from "@/lib/utils";
 import { parseHomeUiStateFromSearchParams } from "@/lib/home-ui-state";
+import { getVariantMimeType, selectMetadataVideoVariant } from "@/lib/clip-variants";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -27,9 +28,10 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
     const title = `${surahName}:${clip.ayahStart}-${clip.ayahEnd} | ${clip.reciterName}`;
     const description = `Listen to this beautiful recitation of Surah ${surahName}, verses ${clip.ayahStart}-${clip.ayahEnd} by ${clip.reciterName}`;
 
-    // Get video URL for Twitter player
-    const videoVariant = clip.variants.find(v => ["hls", "high", "4"].includes(v.quality));
+    // Get a share-friendly media variant for social previews.
+    const videoVariant = selectMetadataVideoVariant(clip.variants);
     const videoUrl = videoVariant?.url ?? (videoVariant ? variantToPublicUrl(videoVariant) : undefined);
+    const videoType = videoVariant ? getVariantMimeType(videoVariant) : undefined;
 
     // Use dedicated OG image route
     const ogImage = `/api/og?clipId=${clipId}`;
@@ -54,7 +56,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
         videos: videoUrl ? [
           {
             url: videoUrl,
-            type: "video/mp4",
+            type: videoType ?? "video/mp4",
           }
         ] : undefined,
       },

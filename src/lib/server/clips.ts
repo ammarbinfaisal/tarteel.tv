@@ -3,7 +3,8 @@ import "server-only";
 import { db } from "@/db";
 import { clips as clipsTable, clipVariants } from "@/db/schema/clips";
 import { eq, and, gte, lte, or, asc, sql } from "drizzle-orm";
-import type { Clip, ClipTranslation, ClipVariant } from "@/lib/types";
+import type { Clip, ClipTranslation } from "@/lib/types";
+import { mapClipFromRow } from "@/lib/server/clip-row-mapper";
 
 export type ClipFilters = {
   surah?: number;
@@ -16,6 +17,11 @@ export type ClipFilters = {
 
 export async function listClips(filters: ClipFilters): Promise<Clip[]> {
   const where = [];
+  const hasAyahFilter = filters.ayahStart != null || filters.ayahEnd != null;
+  const ayahFilterStart =
+    filters.ayahStart ?? (filters.ayahEnd != null ? filters.ayahEnd : 1);
+  const ayahFilterEnd =
+    filters.ayahEnd ?? (filters.ayahStart != null ? filters.ayahStart : 999);
 
   if (filters.surah != null) {
     where.push(eq(clipsTable.surah, filters.surah));
@@ -31,13 +37,10 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
   }
 
   // Ayah range overlap logic
-  if (filters.ayahStart != null || filters.ayahEnd != null) {
-    const fStart = filters.ayahStart ?? (filters.ayahEnd != null ? filters.ayahEnd : 1);
-    const fEnd = filters.ayahEnd ?? (filters.ayahStart != null ? filters.ayahStart : 999);
-    
+  if (hasAyahFilter) {
     // clip.ayahStart <= fEnd AND clip.ayahEnd >= fStart
-    where.push(lte(clipsTable.ayahStart, fEnd));
-    where.push(gte(clipsTable.ayahEnd, fStart));
+    where.push(lte(clipsTable.ayahStart, ayahFilterEnd));
+    where.push(gte(clipsTable.ayahEnd, ayahFilterStart));
   }
 
   const results = await db.query.clips.findMany({
@@ -53,34 +56,12 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
     ]
   });
 
-  return results.map(c => {
-    let isPartial = false;
-    if (filters.ayahStart != null || filters.ayahEnd != null) {
-      const fStart = filters.ayahStart ?? (filters.ayahEnd != null ? filters.ayahEnd : 1);
-      const fEnd = filters.ayahEnd ?? (filters.ayahStart != null ? filters.ayahStart : 999);
-      if (c.ayahStart !== fStart || c.ayahEnd !== fEnd) {
-        isPartial = true;
-      }
-    }
-
-    return {
-      id: c.id,
-      surah: c.surah,
-      ayahStart: c.ayahStart,
-      ayahEnd: c.ayahEnd,
-      reciterSlug: c.reciterSlug,
-      reciterName: c.reciterName,
-      riwayah: c.riwayah as any,
-      translation: c.translation as ClipTranslation,
-      thumbnailBlur: c.thumbnailBlur ?? undefined,
-      variants: c.variants.map(v => ({
-        quality: v.quality as any,
-        r2Key: v.r2Key,
-        md5: v.md5 ?? undefined
-      })),
-      isPartial
-    };
-  });
+  return results.map((result) =>
+    mapClipFromRow(
+      result,
+      hasAyahFilter ? { start: ayahFilterStart, end: ayahFilterEnd } : undefined,
+    ),
+  );
 }
 
 export async function getClipById(id: string): Promise<Clip | null> {
@@ -93,22 +74,7 @@ export async function getClipById(id: string): Promise<Clip | null> {
 
   if (!result) return null;
 
-  return {
-    id: result.id,
-    surah: result.surah,
-    ayahStart: result.ayahStart,
-    ayahEnd: result.ayahEnd,
-    reciterSlug: result.reciterSlug,
-    reciterName: result.reciterName,
-    riwayah: result.riwayah as any,
-    translation: result.translation as ClipTranslation,
-    thumbnailBlur: result.thumbnailBlur ?? undefined,
-    variants: result.variants.map(v => ({
-      quality: v.quality as any,
-      r2Key: v.r2Key,
-      md5: v.md5 ?? undefined
-    }))
-  };
+  return mapClipFromRow(result);
 }
 
 function calculateSimilarityScore(reference: Clip, candidate: Clip): number {
@@ -165,22 +131,7 @@ export async function getRelatedClips(clip: Clip, limit = 10): Promise<Clip[]> {
     }
   });
 
-  const formatted = relatedClips.map(c => ({
-    id: c.id,
-    surah: c.surah,
-    ayahStart: c.ayahStart,
-    ayahEnd: c.ayahEnd,
-    reciterSlug: c.reciterSlug,
-    reciterName: c.reciterName,
-    riwayah: c.riwayah as any,
-    translation: c.translation as ClipTranslation,
-    thumbnailBlur: c.thumbnailBlur ?? undefined,
-    variants: c.variants.map(v => ({
-      quality: v.quality as any,
-      r2Key: v.r2Key,
-      md5: v.md5 ?? undefined
-    }))
-  }));
+  const formatted = relatedClips.map((relatedClip) => mapClipFromRow(relatedClip));
 
   const ordered = orderBySimilarity(clip, formatted);
   return ordered.slice(0, limit);

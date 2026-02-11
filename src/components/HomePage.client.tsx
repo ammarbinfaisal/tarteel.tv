@@ -73,13 +73,13 @@ export default function HomePage({ clips, filterData }: HomePageProps) {
       reciterSlug: record.reciterSlug,
       riwayah: record.riwayah,
       translation: record.translation,
-      variants: [
-        {
-          quality: "offline" as any,
-          r2Key: record.r2Key,
-          url: record.offlineUrl,
-        }
-      ]
+        variants: [
+          {
+            quality: "offline",
+            r2Key: record.r2Key,
+            url: record.offlineUrl,
+          }
+        ]
     }));
   }, [online, records]);
 

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useHomeUiState } from "@/components/HomeUiState.client";
 import { buildHomeUrl } from "@/lib/home-ui-state";
 import Link from "next/link";
+import { selectThumbnailVariant } from "@/lib/clip-variants";
 
 // Module-level cache: thumbnails that have already been loaded this session.
 // Avoids the blur→fade transition on revisits / re-renders.
@@ -24,7 +25,7 @@ function ClipCard({ clip }: { clip: Clip }) {
     });
   };
 
-  const thumbnailUrl = clip.variants.find((v) => v.quality === "thumbnail")?.url;
+  const thumbnailUrl = selectThumbnailVariant(clip.variants)?.url;
   const blurSrc = clip.thumbnailBlur;
 
   const alreadyCached = thumbnailUrl ? loadedThumbnails.has(thumbnailUrl) : false;
