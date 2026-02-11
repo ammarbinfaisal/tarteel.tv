@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownAZ, ArrowUpZA, Shuffle, ChevronDown } from "lucide-react";
+import { ArrowUp01, ArrowDown01, Shuffle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,8 +11,8 @@ import {
 import type { HomeUiSort } from "@/lib/home-ui-state";
 
 const SORT_OPTIONS: { value: HomeUiSort; label: string; Icon: React.ElementType }[] = [
-  { value: "asc", label: "Surah 1 → 114", Icon: ArrowDownAZ },
-  { value: "desc", label: "Surah 114 → 1", Icon: ArrowUpZA },
+  { value: "asc", label: "Ascending", Icon: ArrowUp01 },
+  { value: "desc", label: "Descending", Icon: ArrowDown01 },
   { value: "random", label: "Random", Icon: Shuffle },
 ];
 
