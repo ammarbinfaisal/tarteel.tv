@@ -11,12 +11,9 @@ interface IngestFormProps {
   reciters: { slug: string; name: string }[];
   riwayat: string[];
   translations: string[];
-  endpoint: string;
-  adminUser: string;
-  adminPass: string;
 }
 
-export default function IngestForm({ reciters, riwayat, translations, endpoint, adminUser, adminPass }: IngestFormProps) {
+export default function IngestForm({ reciters, riwayat, translations }: IngestFormProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -28,13 +25,9 @@ export default function IngestForm({ reciters, riwayat, translations, endpoint, 
     const formData = new FormData(e.currentTarget);
     
     try {
-      const auth = btoa(`${adminUser}:${adminPass}`);
-      const response = await fetch(endpoint, {
+      const response = await fetch("/api/admin/ingest", {
         method: "POST",
         body: formData,
-        headers: {
-          "Authorization": `Basic ${auth}`,
-        }
       });
 
       const result = await response.json();

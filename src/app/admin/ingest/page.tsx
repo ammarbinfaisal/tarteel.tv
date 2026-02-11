@@ -19,9 +19,6 @@ export default async function IngestPage() {
         reciters={reciters} 
         riwayat={riwayat} 
         translations={translations}
-        endpoint={process.env.NEXT_PUBLIC_INGEST_ENDPOINT || "http://localhost:3001/ingest"}
-        adminUser={process.env.ADMIN_USERNAME || ""}
-        adminPass={process.env.ADMIN_PASSWORD || ""}
       />
     </div>
   );
