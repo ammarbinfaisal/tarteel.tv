@@ -2,32 +2,23 @@
 
 import * as React from "react"
 import { LayoutGrid, Film } from "lucide-react"
-import { useQueryStates } from "nuqs"
 
 import { cn } from "@/lib/utils"
-import { searchParamsParsers } from "@/lib/searchparams"
+import { useHomeUiState } from "@/components/HomeUiState.client"
 
 export function ViewModeToggle() {
-  const [{ view }, setQuery] = useQueryStates({
-    view: searchParamsParsers.view,
-    clipId: searchParamsParsers.clipId,
-  })
+  const { state, setView } = useHomeUiState()
+  const view = state.view
 
-  const setView = (newView: "grid" | "reel") => {
+  const handleSetView = (newView: "grid" | "reel") => {
     if (newView === view) return
-    setQuery(
-      {
-        view: newView,
-        ...(newView === "grid" ? { clipId: null } : {}),
-      },
-      { history: "push", shallow: false, scroll: true }
-    )
+    setView(newView)
   }
 
   return (
     <div 
       className="relative flex items-center bg-muted/50 p-1 rounded-full w-[84px] h-[40px] cursor-pointer select-none"
-      onClick={() => setView(view === "grid" ? "reel" : "grid")}
+      onClick={() => handleSetView(view === "grid" ? "reel" : "grid")}
     >
       <div
         className={cn(

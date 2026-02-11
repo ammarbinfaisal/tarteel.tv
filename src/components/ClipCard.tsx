@@ -6,19 +6,19 @@ import { Play, Layers } from "lucide-react";
 import type { Clip } from "@/lib/types";
 import { getSurahName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { useQueryStates } from "nuqs";
-import { searchParamsParsers, serialize } from "@/lib/searchparams";
 import { useState } from "react";
+import { useHomeUiState } from "@/components/HomeUiState.client";
+import { buildHomeUrl } from "@/lib/home-ui-state";
 
 export default function ClipCard({ clip }: { clip: Clip }) {
-  const [query] = useQueryStates(searchParamsParsers);
+  const { state, openReel } = useHomeUiState();
   const [isHovered, setIsHovered] = useState(false);
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const variants = clip.variants;
 
   const getReelUrl = () => {
-    return serialize("/", {
-      ...query,
+    return buildHomeUrl({
+      ...state,
       view: "reel",
       clipId: clip.id,
     });
@@ -32,6 +32,10 @@ export default function ClipCard({ clip }: { clip: Clip }) {
       className="relative block aspect-[4/5] bg-muted group overflow-hidden"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={(e) => {
+        e.preventDefault();
+        openReel(clip.id);
+      }}
     >
       {clip.thumbnailBlur && (
         <img

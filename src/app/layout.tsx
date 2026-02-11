@@ -6,6 +6,7 @@ import "@/app/globals.css";
 import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import NuqsProvider from "@/components/NuqsProvider.client";
+import { HomeUiStateProvider } from "@/components/HomeUiState.client";
 import { Toaster } from "sonner";
 
 export const viewport: Viewport = {
@@ -83,11 +84,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           <NuqsProvider>
-            <Suspense fallback={<div className="h-14 border-b bg-background" />}>
-              <Header />
-            </Suspense>
-            <main>{children}</main>
-            <Toaster />
+            <HomeUiStateProvider>
+              <Suspense fallback={<div className="h-14 border-b bg-background" />}>
+                <Header />
+              </Suspense>
+              <main>{children}</main>
+              <Toaster />
+            </HomeUiStateProvider>
           </NuqsProvider>
         </ThemeProvider>
       </body>

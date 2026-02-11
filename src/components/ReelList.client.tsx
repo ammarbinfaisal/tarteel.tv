@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useQueryState } from "nuqs";
 import type { Clip } from "@/lib/types";
 import ReelPlayer from "./ReelPlayer.client";
 import { Filter, WifiOff } from "lucide-react";
@@ -14,7 +13,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import ClipFilters from "./ClipFilters.client";
-import { searchParamsParsers } from "@/lib/searchparams";
+import type { HomeUiFilters } from "@/lib/home-ui-state";
+import { useHomeUiState } from "./HomeUiState.client";
 
 interface ReelListProps {
   clips: Clip[];
@@ -23,23 +23,33 @@ interface ReelListProps {
     riwayat: string[];
     translations: string[];
   };
+  filters: HomeUiFilters;
+  onApplyFilters: (next: HomeUiFilters) => void;
+  onResetFilters: () => void;
   isOffline?: boolean;
 }
 
-function ReelListInner({ clips, filterData, isOffline = false }: ReelListProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
+function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilters, isOffline = false }: ReelListProps) {
+  const { state, setClipId } = useHomeUiState();
+  const [activeIndex, setActiveIndex] = useState(() => {
+    if (!state.clipId) return 0;
+    const idx = clips.findIndex((c) => c.id === state.clipId);
+    return idx >= 0 ? idx : 0;
+  });
   const [isMuted, setIsMuted] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [view] = useQueryState("view", searchParamsParsers.view);
-  const [clipId, setClipId] = useQueryState("clipId", searchParamsParsers.clipId);
   const scrollLocked = useRef(false);
+  const view = state.view;
+  const clipId = state.clipId;
+  const maxIndex = Math.max(0, clips.length - 1);
+  const safeActiveIndex = Math.min(activeIndex, maxIndex);
 
   const scrollToNext = () => {
     const container = containerRef.current;
     if (!container) return;
     
-    const nextIndex = activeIndex + 1;
+    const nextIndex = safeActiveIndex + 1;
     if (nextIndex < clips.length) {
       const target = container.querySelector(`[data-index="${nextIndex}"]`) as HTMLElement;
       if (target) {
@@ -80,9 +90,9 @@ function ReelListInner({ clips, filterData, isOffline = false }: ReelListProps) 
       scrollLocked.current = true;
 
       const direction = e.deltaY > 0 ? 1 : -1;
-      const nextIndex = Math.max(0, Math.min(clips.length - 1, activeIndex + direction));
+      const nextIndex = Math.max(0, Math.min(clips.length - 1, safeActiveIndex + direction));
 
-      if (nextIndex !== activeIndex) {
+      if (nextIndex !== safeActiveIndex) {
         const target = container.querySelector(`[data-index="${nextIndex}"]`) as HTMLElement;
         if (target) {
           target.scrollIntoView({ behavior: "smooth" });
@@ -99,7 +109,7 @@ function ReelListInner({ clips, filterData, isOffline = false }: ReelListProps) 
     return () => {
       container.removeEventListener("wheel", handleWheel);
     };
-  }, [activeIndex, clips]);
+  }, [clips.length, safeActiveIndex]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -132,11 +142,11 @@ function ReelListInner({ clips, filterData, isOffline = false }: ReelListProps) 
 
   useEffect(() => {
     if (view !== "reel") return;
-    const activeId = clips[activeIndex]?.id;
+    const activeId = clips[safeActiveIndex]?.id;
     if (!activeId) return;
     if (activeId === clipId) return;
-    setClipId(activeId, { history: "replace", shallow: true });
-  }, [activeIndex, clipId, clips, setClipId, view]);
+    setClipId(activeId);
+  }, [clipId, clips, safeActiveIndex, setClipId, view]);
 
   return (
     <>
@@ -144,7 +154,7 @@ function ReelListInner({ clips, filterData, isOffline = false }: ReelListProps) 
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
           <div className="px-4 py-2 rounded-full bg-black/60 text-white text-sm backdrop-blur-md border border-white/10 flex items-center gap-2 shadow-lg">
             <WifiOff className="w-4 h-4" />
-            <span>You're offline · Showing {clips.length} downloaded clip{clips.length === 1 ? "" : "s"}</span>
+            <span>You&apos;re offline · Showing {clips.length} downloaded clip{clips.length === 1 ? "" : "s"}</span>
           </div>
         </div>
       )}
@@ -153,7 +163,7 @@ function ReelListInner({ clips, filterData, isOffline = false }: ReelListProps) 
         className="fixed inset-0 bg-black overflow-y-scroll snap-y snap-mandatory z-30 scrollbar-hide overscroll-contain"
       >
         {clips.map((clip, index) => {
-          const isVisible = Math.abs(index - activeIndex) <= 1;
+          const isVisible = Math.abs(index - safeActiveIndex) <= 1;
           
           return (
             <div 
@@ -165,14 +175,19 @@ function ReelListInner({ clips, filterData, isOffline = false }: ReelListProps) 
               {isVisible ? (
                 <ReelPlayer 
                   clip={clip} 
-                  isActive={index === activeIndex} 
+                  isActive={index === safeActiveIndex}
                   isMuted={isMuted}
                   onMuteChange={setIsMuted}
                   autoScroll={autoScroll}
                   onAutoScrollChange={setAutoScroll}
                   onClipEnd={scrollToNext}
                   filterButton={
-                    <FilterSheet filterData={filterData} />
+                    <FilterSheet
+                      filterData={filterData}
+                      filters={filters}
+                      onApplyFilters={onApplyFilters}
+                      onResetFilters={onResetFilters}
+                    />
                   }
                 />
               ) : (
@@ -189,15 +204,20 @@ function ReelListInner({ clips, filterData, isOffline = false }: ReelListProps) 
 }
 
 export default function ReelList(props: ReelListProps) {
-  const clipsKey = props.clips.map((clip) => clip.id).join("|");
-  return <ReelListInner key={clipsKey} {...props} />;
+  return <ReelListInner {...props} />;
 }
 
 export function FilterSheet({ 
   filterData, 
+  filters,
+  onApplyFilters,
+  onResetFilters,
   trigger 
 }: { 
   filterData: ReelListProps["filterData"],
+  filters: HomeUiFilters,
+  onApplyFilters: (next: HomeUiFilters) => void,
+  onResetFilters: () => void,
   trigger?: React.ReactNode
 }) {
   const [open, setOpen] = useState(false);
@@ -207,6 +227,7 @@ export function FilterSheet({
       <SheetTrigger asChild>
         {trigger || (
           <Button 
+            data-testid="filters-open"
             variant="ghost"
             size="icon" 
             className="h-12 w-12 rounded-full bg-muted/50 backdrop-blur-md text-foreground hover:bg-muted/70 border border-white/5"
@@ -226,7 +247,10 @@ export function FilterSheet({
           <ClipFilters 
             reciters={filterData.reciters} 
             riwayat={filterData.riwayat} 
-            translations={filterData.translations} 
+            translations={filterData.translations}
+            value={filters}
+            onApplyFilters={onApplyFilters}
+            onResetFilters={onResetFilters}
             onApply={() => setOpen(false)}
           />
         </div>

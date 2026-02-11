@@ -63,12 +63,13 @@ export async function transcodeHls(inputPath: string, outputDir: string): Promis
   await fs.mkdir(outputDir, { recursive: true });
   const args = [
     "-y", "-i", inputPath,
-    "-map", "0:v", "-map", "0:a", "-s:v:0", "1280x720", "-c:v:0", "libx264", "-b:v:0", "1500k", "-maxrate:v:0", "1650k", "-bufsize:v:0", "3000k",
-    "-map", "0:v", "-map", "0:a", "-c:v:1", "libx264", "-b:v:1", "3000k", "-maxrate:v:1", "3300k", "-bufsize:v:1", "6000k",
+    "-map", "0:v", "-map", "0:a", "-s:v:0", "854x480", "-c:v:0", "libx264", "-b:v:0", "800k", "-maxrate:v:0", "880k", "-bufsize:v:0", "1600k",
+    "-map", "0:v", "-map", "0:a", "-s:v:1", "1280x720", "-c:v:1", "libx264", "-b:v:1", "1500k", "-maxrate:v:1", "1650k", "-bufsize:v:1", "3000k",
+    "-map", "0:v", "-map", "0:a", "-c:v:2", "libx264", "-b:v:2", "3000k", "-maxrate:v:2", "3300k", "-bufsize:v:2", "6000k",
     "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
     "-f", "hls", "-hls_time", "6", "-hls_playlist_type", "vod", "-hls_segment_type", "fmp4", "-hls_flags", "single_file",
     "-master_pl_name", "master.m3u8", "-hls_segment_filename", path.join(outputDir, "v%v/stream.mp4"),
-    "-var_stream_map", "v:0,a:0 v:1,a:1", path.join(outputDir, "v%v/index.m3u8"),
+    "-var_stream_map", "v:0,a:0 v:1,a:1 v:2,a:2", path.join(outputDir, "v%v/index.m3u8"),
   ];
 
   return new Promise((resolve, reject) => {

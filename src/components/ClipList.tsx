@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import ReelList, { FilterSheet } from "./ReelList.client";
 import { SearchX } from "lucide-react";
 import { Button } from "./ui/button";
+import type { HomeUiFilters } from "@/lib/home-ui-state";
 
 interface ClipListProps {
   clips: Clip[];
@@ -13,10 +14,21 @@ interface ClipListProps {
     riwayat: string[];
     translations: string[];
   };
+  filters: HomeUiFilters;
+  onApplyFilters: (next: HomeUiFilters) => void;
+  onResetFilters: () => void;
   isOffline?: boolean;
 }
 
-export default function ClipList({ clips, view, filterData, isOffline = false }: ClipListProps) {
+export default function ClipList({
+  clips,
+  view,
+  filterData,
+  filters,
+  onApplyFilters,
+  onResetFilters,
+  isOffline = false,
+}: ClipListProps) {
   if (clips.length === 0) {
     if (view === "reel") {
       return (
@@ -31,7 +43,10 @@ export default function ClipList({ clips, view, filterData, isOffline = false }:
             </div>
             <div className="mt-4 pointer-events-auto">
               <FilterSheet 
-                filterData={filterData} 
+                filterData={filterData}
+                filters={filters}
+                onApplyFilters={onApplyFilters}
+                onResetFilters={onResetFilters}
                 trigger={
                   <Button className="rounded-full px-8 bg-white text-black hover:bg-white/90 font-bold">
                     Refine Filters
@@ -53,7 +68,16 @@ export default function ClipList({ clips, view, filterData, isOffline = false }:
   }
 
   if (view === "reel") {
-    return <ReelList clips={clips} filterData={filterData} isOffline={isOffline} />;
+    return (
+      <ReelList
+        clips={clips}
+        filterData={filterData}
+        filters={filters}
+        onApplyFilters={onApplyFilters}
+        onResetFilters={onResetFilters}
+        isOffline={isOffline}
+      />
+    );
   }
 
   return (

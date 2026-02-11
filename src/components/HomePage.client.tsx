@@ -1,36 +1,29 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useOnlineStatus, useDownloadsList } from "@/lib/client/downloads-hooks";
 import type { Clip } from "@/lib/types";
 import ClipList from "./ClipList";
-import { buildOfflineMediaUrl } from "@/lib/client/downloads";
-import { Badge } from "@/components/ui/badge";
 import { WifiOff } from "lucide-react";
+import { useHomeUiState } from "./HomeUiState.client";
+import { filterClips, type HomeUiFilters } from "@/lib/home-ui-state";
+import { FloatingFilters } from "./FloatingFilters";
 
 interface HomePageProps {
   clips: Clip[];
-  view: "grid" | "reel";
   filterData: {
     reciters: { slug: string; name: string }[];
     riwayat: string[];
     translations: string[];
   };
-  clipsCount: number;
 }
 
-export default function HomePage({ clips, view, filterData, clipsCount }: HomePageProps) {
+export default function HomePage({ clips, filterData }: HomePageProps) {
+  const { state, setFilters, resetFilters } = useHomeUiState();
   const online = useOnlineStatus();
   const { records } = useDownloadsList();
-  const [showOfflineMessage, setShowOfflineMessage] = useState(false);
-
-  useEffect(() => {
-    if (!online && records.length > 0) {
-      setShowOfflineMessage(true);
-    } else {
-      setShowOfflineMessage(false);
-    }
-  }, [online, records.length]);
+  const view = state.view;
+  const showOfflineMessage = !online && records.length > 0;
 
   const offlineClips: Clip[] = useMemo(() => {
     if (online || records.length === 0) return [];
@@ -54,8 +47,22 @@ export default function HomePage({ clips, view, filterData, clipsCount }: HomePa
     }));
   }, [online, records]);
 
-  const displayClips = !online && offlineClips.length > 0 ? offlineClips : clips;
-  const displayCount = !online && offlineClips.length > 0 ? offlineClips.length : clipsCount;
+  const filters: HomeUiFilters = useMemo(
+    () => ({
+      surah: state.surah,
+      start: state.start,
+      end: state.end,
+      reciter: state.reciter,
+      riwayah: state.riwayah,
+      translation: state.translation,
+    }),
+    [state.end, state.reciter, state.riwayah, state.start, state.surah, state.translation],
+  );
+
+  const filteredOnlineClips = useMemo(() => filterClips(clips, filters), [clips, filters]);
+
+  const displayClips = !online && offlineClips.length > 0 ? offlineClips : filteredOnlineClips;
+  const displayCount = displayClips.length;
 
   return (
     <div className={view === "reel" ? "p-0" : "flex flex-col"}>
@@ -64,7 +71,7 @@ export default function HomePage({ clips, view, filterData, clipsCount }: HomePa
           <div className="rounded-2xl border bg-muted/40 p-4 flex items-start gap-3">
             <WifiOff className="w-5 h-5 mt-0.5 text-muted-foreground shrink-0" />
             <div className="space-y-1">
-              <p className="font-semibold text-sm">You're offline</p>
+              <p className="font-semibold text-sm">You&apos;re offline</p>
               <p className="text-sm text-muted-foreground">
                 Showing your {offlineClips.length} downloaded clip{offlineClips.length === 1 ? "" : "s"} for offline viewing.
               </p>
@@ -85,8 +92,22 @@ export default function HomePage({ clips, view, filterData, clipsCount }: HomePa
         clips={displayClips}
         view={view}
         filterData={filterData}
+        filters={filters}
+        onApplyFilters={setFilters}
+        onResetFilters={resetFilters}
         isOffline={!online && offlineClips.length > 0}
       />
+
+      {view !== "reel" && (
+        <FloatingFilters
+          reciters={filterData.reciters}
+          riwayat={filterData.riwayat}
+          translations={filterData.translations}
+          filters={filters}
+          onApplyFilters={setFilters}
+          onResetFilters={resetFilters}
+        />
+      )}
     </div>
   );
 }

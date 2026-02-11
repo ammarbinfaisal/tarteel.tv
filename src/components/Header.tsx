@@ -3,20 +3,20 @@
 import Link from "next/link";
 import { ViewModeToggle } from "./ViewModeToggle";
 import { Suspense } from "react";
-import { useQueryStates } from "nuqs";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { searchParamsParsers, serialize } from "@/lib/searchparams";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { PwaInstallButton } from "./PwaInstallButton";
+import { useHomeUiState } from "./HomeUiState.client";
+import { buildHomeUrl } from "@/lib/home-ui-state";
 
 export default function Header() {
   const pathname = usePathname();
-  const [query] = useQueryStates(searchParamsParsers);
+  const { state, setClipId, setView } = useHomeUiState();
   const isDownloadsReel = pathname === "/downloads/reel";
-  const isReelView = query.view === "reel" || isDownloadsReel;
-  const homeHref = serialize("/", { ...query, view: "grid", clipId: null });
+  const isReelView = (pathname === "/" && state.view === "reel") || isDownloadsReel;
+  const homeHref = buildHomeUrl({ ...state, view: "grid", clipId: null });
 
   if (isDownloadsReel) return null;
 
@@ -28,7 +28,14 @@ export default function Header() {
         : "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     )}>
       <div className="container flex h-14 items-center justify-between">
-        <Link href={homeHref as any} className="flex items-center gap-2 font-bold text-lg tracking-tight">
+        <Link
+          href={homeHref as any}
+          className="flex items-center gap-2 font-bold text-lg tracking-tight"
+          onClick={() => {
+            setView("grid");
+            setClipId(null);
+          }}
+        >
           tarteel.tv
         </Link>
         <div className="flex items-center gap-4">

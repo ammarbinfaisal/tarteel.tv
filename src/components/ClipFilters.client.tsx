@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useQueryStates } from "nuqs";
+import { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -23,13 +22,16 @@ import {
   DropDrawerItem,
   DropDrawerTrigger,
 } from "@/components/ui/dropdrawer";
-import { searchParamsParsers, type UrlState } from "@/lib/searchparams";
 import { trackEvent } from "@/lib/analytics";
+import type { HomeUiFilters } from "@/lib/home-ui-state";
 
 type Props = {
   reciters: { slug: string; name: string }[];
   riwayat: string[];
   translations: string[];
+  value: HomeUiFilters;
+  onApplyFilters: (next: HomeUiFilters) => void;
+  onResetFilters: () => void;
   onApply?: () => void;
 };
 
@@ -42,54 +44,56 @@ function toOptionalPositiveInt(value: string): number | null {
   return n;
 }
 
-type QuerySetter = ReturnType<typeof useQueryStates<typeof searchParamsParsers>>[1];
-
 function ClipFiltersForm({
   reciters,
   riwayat,
   translations,
+  value,
+  onApplyFilters,
+  onResetFilters,
   onApply,
-  query,
-  setQuery,
-}: Props & { query: UrlState; setQuery: QuerySetter }) {
+}: Props) {
+  const [isPending, startTransition] = useTransition();
   const [surahOpen, setSurahOpen] = useState(false);
   const [reciterOpen, setReciterOpen] = useState(false);
   const [riwayahOpen, setRiwayahOpen] = useState(false);
   const [translationOpen, setTranslationOpen] = useState(false);
 
-  // Local state for the form
-  const [localSurah, setLocalSurah] = useState<number | null>(query.surah);
-  const [localStart, setLocalStart] = useState<number | null>(query.start);
-  const [localEnd, setLocalEnd] = useState<number | null>(query.end);
-  const [localReciter, setLocalReciter] = useState<string | null>(query.reciter);
-  const [localRiwayah, setLocalRiwayah] = useState<string | null>(query.riwayah);
-  const [localTranslation, setLocalTranslation] = useState<UrlState["translation"]>(query.translation);
+  const [localSurah, setLocalSurah] = useState<number | null>(value.surah);
+  const [localStart, setLocalStart] = useState<number | null>(value.start);
+  const [localEnd, setLocalEnd] = useState<number | null>(value.end);
+  const [localReciter, setLocalReciter] = useState<string | null>(value.reciter);
+  const [localRiwayah, setLocalRiwayah] = useState<string | null>(value.riwayah);
+  const [localTranslation, setLocalTranslation] = useState<HomeUiFilters["translation"]>(value.translation);
 
   const apply = () => {
-    trackEvent('apply_filters', {
-      surah_num: localSurah,
-      surah_name: localSurah ? surahNames[localSurah - 1] : null,
-      reciter_slug: localReciter,
+    const next: HomeUiFilters = {
+      surah: localSurah,
+      start: localStart,
+      end: localEnd,
+      reciter: localReciter,
       riwayah: localRiwayah,
       translation: localTranslation,
+    };
+
+    performance.mark("filters:apply:click");
+    trackEvent("apply_filters", {
+      surah_num: next.surah,
+      surah_name: next.surah ? surahNames[next.surah - 1] : null,
+      reciter_slug: next.reciter,
+      riwayah: next.riwayah,
+      translation: next.translation,
     });
 
-    setQuery(
-      (old) => ({
-        ...old,
-        surah: localSurah,
-        start: localStart,
-        end: localEnd,
-        reciter: localReciter,
-        riwayah: localRiwayah,
-        translation: localTranslation,
-      }),
-      { history: "replace", shallow: false, scroll: true }
-    );
-    onApply?.();
+    startTransition(() => {
+      onApplyFilters(next);
+      onApply?.();
+      performance.mark("filters:apply:scheduled");
+    });
   };
 
   const reset = () => {
+    performance.mark("filters:reset:click");
     setLocalSurah(null);
     setLocalStart(null);
     setLocalEnd(null);
@@ -97,19 +101,11 @@ function ClipFiltersForm({
     setLocalRiwayah(null);
     setLocalTranslation(null);
 
-    setQuery(
-      (old) => ({
-        ...old,
-        surah: null,
-        start: null,
-        end: null,
-        reciter: null,
-        riwayah: null,
-        translation: null,
-      }),
-      { history: "replace", shallow: false, scroll: true }
-    );
-    onApply?.();
+    startTransition(() => {
+      onResetFilters();
+      onApply?.();
+      performance.mark("filters:reset:scheduled");
+    });
   };
 
   const form = {
@@ -121,13 +117,13 @@ function ClipFiltersForm({
     translation: localTranslation ?? "",
   };
 
-  const hasChanges = 
-    localSurah !== query.surah ||
-    localStart !== query.start ||
-    localEnd !== query.end ||
-    localReciter !== query.reciter ||
-    localRiwayah !== query.riwayah ||
-    localTranslation !== query.translation;
+  const hasChanges =
+    localSurah !== value.surah ||
+    localStart !== value.start ||
+    localEnd !== value.end ||
+    localReciter !== value.reciter ||
+    localRiwayah !== value.riwayah ||
+    localTranslation !== value.translation;
 
   return (
     <div className="flex flex-col gap-6 p-1">
@@ -144,7 +140,7 @@ function ClipFiltersForm({
               >
                 <span className="truncate">
                   {form.surah
-                    ? `${form.surah}. ${surahNames[parseInt(form.surah) - 1]}`
+                    ? `${form.surah}. ${surahNames[parseInt(form.surah, 10) - 1]}`
                     : "Select Surah..."}
                 </span>
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -152,8 +148,8 @@ function ClipFiltersForm({
             </DropDrawerTrigger>
             <DropDrawerContent className="p-0">
               <Command title="Surah search">
-                <CommandInput 
-                  placeholder="Search surah..." 
+                <CommandInput
+                  placeholder="Search surah..."
                   onPointerDown={(e) => e.stopPropagation()}
                 />
                 <CommandList className="max-h-[40vh] sm:max-h-[300px]">
@@ -173,7 +169,7 @@ function ClipFiltersForm({
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              form.surah === String(num) ? "opacity-100" : "opacity-0"
+                              form.surah === String(num) ? "opacity-100" : "opacity-0",
                             )}
                           />
                           {num}. {name}
@@ -218,7 +214,7 @@ function ClipFiltersForm({
             <DropDrawerTrigger asChild>
               <Button variant="outline" className="w-full justify-between font-normal px-3">
                 <span className="truncate">
-                  {localReciter ? reciters.find(r => r.slug === localReciter)?.name : "All Reciters"}
+                  {localReciter ? reciters.find((r) => r.slug === localReciter)?.name : "All Reciters"}
                 </span>
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
@@ -281,7 +277,7 @@ function ClipFiltersForm({
                   No Translation
                 </DropDrawerItem>
                 {translations.map((t) => (
-                  <DropDrawerItem key={t} onSelect={() => setLocalTranslation(t as UrlState["translation"])}>
+                  <DropDrawerItem key={t} onSelect={() => setLocalTranslation(t)}>
                     {formatTranslation(t)}
                   </DropDrawerItem>
                 ))}
@@ -292,10 +288,10 @@ function ClipFiltersForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Button onClick={apply} className="w-full" disabled={!hasChanges}>
+        <Button data-testid="filters-apply" onClick={apply} className="w-full" disabled={!hasChanges || isPending}>
           Apply Filters
         </Button>
-        <Button variant="outline" onClick={reset} className="w-full">
+        <Button data-testid="filters-reset" variant="outline" onClick={reset} className="w-full" disabled={isPending}>
           Reset Filters
         </Button>
       </div>
@@ -304,15 +300,14 @@ function ClipFiltersForm({
 }
 
 export default function ClipFilters(props: Props) {
-  const [query, setQuery] = useQueryStates(searchParamsParsers);
   const key = [
-    query.surah ?? "",
-    query.start ?? "",
-    query.end ?? "",
-    query.reciter ?? "",
-    query.riwayah ?? "",
-    query.translation ?? "",
+    props.value.surah ?? "",
+    props.value.start ?? "",
+    props.value.end ?? "",
+    props.value.reciter ?? "",
+    props.value.riwayah ?? "",
+    props.value.translation ?? "",
   ].join("|");
 
-  return <ClipFiltersForm key={key} {...props} query={query} setQuery={setQuery} />;
+  return <ClipFiltersForm key={key} {...props} />;
 }
