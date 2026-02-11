@@ -1,20 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
 import { Play, Layers } from "lucide-react";
 import type { Clip } from "@/lib/types";
 import { getSurahName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
 import { useHomeUiState } from "@/components/HomeUiState.client";
 import { buildHomeUrl } from "@/lib/home-ui-state";
+import Link from "next/link";
 
 export default function ClipCard({ clip }: { clip: Clip }) {
   const { state, openReel } = useHomeUiState();
-  const [isHovered, setIsHovered] = useState(false);
-  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
-  const variants = clip.variants;
 
   const getReelUrl = () => {
     return buildHomeUrl({
@@ -24,58 +19,23 @@ export default function ClipCard({ clip }: { clip: Clip }) {
     });
   };
 
-  const videoUrl = variants.find(v => v.quality === "low")?.url || variants.find(v => v.quality === "high")?.url || variants[0]?.url;
-
   return (
-    <Link 
-      href={getReelUrl() as any} 
+    <Link
+      href={getReelUrl() as any}
       className="relative block aspect-[4/5] bg-muted group overflow-hidden"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      style={{ contentVisibility: "auto", containIntrinsicSize: "0 120px" }}
       onClick={(e) => {
         e.preventDefault();
         openReel(clip.id);
       }}
     >
-      {clip.thumbnailBlur && (
+      {clip.thumbnailBlur ? (
         <img
           src={clip.thumbnailBlur}
           alt=""
-          className={`absolute inset-0 w-full h-full object-cover blur-sm scale-105 transition-opacity duration-200 ${thumbnailLoaded ? 'opacity-0' : 'opacity-100'}`}
+          className="absolute inset-0 w-full h-full object-cover"
         />
-      )}
-
-      {videoUrl && (
-        <>
-          <video
-            src={videoUrl}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${thumbnailLoaded ? 'opacity-100' : 'opacity-0'} ${isHovered ? 'opacity-0' : ''}`}
-            muted
-            playsInline
-            preload="metadata"
-            onLoadedData={() => setThumbnailLoaded(true)}
-          />
-          <video
-            src={videoUrl}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
-            muted
-            loop
-            playsInline
-            autoPlay={false}
-            ref={(el) => {
-              if (el) {
-                if (isHovered) el.play().catch(() => {});
-                else {
-                  el.pause();
-                  el.currentTime = 0;
-                }
-              }
-            }}
-          />
-        </>
-      )}
-
-      {!videoUrl && !clip.thumbnailBlur && (
+      ) : (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-2 text-center">
           <span className="text-[10px] font-medium leading-tight">
             {getSurahName(clip.surah)}<br/>{clip.ayahStart}-{clip.ayahEnd}
@@ -88,10 +48,11 @@ export default function ClipCard({ clip }: { clip: Clip }) {
           )}
         </div>
       )}
+
       <div className="absolute top-2 right-2 text-white/90 drop-shadow-md">
         <Play className="w-4 h-4 fill-white" />
       </div>
-      
+
       {clip.isPartial && (
         <div className="absolute top-2 left-2 pointer-events-none">
           <Badge variant="secondary" className="bg-black/40 text-white border-none text-[8px] px-1.5 h-4 backdrop-blur-sm">
