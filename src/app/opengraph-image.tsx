@@ -1,71 +1,103 @@
 import { ImageResponse } from 'next/og';
-import { getClipById } from '@/lib/server/clips';
-import { searchParamsCache } from '@/lib/searchparams.server';
-import { getSurahName } from '@/lib/utils';
 
-export const alt = 'Quran Recitation Clip';
+export const alt = 'tarteel.tv — Quran Recitations';
 export const size = {
   width: 1200,
   height: 630,
 };
 export const contentType = 'image/png';
 
-type Props = {
-  params: Promise<Record<string, never>>;
-};
+const BG = '#000000';
+const FG = '#F5F0E8';      // warm off-white — "tarteel"
+const FG_DIM = '#A09880';  // warm gold-grey — ".tv" and tagline
 
-export default async function Image({ params }: Props) {
-  // Get searchParams from the URL (this won't work directly in opengraph-image)
-  // Instead we'll create a route-based image generator
-
+export default function Image() {
   return new ImageResponse(
     (
       <div
         style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: BG,
           width: '100%',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: 'system-ui, sans-serif',
+          fontFamily: 'Georgia, serif',
+          position: 'relative',
         }}
       >
+        {/* Warm radial vignette */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 70% 70% at 50% 50%, #1A1612 0%, #0A0806 100%)',
+            display: 'flex',
+          }}
+        />
+
+        {/* Top rule */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 248,
+            left: 380,
+            width: 440,
+            height: 1,
+            background: FG_DIM,
+            opacity: 0.35,
+            display: 'flex',
+          }}
+        />
+
+        {/* Wordmark: "tarteel" warm-white + ".tv" gold-dim */}
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '20px',
+            fontSize: 108,
+            fontWeight: 700,
+            letterSpacing: '-3px',
+            lineHeight: 1,
+            position: 'relative',
           }}
         >
-          <h1
-            style={{
-              fontSize: '72px',
-              fontWeight: 'bold',
-              color: 'white',
-              margin: 0,
-              textAlign: 'center',
-            }}
-          >
-            tarteel.tv
-          </h1>
-          <p
-            style={{
-              fontSize: '32px',
-              color: 'rgba(255, 255, 255, 0.9)',
-              margin: 0,
-              textAlign: 'center',
-            }}
-          >
-            Beautiful Quran Recitations
-          </p>
+          <span style={{ color: FG }}>tarteel</span>
+          <span style={{ color: FG_DIM }}>.tv</span>
+        </div>
+
+        {/* Bottom rule */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 392,
+            left: 380,
+            width: 440,
+            height: 1,
+            background: FG_DIM,
+            opacity: 0.35,
+            display: 'flex',
+          }}
+        />
+
+        {/* Tagline */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 410,
+            display: 'flex',
+            fontSize: 26,
+            fontWeight: 400,
+            color: FG_DIM,
+            letterSpacing: '5px',
+            fontFamily: 'system-ui, sans-serif',
+          }}
+        >
+          QURAN RECITATIONS
         </div>
       </div>
     ),
-    {
-      ...size,
-    }
+    { ...size }
   );
 }

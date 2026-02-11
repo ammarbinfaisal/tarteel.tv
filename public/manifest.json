@@ -1,6 +1,6 @@
 {
-  "name": "Quran Clips",
-  "short_name": "QuranClips",
+  "name": "tarteel.tv",
+  "short_name": "tarteel.tv",
   "description": "Short Quranic recitations with translations",
   "start_url": "/",
   "display": "standalone",

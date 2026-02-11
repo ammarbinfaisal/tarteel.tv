@@ -29,6 +29,14 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "tarteel.tv",
+    startupImage: "/apple-touch-icon.png",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   keywords: ["Quran", "Recitation", "Tarteel", "Islamic Clips", "Quran Reels"],
   authors: [{ name: "tarteel.tv" }],
@@ -42,7 +50,7 @@ export const metadata: Metadata = {
     siteName: "tarteel.tv",
     images: [
       {
-        url: "/image.jpg",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "tarteel.tv",
@@ -53,7 +61,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "tarteel.tv",
     description: "Clips of Quran Recitations.",
-    images: ["/image.jpg"],
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
