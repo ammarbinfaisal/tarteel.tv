@@ -22,6 +22,19 @@ const withPWA = withPWAInit({
       { url: "/downloads", revision: "1" },
       { url: "/downloads/reel", revision: "1" },
     ],
+    // Never cache the homepage document — clips change without a redeploy.
+    exclude: [({ asset }: { asset: { name: string } }) => asset.name === "index.html"],
+    runtimeCaching: [
+      {
+        urlPattern: /^\/(\?.*)?$/,
+        handler: "NetworkFirst",
+        options: {
+          cacheName: "homepage",
+          networkTimeoutSeconds: 5,
+          expiration: { maxAgeSeconds: 60 },
+        },
+      },
+    ],
   },
 });
 
