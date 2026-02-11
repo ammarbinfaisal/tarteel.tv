@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { Play, Layers } from "lucide-react";
 import type { Clip } from "@/lib/types";
 import { getSurahName } from "@/lib/utils";
@@ -7,6 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { useHomeUiState } from "@/components/HomeUiState.client";
 import { buildHomeUrl } from "@/lib/home-ui-state";
 import Link from "next/link";
+
+// Module-level cache: thumbnails that have already been loaded this session.
+// Avoids the blur→fade transition on revisits / re-renders.
+const loadedThumbnails = new Set<string>();
 
 export default function ClipCard({ clip }: { clip: Clip }) {
   const { state, openReel } = useHomeUiState();
@@ -20,8 +25,19 @@ export default function ClipCard({ clip }: { clip: Clip }) {
   };
 
   const thumbnailUrl = clip.variants.find((v) => v.quality === "thumbnail")?.url;
-  // Fall back to the blur data URI if the real thumbnail hasn't been backfilled yet
-  const imgSrc = thumbnailUrl ?? clip.thumbnailBlur;
+  const blurSrc = clip.thumbnailBlur;
+
+  const alreadyCached = thumbnailUrl ? loadedThumbnails.has(thumbnailUrl) : false;
+  const [thumbLoaded, setThumbLoaded] = useState(alreadyCached);
+
+  const onThumbLoad = useCallback(() => {
+    if (thumbnailUrl) loadedThumbnails.add(thumbnailUrl);
+    setThumbLoaded(true);
+  }, [thumbnailUrl]);
+
+  const hasBlur = !!blurSrc;
+  const hasThumb = !!thumbnailUrl;
+  const showBlurLayer = hasBlur && (!hasThumb || !thumbLoaded);
 
   return (
     <Link
@@ -33,14 +49,30 @@ export default function ClipCard({ clip }: { clip: Clip }) {
         openReel(clip.id);
       }}
     >
-      {imgSrc ? (
+      {/* Blur placeholder – shown immediately, hidden once thumbnail loads */}
+      {showBlurLayer && (
         <img
-          src={imgSrc}
+          src={blurSrc}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
         />
-      ) : (
+      )}
+
+      {/* Full thumbnail – fades in over the blur placeholder */}
+      {hasThumb && (
+        <img
+          src={thumbnailUrl}
+          alt=""
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+            thumbLoaded ? "opacity-100" : "opacity-0"
+          }`}
+          loading="lazy"
+          onLoad={onThumbLoad}
+        />
+      )}
+
+      {/* Text fallback when neither blur nor thumbnail is available */}
+      {!hasBlur && !hasThumb && (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-2 text-center">
           <span className="text-[10px] font-medium leading-tight">
             {getSurahName(clip.surah)}<br/>{clip.ayahStart}-{clip.ayahEnd}

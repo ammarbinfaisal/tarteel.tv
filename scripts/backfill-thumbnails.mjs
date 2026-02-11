@@ -8,18 +8,59 @@ import path from "node:path";
 import os from "node:os";
 import sharp from "sharp";
 
-async function backfill() {
-  // Find clips that don't yet have a thumbnail variant
-  const thumbVariants = await db
-    .select({ clipId: clipVariants.clipId })
-    .from(clipVariants)
-    .where(eq(clipVariants.quality, "thumbnail"));
-  const alreadyDone = new Set(thumbVariants.map((v) => v.clipId));
+async function backfillBlurOnly(allClips) {
+  // Pass 1: clips that already have a thumbnail variant but are missing thumbnailBlur.
+  // We only need to download the small thumbnail JPEG (not the full video).
+  const needsBlur = allClips.filter(
+    (c) => !c.thumbnailBlur && c.variants.some((v) => v.quality === "thumbnail")
+  );
 
-  const allClips = await db.query.clips.findMany({ with: { variants: true } });
-  const todo = allClips.filter((c) => !alreadyDone.has(c.id));
+  console.log(`\n--- Pass 1: ${needsBlur.length} clips need blur backfill (have thumbnail, missing blur) ---`);
 
-  console.log(`${todo.length} clips need thumbnail backfill (${alreadyDone.size} already done).`);
+  let ok = 0;
+  let fail = 0;
+
+  for (const clip of needsBlur) {
+    const thumbVariant = clip.variants.find((v) => v.quality === "thumbnail");
+    const thumbUrl = variantToPublicUrl(thumbVariant);
+    if (!thumbUrl) {
+      console.warn(`[skip blur] ${clip.id}: no public thumbnail URL`);
+      fail++;
+      continue;
+    }
+
+    console.log(`[blur] ${clip.id}...`);
+    try {
+      const resp = await fetch(thumbUrl);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching thumbnail`);
+      const thumbBuf = Buffer.from(await resp.arrayBuffer());
+
+      const blurBuf = await sharp(thumbBuf).resize(20, 20, { fit: "cover" }).blur(10).toBuffer();
+      const thumbnailBlur = `data:image/jpeg;base64,${blurBuf.toString("base64")}`;
+      await db.update(clipsTable).set({ thumbnailBlur }).where(eq(clipsTable.id, clip.id));
+
+      console.log(`  OK (blur): ${clip.id}`);
+      ok++;
+    } catch (err) {
+      console.error(`  FAIL (blur): ${clip.id}:`, err.message);
+      fail++;
+    }
+  }
+
+  return { ok, fail };
+}
+
+async function backfillThumbnails(allClips) {
+  // Pass 2: clips that don't have a thumbnail variant at all.
+  // Need to download the video, generate thumbnail + blur, upload thumbnail, update DB.
+  const hasThumbVariant = new Set(
+    allClips
+      .filter((c) => c.variants.some((v) => v.quality === "thumbnail"))
+      .map((c) => c.id)
+  );
+  const todo = allClips.filter((c) => !hasThumbVariant.has(c.id));
+
+  console.log(`\n--- Pass 2: ${todo.length} clips need full thumbnail backfill (no thumbnail variant) ---`);
 
   let ok = 0;
   let fail = 0;
@@ -39,7 +80,7 @@ async function backfill() {
       continue;
     }
 
-    console.log(`Processing ${clip.id}...`);
+    console.log(`[thumb] ${clip.id}...`);
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "thumb-backfill-"));
     const videoPath = path.join(tempDir, "video.mp4");
     const thumbPath = path.join(tempDir, "thumbnail.jpg");
@@ -56,10 +97,9 @@ async function backfill() {
       await uploadFile(thumbR2Key, thumbPath, "image/jpeg");
 
       // Also generate blur data URL if missing
-      let thumbnailBlur = clip.thumbnailBlur;
-      if (!thumbnailBlur) {
+      if (!clip.thumbnailBlur) {
         const blurBuf = await sharp(thumbPath).resize(20, 20, { fit: "cover" }).blur(10).toBuffer();
-        thumbnailBlur = `data:image/jpeg;base64,${blurBuf.toString("base64")}`;
+        const thumbnailBlur = `data:image/jpeg;base64,${blurBuf.toString("base64")}`;
         await db.update(clipsTable).set({ thumbnailBlur }).where(eq(clipsTable.id, clip.id));
       }
 
@@ -69,18 +109,33 @@ async function backfill() {
         r2Key: thumbR2Key,
       });
 
-      console.log(`  OK: ${clip.id} -> ${thumbR2Key}`);
+      console.log(`  OK (thumb): ${clip.id} -> ${thumbR2Key}`);
       ok++;
     } catch (err) {
-      console.error(`  FAIL: ${clip.id}:`, err.message);
+      console.error(`  FAIL (thumb): ${clip.id}:`, err.message);
       fail++;
     } finally {
       await fs.rm(tempDir, { recursive: true, force: true });
     }
   }
 
-  console.log(`\nDone. ok=${ok} fail=${fail}`);
-  process.exit(fail > 0 ? 1 : 0);
+  return { ok, fail };
+}
+
+async function backfill() {
+  const allClips = await db.query.clips.findMany({ with: { variants: true } });
+  console.log(`Total clips in DB: ${allClips.length}`);
+
+  // Pass 1: fast blur-only backfill (downloads small thumbnail JPEG, not the full video)
+  const blur = await backfillBlurOnly(allClips);
+
+  // Pass 2: full thumbnail + blur backfill (downloads full video)
+  const thumb = await backfillThumbnails(allClips);
+
+  const totalOk = blur.ok + thumb.ok;
+  const totalFail = blur.fail + thumb.fail;
+  console.log(`\nDone. blur_ok=${blur.ok} blur_fail=${blur.fail} thumb_ok=${thumb.ok} thumb_fail=${thumb.fail} total_ok=${totalOk} total_fail=${totalFail}`);
+  process.exit(totalFail > 0 ? 1 : 0);
 }
 
 backfill();
