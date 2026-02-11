@@ -22,6 +22,7 @@ import {
   selectDownloadVariant,
   selectOfflineBaseVariant,
   selectPlaybackVariant,
+  selectThumbnailVariant,
 } from "@/lib/clip-variants";
 
 interface ReelPlayerProps {
@@ -297,7 +298,7 @@ const BesideButtons = memo(function BesideButtons({
   online: boolean;
 }) {
   return (
-    <div className="hidden lg:flex flex-col justify-end pb-8 pl-4 pointer-events-auto shrink-0">
+    <div className="hidden lg:block absolute right-4 bottom-24 z-20 pointer-events-auto">
       <ActionButtons
         clip={clip}
         isMuted={isMuted}
@@ -353,6 +354,7 @@ export default function ReelPlayer({
   }
 
   const src = chosenVariant?.url;
+  const blurredBackgroundSrc = clip.thumbnailBlur ?? selectThumbnailVariant(variants)?.url;
   const isVideo = isProbablyMp4(src) || isProbablyMp4(chosenVariant?.r2Key) || isHls(src) || isHls(chosenVariant?.r2Key);
 
   const handleMediaPlay = useCallback(() => setIsPlaying(true), []);
@@ -587,18 +589,25 @@ export default function ReelPlayer({
         </div>
       )}
 
-      {/* On large screens: video constrained to portrait column + buttons beside it */}
-      <div className="h-full w-full flex items-center justify-center">
-        {/* Video column — portrait aspect on lg+, full bleed on small */}
-        <div
-          className="relative h-full aspect-[9/16] max-w-full lg:max-w-[calc(100vh*9/16)] shrink-0"
-          onClick={togglePlay}
-        >
-          {isVideo ? (
+      <div className="relative h-full w-full" onClick={togglePlay}>
+        {isVideo ? (
+          <>
+            <div className="absolute inset-0 overflow-hidden">
+              {blurredBackgroundSrc ? (
+                <div
+                  className="absolute inset-0 scale-110 bg-cover bg-center blur-3xl opacity-60"
+                  style={{ backgroundImage: `url("${blurredBackgroundSrc}")` }}
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black" />
+              )}
+              <div className="absolute inset-0 bg-black/45" />
+            </div>
+
             <video
               ref={mediaRef as React.RefObject<HTMLVideoElement>}
               src={isHls(src) ? undefined : src}
-              className="h-full w-full object-contain"
+              className="relative z-10 h-full w-full object-contain"
               loop={!autoScroll}
               playsInline
               muted={isMuted}
@@ -607,39 +616,39 @@ export default function ReelPlayer({
               onTimeUpdate={handleTimeUpdate}
               onEnded={handleEnded}
             />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-              <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center animate-pulse">
-                <Music className="w-12 h-12 text-white/50" />
-              </div>
-              <audio
-                ref={mediaRef as React.RefObject<HTMLAudioElement>}
-                src={isHls(src) ? undefined : src}
-                loop={!autoScroll}
-                muted={isMuted}
-                onPlay={handleMediaPlay}
-                onPause={handleMediaPause}
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={handleEnded}
-              />
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center animate-pulse">
+              <Music className="w-12 h-12 text-white/50" />
             </div>
-          )}
+            <audio
+              ref={mediaRef as React.RefObject<HTMLAudioElement>}
+              src={isHls(src) ? undefined : src}
+              loop={!autoScroll}
+              muted={isMuted}
+              onPlay={handleMediaPlay}
+              onPause={handleMediaPause}
+              onTimeUpdate={handleTimeUpdate}
+              onEnded={handleEnded}
+            />
+          </div>
+        )}
 
-          {/* Play/Pause indicator overlay */}
-          {!isPlaying && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none transition-opacity">
-              <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm">
-                <Play className="w-12 h-12 text-white fill-white" />
-              </div>
+        {/* Play/Pause indicator overlay */}
+        {!isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none transition-opacity">
+            <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm">
+              <Play className="w-12 h-12 text-white fill-white" />
             </div>
-          )}
+          </div>
+        )}
 
-          <ProgressBar progress={progress} />
+        <ProgressBar progress={progress} />
 
-          <ReelOverlay {...sharedButtonProps} />
-        </div>
+        <ReelOverlay {...sharedButtonProps} />
 
-        {/* Buttons beside the video — only on large screens */}
+        {/* Buttons overlayed on desktop so video can stay full-bleed */}
         <BesideButtons {...sharedButtonProps} />
       </div>
     </div>
