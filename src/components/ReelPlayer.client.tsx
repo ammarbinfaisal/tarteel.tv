@@ -48,7 +48,7 @@ const ClipInfo = memo(function ClipInfo({ clip, isExpanded, onToggleExpanded }: 
   onToggleExpanded: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 pointer-events-auto max-w-[85%] mb-12">
+    <div className="flex flex-col gap-2 pointer-events-auto max-w-[85%] mb-2">
       {isExpanded ? (
         <div className="flex flex-col gap-1 mb-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <p className="text-white font-bold text-base drop-shadow-md">
