@@ -20,7 +20,7 @@ interface HomePageProps {
 }
 
 export default function HomePage({ clips, filterData }: HomePageProps) {
-  const { state, setFilters, resetFilters, setSort } = useHomeUiState();
+  const { state, randomSeed, setFilters, resetFilters, setSort } = useHomeUiState();
   const online = useOnlineStatus();
   const { records } = useDownloadsList();
   const view = state.view;
@@ -63,8 +63,8 @@ export default function HomePage({ clips, filterData }: HomePageProps) {
   const filteredOnlineClips = useMemo(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     () => filterClips(clips, filters, state.sort),
-    // intentionally include state.sort as a separate dep so random re-shuffles when sort changes
-    [clips, filters, state.sort],
+    // randomSeed increments each time random is (re-)selected, triggering a new shuffle
+    [clips, filters, state.sort, randomSeed],
   );
 
   const displayClips = !online && offlineClips.length > 0 ? offlineClips : filteredOnlineClips;

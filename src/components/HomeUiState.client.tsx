@@ -12,8 +12,11 @@ import {
   type HomeUiView,
 } from "@/lib/home-ui-state";
 
+type ProviderState = HomeUiState & { randomSeed: number };
+
 type HomeUiStateContextValue = {
   state: HomeUiState;
+  randomSeed: number;
   setView: (view: HomeUiView) => void;
   setClipId: (clipId: string | null) => void;
   setFilters: (filters: HomeUiFilters) => void;
@@ -26,11 +29,12 @@ const HomeUiStateContext = createContext<HomeUiStateContextValue | null>(null);
 
 export function HomeUiStateProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [state, setState] = useState<HomeUiState>(() => ({
+  const [state, setState] = useState<ProviderState>(() => ({
     ...defaultHomeUiState,
     ...parseHomeUiStateFromSearch(
       typeof window !== "undefined" ? window.location.search : ""
     ),
+    randomSeed: 0,
   }));
 
   useEffect(() => {
@@ -79,14 +83,15 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
 
   const setSort = useCallback((sort: HomeUiSort) => {
     setState((prev) => {
-      if (prev.sort === sort) return prev;
-      return { ...prev, sort };
+      if (prev.sort === sort && sort !== "random") return prev;
+      return { ...prev, sort, randomSeed: sort === "random" ? prev.randomSeed + 1 : prev.randomSeed };
     });
   }, []);
 
   const value = useMemo<HomeUiStateContextValue>(
     () => ({
       state,
+      randomSeed: state.randomSeed,
       setView,
       setClipId,
       setFilters,
