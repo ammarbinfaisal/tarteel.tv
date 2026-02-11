@@ -332,6 +332,7 @@ export default function ReelPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const isActiveRef = useRef(isActive);
+  const lastProgressUpdateRef = useRef(0);
   const online = useOnlineStatus();
   const { record: offlineRecord } = useDownloadRecord(clip.id);
   const [offlineBusy, setOfflineBusy] = useState(false);
@@ -445,8 +446,18 @@ export default function ReelPlayer({
   const handleTimeUpdate = useCallback(() => {
     const media = mediaRef.current;
     if (!media || !media.duration) return;
+    const now = performance.now();
+    if (now - lastProgressUpdateRef.current < 120 && media.currentTime < media.duration - 0.05) {
+      return;
+    }
+    lastProgressUpdateRef.current = now;
     setProgress((media.currentTime / media.duration) * 100);
   }, []);
+
+  useEffect(() => {
+    lastProgressUpdateRef.current = 0;
+    setProgress(0);
+  }, [clip.id, src]);
 
   const handleShare = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -536,6 +547,7 @@ export default function ReelPlayer({
   }, [clip, offlineRecord, online]);
 
   const handleEnded = useCallback(() => {
+    setProgress(100);
     if (autoScroll) onClipEnd();
   }, [autoScroll, onClipEnd]);
 

@@ -5,6 +5,7 @@ import type { Clip } from "@/lib/types";
 import ReelPlayer from "./ReelPlayer.client";
 import { Filter, WifiOff } from "lucide-react";
 import { Button } from "./ui/button";
+import dynamic from "next/dynamic";
 import {
   Sheet,
   SheetContent,
@@ -12,10 +13,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import ClipFilters from "./ClipFilters.client";
 import type { HomeUiFilters } from "@/lib/home-ui-state";
 import { useHomeUiState } from "./HomeUiState.client";
 import { useSnapReelController } from "@/lib/client/useSnapReelController";
+
+const LazyClipFilters = dynamic(() => import("./ClipFilters.client"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-28 rounded-2xl border border-white/10 bg-white/[0.03] animate-pulse" />
+  ),
+});
 
 interface ReelListProps {
   clips: Clip[];
@@ -51,7 +58,7 @@ const ReelItem = memo(function ReelItem({
   autoScroll: boolean;
   onAutoScrollChange: (v: boolean) => void;
   onClipEnd: () => void;
-  filterButton: React.ReactNode;
+  filterButton?: React.ReactNode;
 }) {
   return (
     <div
@@ -131,7 +138,7 @@ function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilt
             autoScroll={autoScroll}
             onAutoScrollChange={setAutoScroll}
             onClipEnd={scrollToNext}
-            filterButton={filterButton}
+            filterButton={index === safeActiveIndex ? filterButton : undefined}
           />
         ))}
       </div>
@@ -180,15 +187,17 @@ export function FilterSheet({
           <SheetTitle className="text-xl font-bold">Refine Clips</SheetTitle>
         </SheetHeader>
         <div className="overflow-y-auto h-full pb-24">
-          <ClipFilters 
-            reciters={filterData.reciters} 
-            riwayat={filterData.riwayat} 
-            translations={filterData.translations}
-            value={filters}
-            onApplyFilters={onApplyFilters}
-            onResetFilters={onResetFilters}
-            onApply={() => setOpen(false)}
-          />
+          {open ? (
+            <LazyClipFilters
+              reciters={filterData.reciters}
+              riwayat={filterData.riwayat}
+              translations={filterData.translations}
+              value={filters}
+              onApplyFilters={onApplyFilters}
+              onResetFilters={onResetFilters}
+              onApply={() => setOpen(false)}
+            />
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>

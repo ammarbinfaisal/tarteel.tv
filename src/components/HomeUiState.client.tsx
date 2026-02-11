@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import {
   buildHomeUrl,
   defaultHomeUiState,
@@ -28,7 +27,6 @@ type HomeUiStateContextValue = {
 const HomeUiStateContext = createContext<HomeUiStateContextValue | null>(null);
 
 export function HomeUiStateProvider({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const [state, setState] = useState<ProviderState>(() => ({
     ...defaultHomeUiState,
     ...parseHomeUiStateFromSearch(
@@ -37,56 +35,94 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
     randomSeed: 0,
   }));
 
-  useEffect(() => {
-    if (pathname !== "/") return;
-    const nextUrl = buildHomeUrl(state);
+  const replaceHomeUrl = useCallback((nextState: HomeUiState) => {
+    if (typeof window === "undefined") return;
+    if (window.location.pathname !== "/") return;
+
+    const nextUrl = buildHomeUrl(nextState);
     const currentUrl = `${window.location.pathname}${window.location.search}`;
     if (nextUrl !== currentUrl) {
       window.history.replaceState(window.history.state, "", nextUrl);
     }
-  }, [pathname, state]);
+  }, []);
+
+  const updateState = useCallback((updater: (prev: ProviderState) => ProviderState) => {
+    setState((prev) => {
+      const next = updater(prev);
+      if (next === prev) return prev;
+      replaceHomeUrl(next);
+      return next;
+    });
+  }, [replaceHomeUrl]);
 
   const setView = useCallback((view: HomeUiView) => {
-    setState((prev) => {
+    updateState((prev) => {
       if (view === prev.view) return prev;
       if (view === "grid") return { ...prev, view, clipId: null };
       return { ...prev, view };
     });
-  }, []);
+  }, [updateState]);
 
   const setClipId = useCallback((clipId: string | null) => {
-    setState((prev) => {
+    updateState((prev) => {
       if (prev.clipId === clipId) return prev;
       return { ...prev, clipId };
     });
-  }, []);
+  }, [updateState]);
 
   const setFilters = useCallback((filters: HomeUiFilters) => {
-    setState((prev) => ({ ...prev, ...filters }));
-  }, []);
+    updateState((prev) => {
+      if (
+        prev.surah === filters.surah &&
+        prev.start === filters.start &&
+        prev.end === filters.end &&
+        prev.reciter === filters.reciter &&
+        prev.riwayah === filters.riwayah &&
+        prev.translation === filters.translation
+      ) {
+        return prev;
+      }
+      return { ...prev, ...filters };
+    });
+  }, [updateState]);
 
   const resetFilters = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      surah: null,
-      start: null,
-      end: null,
-      reciter: null,
-      riwayah: null,
-      translation: null,
-    }));
-  }, []);
+    updateState((prev) => {
+      if (
+        prev.surah == null &&
+        prev.start == null &&
+        prev.end == null &&
+        prev.reciter == null &&
+        prev.riwayah == null &&
+        prev.translation == null
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        surah: null,
+        start: null,
+        end: null,
+        reciter: null,
+        riwayah: null,
+        translation: null,
+      };
+    });
+  }, [updateState]);
 
   const openReel = useCallback((clipId: string) => {
-    setState((prev) => ({ ...prev, view: "reel", clipId }));
-  }, []);
+    updateState((prev) => {
+      if (prev.view === "reel" && prev.clipId === clipId) return prev;
+      return { ...prev, view: "reel", clipId };
+    });
+  }, [updateState]);
 
   const setSort = useCallback((sort: HomeUiSort) => {
-    setState((prev) => {
+    updateState((prev) => {
       if (prev.sort === sort && sort !== "random") return prev;
       return { ...prev, sort, randomSeed: sort === "random" ? prev.randomSeed + 1 : prev.randomSeed };
     });
-  }, []);
+  }, [updateState]);
 
   const value = useMemo<HomeUiStateContextValue>(
     () => ({
