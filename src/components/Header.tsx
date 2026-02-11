@@ -27,7 +27,7 @@ export default function Header() {
         ? "bg-transparent border-none text-white" 
         : "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     )}>
-      <div className="container flex h-14 items-center justify-between">
+      <div className="w-full md:max-w-2xl md:mx-auto px-4 md:px-0 flex h-14 items-center justify-between">
         <Link
           href={homeHref as any}
           className="flex items-center gap-2 font-bold text-lg tracking-tight"
