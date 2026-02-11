@@ -30,6 +30,8 @@ export const defaultHomeUiState: HomeUiState = {
   sort: "asc",
 };
 
+export type SearchParamsRecord = Record<string, string | string[] | undefined>;
+
 function parsePositiveInt(value: string | null): number | null {
   if (!value) return null;
   const n = Number(value);
@@ -48,22 +50,43 @@ function parseSort(value: string | null): HomeUiSort {
   return "asc";
 }
 
-export function parseHomeUiStateFromSearch(search: string): Partial<HomeUiState> {
-  const params = new URLSearchParams(search);
-  const clipId = params.get("clipId") || null;
-  const view: HomeUiView = params.get("view") === "reel" || clipId != null ? "reel" : "grid";
+function getFirstParamValue(
+  input: URLSearchParams | SearchParamsRecord,
+  key: string,
+): string | null {
+  if (input instanceof URLSearchParams) {
+    return input.get(key);
+  }
+  const value = input[key];
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function parseHomeUiStateFromParams(
+  params: URLSearchParams | SearchParamsRecord,
+): Partial<HomeUiState> {
+  const clipId = getFirstParamValue(params, "clipId") || null;
+  const view: HomeUiView = getFirstParamValue(params, "view") === "reel" || clipId != null ? "reel" : "grid";
 
   return {
-    surah: parseSurah(params.get("surah")),
-    start: parsePositiveInt(params.get("start")),
-    end: parsePositiveInt(params.get("end")),
-    reciter: params.get("reciter"),
-    riwayah: params.get("riwayah"),
-    translation: params.get("translation") as ClipTranslation | null,
+    surah: parseSurah(getFirstParamValue(params, "surah")),
+    start: parsePositiveInt(getFirstParamValue(params, "start")),
+    end: parsePositiveInt(getFirstParamValue(params, "end")),
+    reciter: getFirstParamValue(params, "reciter"),
+    riwayah: getFirstParamValue(params, "riwayah"),
+    translation: getFirstParamValue(params, "translation") as ClipTranslation | null,
     view,
     clipId,
-    sort: parseSort(params.get("sort")),
+    sort: parseSort(getFirstParamValue(params, "sort")),
   };
+}
+
+export function parseHomeUiStateFromSearch(search: string): Partial<HomeUiState> {
+  return parseHomeUiStateFromParams(new URLSearchParams(search));
+}
+
+export function parseHomeUiStateFromSearchParams(searchParams: SearchParamsRecord): Partial<HomeUiState> {
+  return parseHomeUiStateFromParams(searchParams);
 }
 
 export function buildHomeUrl(state: HomeUiState): string {

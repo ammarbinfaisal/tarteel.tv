@@ -3,15 +3,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Clip } from "@/lib/types";
 import ReelPlayer from "@/components/ReelPlayer.client";
-import { useQueryState } from "nuqs";
-import { searchParamsParsers } from "@/lib/searchparams";
+
+function readClipIdFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("clipId");
+}
+
+function replaceClipIdInUrl(clipId: string) {
+  if (typeof window === "undefined") return;
+  const params = new URLSearchParams(window.location.search);
+  params.set("clipId", clipId);
+  const query = params.toString();
+  window.history.replaceState(window.history.state, "", query ? `?${query}` : window.location.pathname);
+}
 
 export default function DownloadsReelList({
   clips,
 }: {
   clips: Clip[];
 }) {
-  const [activeId, setClipId] = useQueryState("clipId", searchParamsParsers.clipId);
+  const [activeId, setActiveId] = useState<string | null>(() => readClipIdFromUrl());
 
   const initialIndex = useMemo(() => {
     if (!activeId) return 0;
@@ -28,9 +39,10 @@ export default function DownloadsReelList({
   useEffect(() => {
     const currentId = clips[activeIndex]?.id;
     if (currentId && currentId !== activeId) {
-      setClipId(currentId, { history: "replace", shallow: true });
+      replaceClipIdInUrl(currentId);
+      setActiveId(currentId);
     }
-  }, [activeIndex, clips, setClipId, activeId]);
+  }, [activeIndex, clips, activeId]);
 
   const scrollToNext = () => {
     const container = containerRef.current;
@@ -78,7 +90,7 @@ export default function DownloadsReelList({
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => container.removeEventListener("wheel", handleWheel as any);
+    return () => container.removeEventListener("wheel", handleWheel);
   }, [activeIndex, clips.length]);
 
   useEffect(() => {
@@ -136,4 +148,3 @@ export default function DownloadsReelList({
     </div>
   );
 }
-

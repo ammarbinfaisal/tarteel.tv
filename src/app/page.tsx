@@ -1,16 +1,16 @@
 import HomePage from "@/components/HomePage.client";
 import { listClips, listReciters, listRiwayat, listTranslations, getClipById } from "@/lib/server/clips";
-import { searchParamsCache } from "@/lib/searchparams.server";
 import { variantToPublicUrl } from "@/lib/server/r2";
 import type { Clip } from "@/lib/types";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getSurahName } from "@/lib/utils";
+import { parseHomeUiStateFromSearchParams } from "@/lib/home-ui-state";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }): Promise<Metadata> {
-  const { clipId } = await searchParamsCache.parse(searchParams);
+  const { clipId } = parseHomeUiStateFromSearchParams(await searchParams);
 
   if (!clipId) {
     return {};
@@ -80,10 +80,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
 }
 
 async function HomeContent({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  await searchParams;
+  const parsedState = parseHomeUiStateFromSearchParams(await searchParams);
 
   const [clipsRaw, reciters, riwayat, translations] = await Promise.all([
-    listClips({}),
+    listClips({
+      surah: parsedState.surah ?? undefined,
+      ayahStart: parsedState.start ?? undefined,
+      ayahEnd: parsedState.end ?? undefined,
+      reciterSlug: parsedState.reciter ?? undefined,
+      riwayah: parsedState.riwayah ?? undefined,
+      translation: parsedState.translation ?? undefined,
+    }),
     listReciters(),
     listRiwayat(),
     listTranslations(),

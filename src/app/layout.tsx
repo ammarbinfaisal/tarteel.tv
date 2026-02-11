@@ -5,7 +5,6 @@ import Script from "next/script";
 import "@/app/globals.css";
 import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import NuqsProvider from "@/components/NuqsProvider.client";
 import { HomeUiStateProvider } from "@/components/HomeUiState.client";
 import { Toaster } from "sonner";
 
@@ -91,15 +90,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           forcedTheme="dark"
           disableTransitionOnChange
         >
-          <NuqsProvider>
-            <HomeUiStateProvider>
-              <Suspense fallback={<div className="h-14 border-b bg-background" />}>
-                <Header />
-              </Suspense>
-              <main>{children}</main>
-              <Toaster />
-            </HomeUiStateProvider>
-          </NuqsProvider>
+          <HomeUiStateProvider>
+            <Suspense fallback={<div className="h-14 border-b bg-background" />}>
+              <Header />
+            </Suspense>
+            <main>{children}</main>
+            <Toaster />
+          </HomeUiStateProvider>
         </ThemeProvider>
       </body>
     </html>
