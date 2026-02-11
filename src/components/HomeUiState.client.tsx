@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   buildHomeUrl,
   defaultHomeUiState,
+  parseHomeUiStateFromSearch,
   type HomeUiFilters,
   type HomeUiState,
   type HomeUiView,
@@ -23,7 +24,12 @@ const HomeUiStateContext = createContext<HomeUiStateContextValue | null>(null);
 
 export function HomeUiStateProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [state, setState] = useState<HomeUiState>(defaultHomeUiState);
+  const [state, setState] = useState<HomeUiState>(() => ({
+    ...defaultHomeUiState,
+    ...parseHomeUiStateFromSearch(
+      typeof window !== "undefined" ? window.location.search : ""
+    ),
+  }));
 
   useEffect(() => {
     if (pathname !== "/") return;
