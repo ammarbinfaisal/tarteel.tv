@@ -102,6 +102,7 @@ const ActionButtons = memo(function ActionButtons({
   offlineRecord,
   offlineBusy,
   online,
+  beside,
 }: {
   clip: Clip;
   isMuted: boolean;
@@ -115,9 +116,10 @@ const ActionButtons = memo(function ActionButtons({
   offlineRecord: ReturnType<typeof useDownloadRecord>["record"];
   offlineBusy: boolean;
   online: boolean;
+  beside?: boolean;
 }) {
   return (
-    <div className="absolute right-4 bottom-24 flex flex-col gap-6 pointer-events-auto">
+    <div className={beside ? "flex flex-col gap-6 pointer-events-auto justify-end pb-8" : "absolute right-4 bottom-24 flex flex-col gap-6 pointer-events-auto"}>
       {filterButton}
 
       <div
@@ -238,21 +240,73 @@ const ReelOverlay = memo(function ReelOverlay({
 
       <div className="flex flex-col justify-end h-full relative z-10 p-6">
         <ClipInfo clip={clip} isExpanded={isExpanded} onToggleExpanded={handleToggleExpanded} />
-        <ActionButtons
-          clip={clip}
-          isMuted={isMuted}
-          onToggleMute={onToggleMute}
-          autoScroll={autoScroll}
-          onAutoScrollChange={onAutoScrollChange}
-          filterButton={filterButton}
-          onShare={onShare}
-          onSaveToDevice={onSaveToDevice}
-          onToggleOfflineDownload={onToggleOfflineDownload}
-          offlineRecord={offlineRecord}
-          offlineBusy={offlineBusy}
-          online={online}
-        />
+        {/* On small screens the buttons overlap the video; hidden on lg+ where they appear beside */}
+        <div className="lg:hidden">
+          <ActionButtons
+            clip={clip}
+            isMuted={isMuted}
+            onToggleMute={onToggleMute}
+            autoScroll={autoScroll}
+            onAutoScrollChange={onAutoScrollChange}
+            filterButton={filterButton}
+            onShare={onShare}
+            onSaveToDevice={onSaveToDevice}
+            onToggleOfflineDownload={onToggleOfflineDownload}
+            offlineRecord={offlineRecord}
+            offlineBusy={offlineBusy}
+            online={online}
+          />
+        </div>
       </div>
+    </div>
+  );
+});
+
+// --- Beside-video action buttons (wide screens only) ---
+const BesideButtons = memo(function BesideButtons({
+  clip,
+  isMuted,
+  onToggleMute,
+  autoScroll,
+  onAutoScrollChange,
+  filterButton,
+  onShare,
+  onSaveToDevice,
+  onToggleOfflineDownload,
+  offlineRecord,
+  offlineBusy,
+  online,
+}: {
+  clip: Clip;
+  isMuted: boolean;
+  onToggleMute: (e: React.MouseEvent) => void;
+  autoScroll: boolean;
+  onAutoScrollChange: (v: boolean) => void;
+  filterButton?: React.ReactNode;
+  onShare: (e: React.MouseEvent) => void;
+  onSaveToDevice: (e: React.MouseEvent) => void;
+  onToggleOfflineDownload: (e: React.MouseEvent) => void;
+  offlineRecord: ReturnType<typeof useDownloadRecord>["record"];
+  offlineBusy: boolean;
+  online: boolean;
+}) {
+  return (
+    <div className="hidden lg:flex flex-col justify-end pb-8 pl-4 pointer-events-auto shrink-0">
+      <ActionButtons
+        clip={clip}
+        isMuted={isMuted}
+        onToggleMute={onToggleMute}
+        autoScroll={autoScroll}
+        onAutoScrollChange={onAutoScrollChange}
+        filterButton={filterButton}
+        onShare={onShare}
+        onSaveToDevice={onSaveToDevice}
+        onToggleOfflineDownload={onToggleOfflineDownload}
+        offlineRecord={offlineRecord}
+        offlineBusy={offlineBusy}
+        online={online}
+        beside
+      />
     </div>
   );
 });
@@ -490,11 +544,23 @@ export default function ReelPlayer({
     );
   }
 
+  const sharedButtonProps = {
+    clip,
+    isMuted,
+    onToggleMute: toggleMute,
+    autoScroll,
+    onAutoScrollChange,
+    filterButton,
+    onShare: handleShare,
+    onSaveToDevice: handleSaveToDevice,
+    onToggleOfflineDownload: handleToggleOfflineDownload,
+    offlineRecord,
+    offlineBusy,
+    online,
+  };
+
   return (
-    <div
-      className="relative h-full w-full bg-black flex items-center justify-center snap-start overflow-hidden group"
-      onClick={togglePlay}
-    >
+    <div className="relative h-full w-full bg-black flex items-center justify-center snap-start overflow-hidden group">
       {!online && (
         <div className="absolute top-4 right-4 z-30 pointer-events-none">
           <div className="px-3 py-1 rounded-full bg-black/40 text-white text-xs backdrop-blur-md border border-white/10">
@@ -503,62 +569,61 @@ export default function ReelPlayer({
         </div>
       )}
 
-      {isVideo ? (
-        <video
-          ref={mediaRef as React.RefObject<HTMLVideoElement>}
-          src={isHls(src) ? undefined : src}
-          className="h-full w-full object-contain"
-          loop={!autoScroll}
-          playsInline
-          muted={isMuted}
-          onPlay={handleMediaPlay}
-          onPause={handleMediaPause}
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={handleEnded}
-        />
-      ) : (
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center animate-pulse">
-            <Music className="w-12 h-12 text-white/50" />
-          </div>
-          <audio
-            ref={mediaRef as React.RefObject<HTMLAudioElement>}
-            src={isHls(src) ? undefined : src}
-            loop={!autoScroll}
-            muted={isMuted}
-            onPlay={handleMediaPlay}
-            onPause={handleMediaPause}
-            onTimeUpdate={handleTimeUpdate}
-            onEnded={handleEnded}
-          />
+      {/* On large screens: video constrained to portrait column + buttons beside it */}
+      <div className="h-full w-full flex items-center justify-center">
+        {/* Video column — portrait aspect on lg+, full bleed on small */}
+        <div
+          className="relative h-full aspect-[9/16] max-w-full lg:max-w-[calc(100vh*9/16)] shrink-0"
+          onClick={togglePlay}
+        >
+          {isVideo ? (
+            <video
+              ref={mediaRef as React.RefObject<HTMLVideoElement>}
+              src={isHls(src) ? undefined : src}
+              className="h-full w-full object-contain"
+              loop={!autoScroll}
+              playsInline
+              muted={isMuted}
+              onPlay={handleMediaPlay}
+              onPause={handleMediaPause}
+              onTimeUpdate={handleTimeUpdate}
+              onEnded={handleEnded}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full gap-4">
+              <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center animate-pulse">
+                <Music className="w-12 h-12 text-white/50" />
+              </div>
+              <audio
+                ref={mediaRef as React.RefObject<HTMLAudioElement>}
+                src={isHls(src) ? undefined : src}
+                loop={!autoScroll}
+                muted={isMuted}
+                onPlay={handleMediaPlay}
+                onPause={handleMediaPause}
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={handleEnded}
+              />
+            </div>
+          )}
+
+          {/* Play/Pause indicator overlay */}
+          {!isPlaying && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none transition-opacity">
+              <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm">
+                <Play className="w-12 h-12 text-white fill-white" />
+              </div>
+            </div>
+          )}
+
+          <ProgressBar progress={progress} />
+
+          <ReelOverlay {...sharedButtonProps} />
         </div>
-      )}
 
-      {/* Play/Pause indicator overlay */}
-      {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none transition-opacity">
-          <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm">
-            <Play className="w-12 h-12 text-white fill-white" />
-          </div>
-        </div>
-      )}
-
-      <ProgressBar progress={progress} />
-
-      <ReelOverlay
-        clip={clip}
-        isMuted={isMuted}
-        onToggleMute={toggleMute}
-        autoScroll={autoScroll}
-        onAutoScrollChange={onAutoScrollChange}
-        filterButton={filterButton}
-        onShare={handleShare}
-        onSaveToDevice={handleSaveToDevice}
-        onToggleOfflineDownload={handleToggleOfflineDownload}
-        offlineRecord={offlineRecord}
-        offlineBusy={offlineBusy}
-        online={online}
-      />
+        {/* Buttons beside the video — only on large screens */}
+        <BesideButtons {...sharedButtonProps} />
+      </div>
     </div>
   );
 }
