@@ -26,10 +26,7 @@ export async function md5FileHex(filePath: string): Promise<string> {
   return hash.digest("hex");
 }
 
-export async function generateBlurDataUrl(videoPath: string): Promise<string> {
-  const tempImagePath = path.join(path.dirname(videoPath), `thumb-${Date.now()}.jpg`);
-  
-  // Extract a frame from the middle of the video (approx 1s in)
+async function extractVideoFrame(videoPath: string, outPath: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const child = spawn("ffmpeg", [
       "-y",
@@ -37,26 +34,37 @@ export async function generateBlurDataUrl(videoPath: string): Promise<string> {
       "-i", videoPath,
       "-vframes", "1",
       "-q:v", "2",
-      tempImagePath
+      outPath,
     ]);
     child.on("exit", (code) => {
       if (code === 0) resolve();
       else reject(new Error(`ffmpeg thumbnail extraction failed with code ${code}`));
     });
   });
+}
 
+export async function generateBlurDataUrl(videoPath: string): Promise<string> {
+  const tempImagePath = path.join(path.dirname(videoPath), `thumb-${Date.now()}.jpg`);
+  await extractVideoFrame(videoPath, tempImagePath);
   try {
     const buffer = await sharp(tempImagePath)
       .resize(20, 20, { fit: "cover" })
       .blur(10)
       .toBuffer();
-    
     await fs.rm(tempImagePath).catch(() => {});
     return `data:image/jpeg;base64,${buffer.toString("base64")}`;
   } catch (err) {
     await fs.rm(tempImagePath).catch(() => {});
     throw err;
   }
+}
+
+// Returns the path to a full-res thumbnail JPEG (caller must clean it up).
+export async function generateThumbnailJpeg(videoPath: string, outPath: string): Promise<void> {
+  await extractVideoFrame(videoPath, outPath);
+  // Re-encode with sharp to normalise orientation and strip metadata
+  const buf = await sharp(outPath).jpeg({ quality: 85 }).toBuffer();
+  await fs.writeFile(outPath, buf);
 }
 
 export async function transcodeHls(inputPath: string, outputDir: string): Promise<void> {
@@ -128,16 +136,27 @@ export async function ingestClip(videoPath: string, params: IngestionParams): Pr
   logger.info({ id }, "Transcoding HLS...");
   await transcodeHls(videoPath, hlsDir);
 
-  logger.info({ id }, "Generating blurred thumbnail...");
-  const thumbnailBlur = await generateBlurDataUrl(videoPath).catch(err => {
-    logger.error({ err }, "Failed to generate blurred thumbnail");
-    return null;
-  });
+  logger.info({ id }, "Generating thumbnails...");
+  const thumbPath = path.join(tempDir, `thumb-${id}.jpg`);
+  let thumbnailBlur: string | null = null;
+  let hasThumbnail = false;
+  try {
+    await generateThumbnailJpeg(videoPath, thumbPath);
+    hasThumbnail = true;
+    const blurBuf = await sharp(thumbPath).resize(20, 20, { fit: "cover" }).blur(10).toBuffer();
+    thumbnailBlur = `data:image/jpeg;base64,${blurBuf.toString("base64")}`;
+  } catch (err) {
+    logger.error({ err }, "Failed to generate thumbnails");
+  }
 
   logger.info({ id }, "Uploading to R2...");
   const baseKey = `clips/${reciterSlug}/${riwayah}/${translation}/s${surah}/a${ayahStart}-${ayahEnd}`;
   await uploadFile(`${baseKey}/high.mp4`, videoPath, "video/mp4", md5);
   await uploadDir(hlsDir, `${baseKey}/hls`);
+  if (hasThumbnail) {
+    await uploadFile(`${baseKey}/thumbnail.jpg`, thumbPath, "image/jpeg");
+    await fs.rm(thumbPath).catch(() => {});
+  }
 
   logger.info({ id }, "Updating database...");
   await db.transaction(async (tx) => {
@@ -160,6 +179,7 @@ export async function ingestClip(videoPath: string, params: IngestionParams): Pr
     await tx.insert(clipVariants).values([
       { clipId: id, quality: "high", r2Key: `${baseKey}/high.mp4`, md5 },
       { clipId: id, quality: "hls", r2Key: `${baseKey}/hls/master.m3u8` },
+      ...(hasThumbnail ? [{ clipId: id, quality: "thumbnail", r2Key: `${baseKey}/thumbnail.jpg` }] : []),
     ]);
   });
 

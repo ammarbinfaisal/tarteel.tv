@@ -9,8 +9,8 @@ import { stdin as input, stdout as output } from "node:process";
 // Import DB related modules
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
-import { clips as clipsTable, clipVariants } from "./src/db/schema/clips.ts";
-import { eq, and } from "drizzle-orm";
+import { clips as clipsTable, clipVariants } from "../src/db/schema/clips.ts";
+import { eq } from "drizzle-orm";
 
 async function loadDotEnv() {
   const candidates = [path.join(process.cwd(), ".env.local"), path.join(process.cwd(), ".env")];
@@ -46,6 +46,48 @@ const dbClient = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 const db = drizzle(dbClient);
+
+function requireRemoteTursoUrl() {
+  const url = String(process.env.TURSO_DATABASE_URL ?? "").trim();
+  if (!url) {
+    throw new Error("TURSO_DATABASE_URL is required to load reciters from Turso.");
+  }
+  if (url.startsWith("file:")) {
+    throw new Error("TURSO_DATABASE_URL points to local SQLite. Set it to a Turso libsql:// URL for reciter selection.");
+  }
+  return url;
+}
+
+async function listRecitersFromTurso() {
+  const tursoClient = createClient({
+    url: requireRemoteTursoUrl(),
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  });
+  try {
+    const rs = await tursoClient.execute(`
+      SELECT reciter_slug AS slug, reciter_name AS name, COUNT(*) AS clip_count
+      FROM clips
+      GROUP BY reciter_slug, reciter_name
+      ORDER BY reciter_slug, clip_count DESC, reciter_name ASC
+    `);
+
+    const bySlug = new Map();
+    for (const row of rs.rows) {
+      const slug = String(row.slug ?? "").trim();
+      const name = String(row.name ?? "").trim();
+      if (!slug || !name) continue;
+      if (!bySlug.has(slug)) {
+        bySlug.set(slug, { slug, name });
+      }
+    }
+
+    return Array.from(bySlug.values()).sort((a, b) => a.name.localeCompare(b.name));
+  } finally {
+    if (typeof tursoClient.close === "function") {
+      tursoClient.close();
+    }
+  }
+}
 
 function parseArgs(argv) {
   const args = {};
@@ -112,6 +154,9 @@ function normalizeReciterName(value) {
   if (!raw) return "";
 
   const canonicalBySlug = {
+    "abdullah-al-juhany": "Abdullah al-Juhany",
+    "abu-hajar-al-iraqi": "Abu Hajar al-Iraqi",
+    "mahmood-al-husary": "Mahmood al-Husary",
     maher: "Maher al-Mu'aiqly",
     "maher-al-muaiqly": "Maher al-Mu'aiqly",
     "maher-al-mu-aiqly": "Maher al-Mu'aiqly",
@@ -141,6 +186,9 @@ function normalizeReciterName(value) {
 function canonicalizeReciterSlug(slug) {
   const map = {
     maher: "maher-al-muaiqly",
+    "abdullah-al-juhany": "abdullah-al-juhany",
+    "abu-hajar-al-iraqi": "abu-hajar-al-iraqi",
+    "mahmood-al-husary": "mahmood-al-husary",
     "maher-al-muaiqly": "maher-al-muaiqly",
     "maher-al-mu-aiqly": "maher-al-muaiqly",
     "maher-al-mu-aiqlee": "maher-al-muaiqly",
@@ -151,6 +199,9 @@ function canonicalizeReciterSlug(slug) {
 
 function deriveReciter({ reciterArg, reciterNameArg, reciterSlugArg }) {
   const canonicalBySlug = {
+    "abdullah-al-juhany": "Abdullah al-Juhany",
+    "abu-hajar-al-iraqi": "Abu Hajar al-Iraqi",
+    "mahmood-al-husary": "Mahmood al-Husary",
     maher: "Maher al-Mu'aiqly",
     "maher-al-muaiqly": "Maher al-Mu'aiqly",
     "maher-al-mu-aiqly": "Maher al-Mu'aiqly",
@@ -199,6 +250,45 @@ function validateTranslationFlag(value) {
 async function clipIdExists(id) {
   const result = await db.select().from(clipsTable).where(eq(clipsTable.id, id)).limit(1);
   return result.length > 0;
+}
+
+async function chooseReciter({ rl, args, label }) {
+  const { reciterName: argReciterName, reciterSlug: argReciterSlug } = deriveReciter({
+    reciterArg: args.reciter,
+    reciterNameArg: args["reciter-name"],
+    reciterSlugArg: args["reciter-slug"],
+  });
+  if (argReciterName && argReciterSlug) {
+    return { reciterName: argReciterName, reciterSlug: argReciterSlug };
+  }
+
+  const reciters = await listRecitersFromTurso();
+  if (reciters.length === 0) {
+    const reciterArg = await rl.question(`${label} (name or slug): `);
+    return deriveReciter({ reciterArg });
+  }
+
+  console.log("Reciters (from Turso):");
+  reciters.forEach((r, i) => {
+    console.log(`${i + 1}. ${r.name} (${r.slug})`);
+  });
+
+  while (true) {
+    const answer = (await rl.question(`Choose ${label.toLowerCase()} [1-${reciters.length}] or type custom name/slug: `)).trim();
+    if (!answer) continue;
+
+    const selectedIndex = toInt(answer);
+    if (selectedIndex != null) {
+      if (selectedIndex >= 1 && selectedIndex <= reciters.length) {
+        const selected = reciters[selectedIndex - 1];
+        return deriveReciter({ reciterNameArg: selected.name, reciterSlugArg: selected.slug });
+      }
+      console.log(`Please enter a number between 1 and ${reciters.length}, or type a custom name/slug.`);
+      continue;
+    }
+
+    return deriveReciter({ reciterArg: answer });
+  }
 }
 
 function baseR2Key({ prefix, reciterSlug, riwayah, translation, surah, ayahStart, ayahEnd }) {
@@ -390,6 +480,14 @@ async function deleteFromR2(keys) {
   return { deleted };
 }
 
+async function extractFrame({ inputPath, outPath }) {
+  const { spawn } = await import("node:child_process");
+  await new Promise((resolve, reject) => {
+    const child = spawn("ffmpeg", ["-y", "-ss", "00:00:01", "-i", inputPath, "-vframes", "1", "-q:v", "2", outPath], { stdio: "inherit" });
+    child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg frame extract failed (${code})`))));
+  });
+}
+
 async function transcodeHls({ inputPath, outputDir }) {
   const { spawn } = await import("node:child_process");
   await fs.mkdir(outputDir, { recursive: true });
@@ -436,11 +534,10 @@ async function addClip({ args }) {
     const surah = toInt(args.surah) ?? toInt(await rl.question("Surah (1-114): "));
     const ayahStart = toInt(args.start) ?? toInt(await rl.question("Ayah start: "));
     const ayahEnd = toInt(args.end) ?? toInt(await rl.question("Ayah end (blank = start): ")) ?? ayahStart;
-    const reciterArg = args.reciter ?? (await rl.question("Reciter (name or slug): "));
-    const { reciterName, reciterSlug } = deriveReciter({ reciterArg, reciterNameArg: args["reciter-name"], reciterSlugArg: args["reciter-slug"] });
+    const { reciterName, reciterSlug } = await chooseReciter({ rl, args, label: "Reciter" });
     const riwayah = normalizeRiwayah(args.riwayah ?? "hafs-an-asim");
     const id = (args.id ?? nowId()).trim();
-    const translation = validateTranslationFlag(args.translation) ?? "saheeh-international";
+    const translation = validateTranslationFlag(args.translation) ?? "khan-al-hilali";
 
     const quality = (args.quality ?? "high").trim();
     const r2Key = (args["r2-key"] ?? (await rl.question("R2 key: "))).trim();
@@ -462,10 +559,9 @@ async function ingestClip({ args }) {
     const surah = toInt(args.surah) ?? toInt(await rl.question("Surah (1-114): "));
     const ayahStart = toInt(args.start) ?? toInt(await rl.question("Ayah start: "));
     const ayahEnd = toInt(args.end) ?? toInt(await rl.question("Ayah end (blank = start): ")) ?? ayahStart;
-    const reciterArg = args.reciter ?? (await rl.question("Reciter: "));
-    const { reciterName, reciterSlug } = deriveReciter({ reciterArg, reciterNameArg: args["reciter-name"], reciterSlugArg: args["reciter-slug"] });
+    const { reciterName, reciterSlug } = await chooseReciter({ rl, args, label: "Reciter" });
     const riwayah = normalizeRiwayah(args.riwayah ?? "hafs-an-asim");
-    const translation = validateTranslationFlag(args.translation) ?? "saheeh-international";
+    const translation = validateTranslationFlag(args.translation) ?? "khan-al-hilali";
     const prefix = args.prefix ?? "clips";
     const overwrite = Boolean(args.overwrite);
     const id = args.id || `s${surah}_a${ayahStart}-${ayahEnd}__${reciterSlug}__${riwayah}__${translation}`;
@@ -482,13 +578,52 @@ async function ingestClip({ args }) {
       variants.push({ quality: "hls", r2Key: `${hlsPrefix}/master.m3u8` });
     }
 
+    // Generate thumbnail JPEG + blur data URI
+    const thumbKey = `${baseKey}/thumbnail.jpg`;
+    const thumbPath = path.join(os.tmpdir(), `thumb-${id}.jpg`);
+    let thumbnailBlur = null;
+    let hasThumbnail = false;
+    if (ext === ".mp4") {
+      try {
+        await extractFrame({ inputPath, outPath: thumbPath });
+        const { default: sharp } = await import("sharp");
+        const fullBuf = await sharp(thumbPath).jpeg({ quality: 85 }).toBuffer();
+        await fs.writeFile(thumbPath, fullBuf);
+        const blurBuf = await sharp(thumbPath).resize(20, 20, { fit: "cover" }).blur(10).toBuffer();
+        thumbnailBlur = `data:image/jpeg;base64,${blurBuf.toString("base64")}`;
+        hasThumbnail = true;
+        variants.push({ quality: "thumbnail", r2Key: thumbKey });
+      } catch (err) {
+        console.warn(`Warning: failed to generate thumbnail: ${err.message}`);
+      }
+    }
+
     if (!args["no-upload"]) {
       await uploadToR2WithMd5({ key: highKey, filePath: inputPath, contentType: contentTypeForExt(ext), md5Hex: highMd5, overwrite });
       if (hlsDir) await uploadDirToR2({ localDir: hlsDir, remotePrefix: hlsPrefix, overwrite });
+      if (hasThumbnail) {
+        await uploadToR2WithMd5({ key: thumbKey, filePath: thumbPath, contentType: "image/jpeg", overwrite });
+        await fs.rm(thumbPath).catch(() => {});
+      }
     }
 
     if (await clipIdExists(id)) throw new Error(`Clip id already exists: ${id}`);
-    await addClipToDb({ id, surah, ayahStart, ayahEnd, reciterSlug, reciterName, riwayah, translation, variants });
+    const clipData = { id, surah, ayahStart, ayahEnd, reciterSlug, reciterName, riwayah, translation, variants };
+    // Store thumbnailBlur directly
+    await db.insert(clipsTable).values({
+      id: clipData.id,
+      surah: clipData.surah,
+      ayahStart: clipData.ayahStart,
+      ayahEnd: clipData.ayahEnd,
+      reciterSlug: clipData.reciterSlug,
+      reciterName: clipData.reciterName,
+      riwayah: clipData.riwayah,
+      translation: clipData.translation,
+      thumbnailBlur,
+    });
+    for (const variant of clipData.variants) {
+      await db.insert(clipVariants).values({ clipId: clipData.id, quality: variant.quality, r2Key: variant.r2Key, md5: variant.md5 });
+    }
     console.log(`Ingested clip: ${id}`);
   } finally {
     rl.close();
