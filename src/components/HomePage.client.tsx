@@ -7,6 +7,7 @@ import ClipList from "./ClipList";
 import { WifiOff } from "lucide-react";
 import { useHomeUiState } from "./HomeUiState.client";
 import { filterClips, type HomeUiFilters } from "@/lib/home-ui-state";
+import SortControl from "./SortControl";
 import { FloatingFilters } from "./FloatingFilters";
 
 interface HomePageProps {
@@ -19,7 +20,7 @@ interface HomePageProps {
 }
 
 export default function HomePage({ clips, filterData }: HomePageProps) {
-  const { state, setFilters, resetFilters } = useHomeUiState();
+  const { state, setFilters, resetFilters, setSort } = useHomeUiState();
   const online = useOnlineStatus();
   const { records } = useDownloadsList();
   const view = state.view;
@@ -59,7 +60,12 @@ export default function HomePage({ clips, filterData }: HomePageProps) {
     [state.end, state.reciter, state.riwayah, state.start, state.surah, state.translation],
   );
 
-  const filteredOnlineClips = useMemo(() => filterClips(clips, filters), [clips, filters]);
+  const filteredOnlineClips = useMemo(
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => filterClips(clips, filters, state.sort),
+    // intentionally include state.sort as a separate dep so random re-shuffles when sort changes
+    [clips, filters, state.sort],
+  );
 
   const displayClips = !online && offlineClips.length > 0 ? offlineClips : filteredOnlineClips;
   const displayCount = displayClips.length;
@@ -81,10 +87,11 @@ export default function HomePage({ clips, filterData }: HomePageProps) {
       )}
 
       {view !== "reel" && !showOfflineMessage && (
-        <div className="pt-5 pb-3 md:max-w-2xl md:mx-auto w-full px-4 md:px-0">
+        <div className="pt-5 pb-3 md:max-w-2xl md:mx-auto w-full px-4 md:px-0 flex items-center justify-between">
           <p className="text-muted-foreground text-[10px] uppercase tracking-[0.3em] font-semibold opacity-60">
             {displayCount} recitation{displayCount === 1 ? "" : "s"}
           </p>
+          <SortControl sort={state.sort} onSortChange={setSort} />
         </div>
       )}
 

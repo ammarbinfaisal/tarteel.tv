@@ -1,6 +1,7 @@
 import type { Clip, ClipTranslation } from "@/lib/types";
 
 export type HomeUiView = "grid" | "reel";
+export type HomeUiSort = "asc" | "desc" | "random";
 
 export type HomeUiFilters = {
   surah: number | null;
@@ -14,6 +15,7 @@ export type HomeUiFilters = {
 export type HomeUiState = HomeUiFilters & {
   view: HomeUiView;
   clipId: string | null;
+  sort: HomeUiSort;
 };
 
 export const defaultHomeUiState: HomeUiState = {
@@ -25,6 +27,7 @@ export const defaultHomeUiState: HomeUiState = {
   translation: null,
   view: "grid",
   clipId: null,
+  sort: "asc",
 };
 
 function parsePositiveInt(value: string | null): number | null {
@@ -38,6 +41,11 @@ function parseSurah(value: string | null): number | null {
   const n = parsePositiveInt(value);
   if (n == null || n > 114) return null;
   return n;
+}
+
+function parseSort(value: string | null): HomeUiSort {
+  if (value === "desc" || value === "random") return value;
+  return "asc";
 }
 
 export function parseHomeUiStateFromSearch(search: string): Partial<HomeUiState> {
@@ -54,6 +62,7 @@ export function parseHomeUiStateFromSearch(search: string): Partial<HomeUiState>
     translation: params.get("translation") as ClipTranslation | null,
     view,
     clipId,
+    sort: parseSort(params.get("sort")),
   };
 }
 
@@ -66,6 +75,7 @@ export function buildHomeUrl(state: HomeUiState): string {
   if (state.reciter) params.set("reciter", state.reciter);
   if (state.riwayah) params.set("riwayah", state.riwayah);
   if (state.translation) params.set("translation", state.translation);
+  if (state.sort && state.sort !== "asc") params.set("sort", state.sort);
   if (state.view === "reel") params.set("view", "reel");
   if (state.view === "reel" && state.clipId) params.set("clipId", state.clipId);
 
@@ -73,12 +83,12 @@ export function buildHomeUrl(state: HomeUiState): string {
   return query ? `/?${query}` : "/";
 }
 
-export function filterClips(clips: Clip[], filters: HomeUiFilters): Clip[] {
+export function filterClips(clips: Clip[], filters: HomeUiFilters, sort: HomeUiSort = "asc"): Clip[] {
   const hasAyahFilter = filters.start != null || filters.end != null;
   const fStart = filters.start ?? (filters.end ?? 1);
   const fEnd = filters.end ?? (filters.start ?? 999);
 
-  return clips
+  const filtered = clips
     .filter((clip) => {
       if (filters.surah != null && clip.surah !== filters.surah) return false;
       if (filters.reciter && clip.reciterSlug !== filters.reciter) return false;
@@ -98,4 +108,24 @@ export function filterClips(clips: Clip[], filters: HomeUiFilters): Clip[] {
       if (clip.isPartial === isPartial) return clip;
       return { ...clip, isPartial };
     });
+
+  if (sort === "desc") {
+    return [...filtered].sort((a, b) => {
+      if (b.surah !== a.surah) return b.surah - a.surah;
+      if (b.ayahStart !== a.ayahStart) return b.ayahStart - a.ayahStart;
+      return b.ayahEnd - a.ayahEnd;
+    });
+  }
+
+  if (sort === "random") {
+    const shuffled = [...filtered];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  // "asc" is the default order from the server (surah asc, ayah asc)
+  return filtered;
 }

@@ -7,6 +7,7 @@ import {
   defaultHomeUiState,
   parseHomeUiStateFromSearch,
   type HomeUiFilters,
+  type HomeUiSort,
   type HomeUiState,
   type HomeUiView,
 } from "@/lib/home-ui-state";
@@ -18,6 +19,7 @@ type HomeUiStateContextValue = {
   setFilters: (filters: HomeUiFilters) => void;
   resetFilters: () => void;
   openReel: (clipId: string) => void;
+  setSort: (sort: HomeUiSort) => void;
 };
 
 const HomeUiStateContext = createContext<HomeUiStateContextValue | null>(null);
@@ -75,6 +77,13 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
     setState((prev) => ({ ...prev, view: "reel", clipId }));
   }, []);
 
+  const setSort = useCallback((sort: HomeUiSort) => {
+    setState((prev) => {
+      if (prev.sort === sort) return prev;
+      return { ...prev, sort };
+    });
+  }, []);
+
   const value = useMemo<HomeUiStateContextValue>(
     () => ({
       state,
@@ -83,8 +92,9 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
       setFilters,
       resetFilters,
       openReel,
+      setSort,
     }),
-    [openReel, resetFilters, setClipId, setFilters, setView, state],
+    [openReel, resetFilters, setClipId, setFilters, setSort, setView, state],
   );
 
   return <HomeUiStateContext.Provider value={value}>{children}</HomeUiStateContext.Provider>;
