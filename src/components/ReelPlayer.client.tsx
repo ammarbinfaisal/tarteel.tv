@@ -635,8 +635,8 @@ export default function ReelPlayer({
           </div>
         )}
 
-        {/* Play/Pause indicator overlay */}
-        {!isPlaying && (
+        {/* Only show paused affordance for the active reel to avoid swipe flash */}
+        {isActive && !isPlaying && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none transition-opacity">
             <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm">
               <Play className="w-12 h-12 text-white fill-white" />
@@ -644,12 +644,16 @@ export default function ReelPlayer({
           </div>
         )}
 
-        <ProgressBar progress={progress} />
+        <div className={cn("transition-opacity", isActive ? "opacity-100" : "opacity-0")}>
+          <ProgressBar progress={progress} />
+        </div>
 
-        <ReelOverlay {...sharedButtonProps} />
+        <div className={cn("transition-opacity", isActive ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")}>
+          <ReelOverlay {...sharedButtonProps} />
 
-        {/* Buttons overlayed on desktop so video can stay full-bleed */}
-        <BesideButtons {...sharedButtonProps} />
+          {/* Buttons overlayed on desktop so video can stay full-bleed */}
+          <BesideButtons {...sharedButtonProps} />
+        </div>
       </div>
     </div>
   );
