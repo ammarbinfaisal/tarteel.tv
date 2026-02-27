@@ -11,9 +11,11 @@ interface IngestFormProps {
   reciters: { slug: string; name: string }[];
   riwayat: string[];
   translations: string[];
+  authHeader: string;
+  ingestEndpoint: string;
 }
 
-export default function IngestForm({ reciters, riwayat, translations }: IngestFormProps) {
+export default function IngestForm({ reciters, riwayat, translations, authHeader, ingestEndpoint }: IngestFormProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -25,8 +27,9 @@ export default function IngestForm({ reciters, riwayat, translations }: IngestFo
     const formData = new FormData(e.currentTarget);
     
     try {
-      const response = await fetch("/api/admin/ingest", {
+      const response = await fetch(ingestEndpoint, {
         method: "POST",
+        headers: { Authorization: authHeader },
         body: formData,
       });
 
