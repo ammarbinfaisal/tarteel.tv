@@ -595,7 +595,10 @@ export default function ReelPlayer({
             <div className="absolute inset-0 overflow-hidden">
               {blurredBackgroundSrc ? (
                 <div
-                  className="absolute inset-0 scale-110 bg-cover bg-center blur-3xl opacity-60"
+                  className={cn(
+                    "absolute inset-0 scale-110 bg-cover bg-center blur-3xl transition-opacity duration-150",
+                    isActive ? "opacity-60" : "opacity-0",
+                  )}
                   style={{ backgroundImage: `url("${blurredBackgroundSrc}")` }}
                 />
               ) : (

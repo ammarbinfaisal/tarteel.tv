@@ -45,6 +45,7 @@ const nextConfig: NextConfig = {
   // reactCompiler: true, // Disabled due to Turbopack + Bun compatibility issue
   experimental: {
     turbopackFileSystemCacheForDev: true,
+    serverBodySizeLimit: "500mb",
   },
 };
 

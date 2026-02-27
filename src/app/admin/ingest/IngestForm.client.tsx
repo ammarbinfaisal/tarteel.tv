@@ -30,8 +30,13 @@ export default function IngestForm({ reciters, riwayat, translations }: IngestFo
         body: formData,
       });
 
-      const result = await response.json();
-      
+      let result: { success: boolean; error?: string; clipId?: string };
+      try {
+        result = await response.json();
+      } catch {
+        result = { success: false, error: `Upload failed (${response.status} ${response.statusText})` };
+      }
+
       if (result.success) {
         setMessage({ type: "success", text: `Successfully ingested: ${result.clipId}` });
         (e.target as HTMLFormElement).reset();
