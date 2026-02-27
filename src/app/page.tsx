@@ -35,15 +35,19 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 
     // Use dedicated OG image route
     const ogImage = `/api/og?clipId=${clipId}`;
+    const canonicalUrl = `/?view=reel&clipId=${clipId}`;
 
     return {
       title,
       description,
+      alternates: {
+        canonical: canonicalUrl,
+      },
       openGraph: {
         type: "video.other",
         title,
         description,
-        url: `/?view=reel&clipId=${clipId}`,
+        url: canonicalUrl,
         siteName: "tarteel.tv",
         images: [
           {
@@ -56,6 +60,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
         videos: videoUrl ? [
           {
             url: videoUrl,
+            secureUrl: videoUrl,
             type: videoType ?? "video/mp4",
           }
         ] : undefined,
@@ -106,10 +111,85 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
     }))
   }));
 
+  const jsonLd = await buildJsonLd(parsedState.clipId ?? null, clips);
+
   return (
-    <HomePage
-      clips={clips}
-      filterData={{ reciters, riwayat, translations }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <HomePage
+        clips={clips}
+        filterData={{ reciters, riwayat, translations }}
+      />
+    </>
   );
+}
+
+async function buildJsonLd(clipId: string | null, clips: Clip[]): Promise<object> {
+  if (!clipId) {
+    return {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "tarteel.tv",
+      "url": "https://tarteel.tv",
+      "description": "Clips of Quran Recitations.",
+    };
+  }
+
+  // Find in already-fetched list first; fall back to a direct DB lookup
+  let clip = clips.find(c => c.id === clipId);
+  if (!clip) {
+    const raw = await getClipById(clipId);
+    if (raw) {
+      clip = {
+        ...raw,
+        variants: raw.variants.map(v => ({
+          ...v,
+          url: v.url ?? variantToPublicUrl(v) ?? undefined,
+        })),
+      };
+    }
+  }
+
+  if (!clip) {
+    return {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "tarteel.tv",
+      "url": "https://tarteel.tv",
+      "description": "Clips of Quran Recitations.",
+    };
+  }
+
+  const surahName = getSurahName(clip.surah);
+  const title = `${surahName}:${clip.ayahStart}-${clip.ayahEnd} | ${clip.reciterName}`;
+  const description = `Listen to this beautiful recitation of Surah ${surahName}, verses ${clip.ayahStart}-${clip.ayahEnd} by ${clip.reciterName}`;
+  const videoVariant = selectMetadataVideoVariant(clip.variants);
+  const videoUrl = videoVariant?.url;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    "name": title,
+    "description": description,
+    "thumbnailUrl": `https://tarteel.tv/api/og?clipId=${clip.id}`,
+    ...(clip.createdAt && { "uploadDate": clip.createdAt.toISOString() }),
+    ...(videoUrl && { "contentUrl": videoUrl }),
+    "embedUrl": `https://tarteel.tv/?view=reel&clipId=${clip.id}`,
+    "inLanguage": "ar",
+    "creator": {
+      "@type": "Person",
+      "name": clip.reciterName,
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "tarteel.tv",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://tarteel.tv/apple-touch-icon.png",
+      },
+    },
+  };
 }

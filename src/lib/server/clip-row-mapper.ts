@@ -33,6 +33,7 @@ export function mapClipFromRow(row: ClipRowWithVariants, ayahFilter?: AyahFilter
     translation: row.translation as ClipTranslation,
     thumbnailBlur: row.thumbnailBlur ?? undefined,
     variants: row.variants.map(mapClipVariantFromRow),
+    createdAt: row.createdAt ?? undefined,
   };
 
   if (!ayahFilter) {

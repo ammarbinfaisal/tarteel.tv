@@ -31,6 +31,7 @@ export type Clip = {
   thumbnailBlur?: string;
   variants: ClipVariant[];
   isPartial?: boolean;
+  createdAt?: Date;
 };
 
 export type ClipIndexV3 = {
