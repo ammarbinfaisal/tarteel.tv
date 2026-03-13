@@ -1,4 +1,4 @@
-import { listClips } from "@/lib/server/clips";
+import { listClips, listReciters } from "@/lib/server/clips";
 import type { MetadataRoute } from "next";
 
 function toXmlSafeSitemapUrl(url: URL): string {
@@ -6,7 +6,7 @@ function toXmlSafeSitemapUrl(url: URL): string {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const clips = await listClips({});
+  const [clips, reciters] = await Promise.all([listClips({}), listReciters()]);
 
   const clipUrls: MetadataRoute.Sitemap = clips.map((clip) => {
     const reelUrl = new URL("https://tarteel.tv/");
@@ -21,6 +21,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     };
   });
 
+  const reciterUrls: MetadataRoute.Sitemap = reciters.map((reciter) => {
+    const url = new URL("https://tarteel.tv/");
+    url.searchParams.set("reciter", reciter.slug);
+    return {
+      url: toXmlSafeSitemapUrl(url),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    };
+  });
+
+  const surahsWithClips = [...new Set(clips.map((c) => c.surah))].sort(
+    (a, b) => a - b,
+  );
+  const surahUrls: MetadataRoute.Sitemap = surahsWithClips.map((surah) => {
+    const url = new URL("https://tarteel.tv/");
+    url.searchParams.set("surah", String(surah));
+    return {
+      url: toXmlSafeSitemapUrl(url),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    };
+  });
+
   return [
     {
       url: "https://tarteel.tv",
@@ -28,6 +51,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 1,
     },
+    ...reciterUrls,
+    ...surahUrls,
     ...clipUrls,
   ];
 }
