@@ -1,0 +1,4 @@
+/home/ammar/tarteel.tv/logs/20260208-0000-01-telegram-bot.log.gz
+/home/ammar/tarteel.tv/logs/20260209-0000-01-telegram-bot.log.gz
+/home/ammar/tarteel.tv/logs/20260210-0000-01-telegram-bot.log.gz
+/home/ammar/tarteel.tv/logs/20260211-0000-01-telegram-bot.log.gz

@@ -28,7 +28,7 @@ Bun.serve({
       });
     }
 
-    const url = new URL(req.url);
+    const url = new URL(req.url, `http://localhost:${PORT}`);
 
     if (url.pathname === "/ingest" && req.method === "POST") {
       // Basic Auth Check
