@@ -31,7 +31,9 @@ export default function Header() {
         <Link
           href={homeHref as any}
           className="flex items-center gap-2 font-bold text-lg tracking-tight"
-          onClick={() => {
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+            e.preventDefault();
             setView("grid");
             setClipId(null);
           }}

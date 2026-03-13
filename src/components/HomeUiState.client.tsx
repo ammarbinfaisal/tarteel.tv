@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   buildHomeUrl,
   defaultHomeUiState,
@@ -35,32 +35,52 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
     randomSeed: 0,
   }));
 
-  const replaceHomeUrl = useCallback((nextState: HomeUiState) => {
+  const syncHomeUrl = useCallback((nextState: HomeUiState, mode: "push" | "replace") => {
     if (typeof window === "undefined") return;
     if (window.location.pathname !== "/") return;
 
     const nextUrl = buildHomeUrl(nextState);
     const currentUrl = `${window.location.pathname}${window.location.search}`;
-    if (nextUrl !== currentUrl) {
+    if (nextUrl === currentUrl) return;
+
+    if (mode === "push") {
+      window.history.pushState(window.history.state, "", nextUrl);
+    } else {
       window.history.replaceState(window.history.state, "", nextUrl);
     }
   }, []);
 
-  const updateState = useCallback((updater: (prev: ProviderState) => ProviderState) => {
+  // Sync state from URL on browser back/forward
+  useEffect(() => {
+    const handlePopState = () => {
+      if (window.location.pathname !== "/") return;
+      const urlState = parseHomeUiStateFromSearch(window.location.search);
+      setState((prev) => ({
+        ...prev,
+        ...defaultHomeUiState,
+        ...urlState,
+        randomSeed: prev.randomSeed,
+      }));
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const updateState = useCallback((updater: (prev: ProviderState) => ProviderState, mode: "push" | "replace" = "replace") => {
     setState((prev) => {
       const next = updater(prev);
       if (next === prev) return prev;
-      replaceHomeUrl(next);
+      syncHomeUrl(next, mode);
       return next;
     });
-  }, [replaceHomeUrl]);
+  }, [syncHomeUrl]);
 
   const setView = useCallback((view: HomeUiView) => {
     updateState((prev) => {
       if (view === prev.view) return prev;
       if (view === "grid") return { ...prev, view, clipId: null };
       return { ...prev, view };
-    });
+    }, "push");
   }, [updateState]);
 
   const setClipId = useCallback((clipId: string | null) => {
@@ -114,7 +134,7 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
     updateState((prev) => {
       if (prev.view === "reel" && prev.clipId === clipId) return prev;
       return { ...prev, view: "reel", clipId };
-    });
+    }, "push");
   }, [updateState]);
 
   const setSort = useCallback((sort: HomeUiSort) => {
