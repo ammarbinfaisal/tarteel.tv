@@ -26,6 +26,14 @@ type HomeUiStateContextValue = {
 
 const HomeUiStateContext = createContext<HomeUiStateContextValue | null>(null);
 
+function arraysEqual<T>(a: T[], b: T[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 export function HomeUiStateProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<ProviderState>(() => ({
     ...defaultHomeUiState,
@@ -93,10 +101,10 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
   const setFilters = useCallback((filters: HomeUiFilters) => {
     updateState((prev) => {
       if (
-        prev.surah === filters.surah &&
+        arraysEqual(prev.surahs, filters.surahs) &&
         prev.start === filters.start &&
         prev.end === filters.end &&
-        prev.reciter === filters.reciter &&
+        arraysEqual(prev.reciters, filters.reciters) &&
         prev.riwayah === filters.riwayah &&
         prev.translation === filters.translation
       ) {
@@ -109,10 +117,10 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
   const resetFilters = useCallback(() => {
     updateState((prev) => {
       if (
-        prev.surah == null &&
+        prev.surahs.length === 0 &&
         prev.start == null &&
         prev.end == null &&
-        prev.reciter == null &&
+        prev.reciters.length === 0 &&
         prev.riwayah == null &&
         prev.translation == null
       ) {
@@ -120,10 +128,10 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
       }
       return {
         ...prev,
-        surah: null,
+        surahs: [],
         start: null,
         end: null,
-        reciter: null,
+        reciters: [],
         riwayah: null,
         translation: null,
       };

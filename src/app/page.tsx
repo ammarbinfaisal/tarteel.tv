@@ -111,10 +111,10 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
 
   const [clipsRaw, reciters, riwayat, translations] = await Promise.all([
     listClips({
-      surah: parsedState.surah ?? undefined,
-      ayahStart: parsedState.start ?? undefined,
-      ayahEnd: parsedState.end ?? undefined,
-      reciterSlug: parsedState.reciter ?? undefined,
+      surahs: parsedState.surahs && parsedState.surahs.length > 0 ? parsedState.surahs : undefined,
+      ayahStart: (parsedState.surahs?.length === 1) ? (parsedState.start ?? undefined) : undefined,
+      ayahEnd: (parsedState.surahs?.length === 1) ? (parsedState.end ?? undefined) : undefined,
+      reciterSlugs: parsedState.reciters && parsedState.reciters.length > 0 ? parsedState.reciters : undefined,
       riwayah: parsedState.riwayah ?? undefined,
       translation: parsedState.translation ?? undefined,
     }),
@@ -149,8 +149,12 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
 
 function describeFilters(parsed: Partial<HomeUiState>): string[] {
   const parts: string[] = [];
-  if (parsed.reciter) parts.push(formatSlug(parsed.reciter));
-  if (parsed.surah) parts.push(`Surah ${getSurahName(parsed.surah)}`);
+  if (parsed.reciters && parsed.reciters.length > 0) {
+    parts.push(parsed.reciters.map(formatSlug).join(", "));
+  }
+  if (parsed.surahs && parsed.surahs.length > 0) {
+    parts.push(parsed.surahs.map((s) => `Surah ${getSurahName(s)}`).join(", "));
+  }
   if (parsed.riwayah) parts.push(formatSlug(parsed.riwayah));
   if (parsed.translation) parts.push(formatTranslation(parsed.translation));
   return parts;

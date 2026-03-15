@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { formatSlug, formatTranslation, surahNames } from "@/lib/utils";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -43,6 +43,14 @@ function toOptionalPositiveInt(value: string): number | null {
   return n;
 }
 
+function arraysEqual<T>(a: T[], b: T[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 function ClipFiltersForm({
   reciters,
   riwayat,
@@ -58,19 +66,21 @@ function ClipFiltersForm({
   const [riwayahOpen, setRiwayahOpen] = useState(false);
   const [translationOpen, setTranslationOpen] = useState(false);
 
-  const [localSurah, setLocalSurah] = useState<number | null>(value.surah);
+  const [localSurahs, setLocalSurahs] = useState<number[]>(value.surahs);
   const [localStart, setLocalStart] = useState<number | null>(value.start);
   const [localEnd, setLocalEnd] = useState<number | null>(value.end);
-  const [localReciter, setLocalReciter] = useState<string | null>(value.reciter);
+  const [localReciters, setLocalReciters] = useState<string[]>(value.reciters);
   const [localRiwayah, setLocalRiwayah] = useState<string | null>(value.riwayah);
   const [localTranslation, setLocalTranslation] = useState<HomeUiFilters["translation"]>(value.translation);
 
+  const multiSurah = localSurahs.length > 1;
+
   const apply = () => {
     const next: HomeUiFilters = {
-      surah: localSurah,
-      start: localStart,
-      end: localEnd,
-      reciter: localReciter,
+      surahs: localSurahs,
+      start: multiSurah ? null : localStart,
+      end: multiSurah ? null : localEnd,
+      reciters: localReciters,
       riwayah: localRiwayah,
       translation: localTranslation,
     };
@@ -86,10 +96,10 @@ function ClipFiltersForm({
 
   const reset = () => {
     performance.mark("filters:reset:click");
-    setLocalSurah(null);
+    setLocalSurahs([]);
     setLocalStart(null);
     setLocalEnd(null);
-    setLocalReciter(null);
+    setLocalReciters([]);
     setLocalRiwayah(null);
     setLocalTranslation(null);
 
@@ -100,82 +110,109 @@ function ClipFiltersForm({
     });
   };
 
-  const form = {
-    surah: localSurah ? String(localSurah) : "",
-    start: localStart ? String(localStart) : "",
-    end: localEnd ? String(localEnd) : "",
-    reciter: localReciter ?? "",
-    riwayah: localRiwayah ?? "",
-    translation: localTranslation ?? "",
-  };
-
   const hasChanges =
-    localSurah !== value.surah ||
+    !arraysEqual(localSurahs, value.surahs) ||
     localStart !== value.start ||
     localEnd !== value.end ||
-    localReciter !== value.reciter ||
+    !arraysEqual(localReciters, value.reciters) ||
     localRiwayah !== value.riwayah ||
     localTranslation !== value.translation;
 
+  const surahLabel =
+    localSurahs.length === 0
+      ? "All Surahs"
+      : localSurahs.length === 1
+        ? `${localSurahs[0]}. ${surahNames[localSurahs[0] - 1]}`
+        : `${localSurahs.length} surahs selected`;
+
+  const reciterLabel =
+    localReciters.length === 0
+      ? "All Reciters"
+      : localReciters.length === 1
+        ? reciters.find((r) => r.slug === localReciters[0])?.name ?? localReciters[0]
+        : `${localReciters.length} reciters selected`;
+
   return (
     <div className="flex flex-col gap-6 p-1">
-      <div className="grid gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="surah">Surah</Label>
-          <DropDrawer open={surahOpen} onOpenChange={setSurahOpen}>
-            <DropDrawerTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={surahOpen}
-                className="w-full justify-between font-normal px-3"
-              >
-                <span className="truncate">
-                  {form.surah
-                    ? `${form.surah}. ${surahNames[parseInt(form.surah, 10) - 1]}`
-                    : "Select Surah..."}
-                </span>
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </DropDrawerTrigger>
-            <DropDrawerContent className="p-0">
-              <Command title="Surah search">
-                <CommandInput
-                  placeholder="Search surah..."
-                  autoFocus={false}
-                  onPointerDown={(e) => e.stopPropagation()}
-                />
-                <CommandList className="max-h-[40vh] sm:max-h-[300px]">
-                  <CommandEmpty>No surah found.</CommandEmpty>
-                  <CommandGroup>
-                    {surahNames.map((name, index) => {
-                      const num = index + 1;
-                      return (
-                        <CommandItem
-                          key={num}
-                          value={`${num} ${name}`}
-                          onSelect={() => {
-                            setLocalSurah(num);
-                            setSurahOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              form.surah === String(num) ? "opacity-100" : "opacity-0",
-                            )}
-                          />
-                          {num}. {name}
-                        </CommandItem>
-                      );
-                    })}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </DropDrawerContent>
-          </DropDrawer>
-        </div>
+      {/* Surah Selection */}
+      <div className="grid gap-3">
+        <Label>Surah</Label>
+        <DropDrawer open={surahOpen} onOpenChange={setSurahOpen}>
+          <DropDrawerTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={surahOpen}
+              className="w-full justify-between font-normal px-3"
+            >
+              <span className="truncate">{surahLabel}</span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </DropDrawerTrigger>
+          <DropDrawerContent className="p-0">
+            <Command title="Surah search">
+              <CommandInput
+                placeholder="Search surah..."
+                autoFocus={false}
+                onPointerDown={(e) => e.stopPropagation()}
+              />
+              <CommandList className="max-h-[40vh] sm:max-h-[300px]">
+                <CommandEmpty>No surah found.</CommandEmpty>
+                <CommandGroup>
+                  {surahNames.map((name, index) => {
+                    const num = index + 1;
+                    const isSelected = localSurahs.includes(num);
+                    return (
+                      <CommandItem
+                        key={num}
+                        value={`${num} ${name}`}
+                        onSelect={() => {
+                          setLocalSurahs((prev) =>
+                            isSelected
+                              ? prev.filter((s) => s !== num)
+                              : [...prev, num].sort((a, b) => a - b),
+                          );
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            isSelected ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        {num}. {name}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </DropDrawerContent>
+        </DropDrawer>
 
+        {localSurahs.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {localSurahs.map((num) => (
+              <span
+                key={num}
+                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full bg-primary/10 text-xs font-medium"
+              >
+                {num}. {surahNames[num - 1]}
+                <button
+                  type="button"
+                  className="rounded-full p-0.5 hover:bg-primary/20"
+                  onClick={() => setLocalSurahs((prev) => prev.filter((s) => s !== num))}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Ayah Range */}
+      <div className="grid gap-3">
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
             <Label htmlFor="start">Ayah start</Label>
@@ -183,7 +220,8 @@ function ClipFiltersForm({
               id="start"
               inputMode="numeric"
               placeholder="e.g. 1"
-              value={form.start}
+              disabled={multiSurah}
+              value={multiSurah ? "" : (localStart ? String(localStart) : "")}
               onChange={(e) => setLocalStart(toOptionalPositiveInt(e.target.value))}
             />
           </div>
@@ -193,91 +231,150 @@ function ClipFiltersForm({
               id="end"
               inputMode="numeric"
               placeholder="e.g. 7"
-              value={form.end}
+              disabled={multiSurah}
+              value={multiSurah ? "" : (localEnd ? String(localEnd) : "")}
               onChange={(e) => setLocalEnd(toOptionalPositiveInt(e.target.value))}
             />
           </div>
         </div>
+        {multiSurah && (
+          <p className="text-xs text-muted-foreground">
+            Ayah range is not available when multiple surahs are selected.
+          </p>
+        )}
       </div>
 
-      <div className="grid gap-4">
-        <div className="grid gap-2">
-          <Label>Reciter</Label>
-          <DropDrawer open={reciterOpen} onOpenChange={setReciterOpen}>
-            <DropDrawerTrigger asChild>
-              <Button variant="outline" className="w-full justify-between font-normal px-3">
-                <span className="truncate">
-                  {localReciter ? reciters.find((r) => r.slug === localReciter)?.name : "All Reciters"}
-                </span>
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </DropDrawerTrigger>
-            <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
-              <DropDrawerGroup>
-                <DropDrawerItem onSelect={() => setLocalReciter(null)}>
-                  All Reciters
-                </DropDrawerItem>
-                {reciters.map((r) => (
-                  <DropDrawerItem key={r.slug} onSelect={() => setLocalReciter(r.slug)}>
-                    {r.name}
-                  </DropDrawerItem>
-                ))}
-              </DropDrawerGroup>
-            </DropDrawerContent>
-          </DropDrawer>
-        </div>
+      {/* Reciter Selection */}
+      <div className="grid gap-3">
+        <Label>Reciter</Label>
+        <DropDrawer open={reciterOpen} onOpenChange={setReciterOpen}>
+          <DropDrawerTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={reciterOpen}
+              className="w-full justify-between font-normal px-3"
+            >
+              <span className="truncate">{reciterLabel}</span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </DropDrawerTrigger>
+          <DropDrawerContent className="p-0">
+            <Command title="Reciter search">
+              <CommandInput
+                placeholder="Search reciter..."
+                autoFocus={false}
+                onPointerDown={(e) => e.stopPropagation()}
+              />
+              <CommandList className="max-h-[40vh] sm:max-h-[300px]">
+                <CommandEmpty>No reciter found.</CommandEmpty>
+                <CommandGroup>
+                  {reciters.map((r) => {
+                    const isSelected = localReciters.includes(r.slug);
+                    return (
+                      <CommandItem
+                        key={r.slug}
+                        value={r.name}
+                        onSelect={() => {
+                          setLocalReciters((prev) =>
+                            isSelected
+                              ? prev.filter((s) => s !== r.slug)
+                              : [...prev, r.slug],
+                          );
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            isSelected ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        {r.name}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </DropDrawerContent>
+        </DropDrawer>
 
-        <div className="grid gap-2">
-          <Label>Riwayah</Label>
-          <DropDrawer open={riwayahOpen} onOpenChange={setRiwayahOpen}>
-            <DropDrawerTrigger asChild>
-              <Button variant="outline" className="w-full justify-between font-normal px-3">
-                <span className="truncate">
-                  {localRiwayah ? formatSlug(localRiwayah) : "All Riwayah"}
+        {localReciters.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {localReciters.map((slug) => {
+              const name = reciters.find((r) => r.slug === slug)?.name ?? slug;
+              return (
+                <span
+                  key={slug}
+                  className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full bg-primary/10 text-xs font-medium"
+                >
+                  {name}
+                  <button
+                    type="button"
+                    className="rounded-full p-0.5 hover:bg-primary/20"
+                    onClick={() => setLocalReciters((prev) => prev.filter((s) => s !== slug))}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </span>
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </DropDrawerTrigger>
-            <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
-              <DropDrawerGroup>
-                <DropDrawerItem onSelect={() => setLocalRiwayah(null)}>
-                  All Riwayah
-                </DropDrawerItem>
-                {riwayat.map((r) => (
-                  <DropDrawerItem key={r} onSelect={() => setLocalRiwayah(r)}>
-                    {formatSlug(r)}
-                  </DropDrawerItem>
-                ))}
-              </DropDrawerGroup>
-            </DropDrawerContent>
-          </DropDrawer>
-        </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-        <div className="grid gap-2">
-          <Label>Translation</Label>
-          <DropDrawer open={translationOpen} onOpenChange={setTranslationOpen}>
-            <DropDrawerTrigger asChild>
-              <Button variant="outline" className="w-full justify-between font-normal px-3">
-                <span className="truncate">
-                  {localTranslation ? formatTranslation(localTranslation) : "No Translation"}
-                </span>
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </DropDrawerTrigger>
-            <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
-              <DropDrawerGroup>
-                <DropDrawerItem onSelect={() => setLocalTranslation(null)}>
-                  No Translation
+      {/* Riwayah */}
+      <div className="grid gap-2">
+        <Label>Riwayah</Label>
+        <DropDrawer open={riwayahOpen} onOpenChange={setRiwayahOpen}>
+          <DropDrawerTrigger asChild>
+            <Button variant="outline" className="w-full justify-between font-normal px-3">
+              <span className="truncate">
+                {localRiwayah ? formatSlug(localRiwayah) : "All Riwayah"}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </DropDrawerTrigger>
+          <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
+            <DropDrawerGroup>
+              <DropDrawerItem onSelect={() => setLocalRiwayah(null)}>
+                All Riwayah
+              </DropDrawerItem>
+              {riwayat.map((r) => (
+                <DropDrawerItem key={r} onSelect={() => setLocalRiwayah(r)}>
+                  {formatSlug(r)}
                 </DropDrawerItem>
-                {translations.map((t) => (
-                  <DropDrawerItem key={t} onSelect={() => setLocalTranslation(t)}>
-                    {formatTranslation(t)}
-                  </DropDrawerItem>
-                ))}
-              </DropDrawerGroup>
-            </DropDrawerContent>
-          </DropDrawer>
-        </div>
+              ))}
+            </DropDrawerGroup>
+          </DropDrawerContent>
+        </DropDrawer>
+      </div>
+
+      {/* Translation */}
+      <div className="grid gap-2">
+        <Label>Translation</Label>
+        <DropDrawer open={translationOpen} onOpenChange={setTranslationOpen}>
+          <DropDrawerTrigger asChild>
+            <Button variant="outline" className="w-full justify-between font-normal px-3">
+              <span className="truncate">
+                {localTranslation ? formatTranslation(localTranslation) : "No Translation"}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </DropDrawerTrigger>
+          <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
+            <DropDrawerGroup>
+              <DropDrawerItem onSelect={() => setLocalTranslation(null)}>
+                No Translation
+              </DropDrawerItem>
+              {translations.map((t) => (
+                <DropDrawerItem key={t} onSelect={() => setLocalTranslation(t)}>
+                  {formatTranslation(t)}
+                </DropDrawerItem>
+              ))}
+            </DropDrawerGroup>
+          </DropDrawerContent>
+        </DropDrawer>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -294,10 +391,10 @@ function ClipFiltersForm({
 
 export default function ClipFilters(props: Props) {
   const key = [
-    props.value.surah ?? "",
+    props.value.surahs.join(","),
     props.value.start ?? "",
     props.value.end ?? "",
-    props.value.reciter ?? "",
+    props.value.reciters.join(","),
     props.value.riwayah ?? "",
     props.value.translation ?? "",
   ].join("|");

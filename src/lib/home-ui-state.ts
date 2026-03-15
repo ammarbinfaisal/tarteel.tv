@@ -4,10 +4,10 @@ export type HomeUiView = "grid" | "reel";
 export type HomeUiSort = "asc" | "desc" | "random";
 
 export type HomeUiFilters = {
-  surah: number | null;
+  surahs: number[];
   start: number | null;
   end: number | null;
-  reciter: string | null;
+  reciters: string[];
   riwayah: string | null;
   translation: ClipTranslation | null;
 };
@@ -19,10 +19,10 @@ export type HomeUiState = HomeUiFilters & {
 };
 
 export const defaultHomeUiState: HomeUiState = {
-  surah: null,
+  surahs: [],
   start: null,
   end: null,
-  reciter: null,
+  reciters: [],
   riwayah: null,
   translation: null,
   view: "grid",
@@ -39,10 +39,24 @@ function parsePositiveInt(value: string | null): number | null {
   return n;
 }
 
-function parseSurah(value: string | null): number | null {
-  const n = parsePositiveInt(value);
-  if (n == null || n > 114) return null;
-  return n;
+function parseSurahs(value: string | null): number[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => {
+      const n = Number(s.trim());
+      if (!Number.isInteger(n) || n < 1 || n > 114) return null;
+      return n;
+    })
+    .filter((n): n is number => n != null);
+}
+
+function parseReciters(value: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function parseSort(value: string | null): HomeUiSort {
@@ -69,10 +83,10 @@ function parseHomeUiStateFromParams(
   const view: HomeUiView = getFirstParamValue(params, "view") === "reel" || clipId != null ? "reel" : "grid";
 
   return {
-    surah: parseSurah(getFirstParamValue(params, "surah")),
+    surahs: parseSurahs(getFirstParamValue(params, "surah")),
     start: parsePositiveInt(getFirstParamValue(params, "start")),
     end: parsePositiveInt(getFirstParamValue(params, "end")),
-    reciter: getFirstParamValue(params, "reciter"),
+    reciters: parseReciters(getFirstParamValue(params, "reciter")),
     riwayah: getFirstParamValue(params, "riwayah"),
     translation: getFirstParamValue(params, "translation") as ClipTranslation | null,
     view,
@@ -92,10 +106,10 @@ export function parseHomeUiStateFromSearchParams(searchParams: SearchParamsRecor
 export function buildHomeUrl(state: HomeUiState): string {
   const params = new URLSearchParams();
 
-  if (state.surah != null) params.set("surah", String(state.surah));
+  if (state.surahs.length > 0) params.set("surah", state.surahs.join(","));
   if (state.start != null) params.set("start", String(state.start));
   if (state.end != null) params.set("end", String(state.end));
-  if (state.reciter) params.set("reciter", state.reciter);
+  if (state.reciters.length > 0) params.set("reciter", state.reciters.join(","));
   if (state.riwayah) params.set("riwayah", state.riwayah);
   if (state.translation) params.set("translation", state.translation);
   if (state.sort && state.sort !== "asc") params.set("sort", state.sort);
@@ -107,14 +121,15 @@ export function buildHomeUrl(state: HomeUiState): string {
 }
 
 export function filterClips(clips: Clip[], filters: HomeUiFilters, sort: HomeUiSort = "asc"): Clip[] {
-  const hasAyahFilter = filters.start != null || filters.end != null;
+  // Ayah range only applies when a single surah is selected
+  const hasAyahFilter = filters.surahs.length === 1 && (filters.start != null || filters.end != null);
   const fStart = filters.start ?? (filters.end ?? 1);
   const fEnd = filters.end ?? (filters.start ?? 999);
 
   const filtered = clips
     .filter((clip) => {
-      if (filters.surah != null && clip.surah !== filters.surah) return false;
-      if (filters.reciter && clip.reciterSlug !== filters.reciter) return false;
+      if (filters.surahs.length > 0 && !filters.surahs.includes(clip.surah)) return false;
+      if (filters.reciters.length > 0 && !filters.reciters.includes(clip.reciterSlug)) return false;
       if (filters.riwayah && clip.riwayah !== filters.riwayah) return false;
       if (filters.translation && clip.translation !== filters.translation) return false;
 

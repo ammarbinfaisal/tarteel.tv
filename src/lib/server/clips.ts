@@ -2,33 +2,40 @@ import "server-only";
 
 import { db } from "@/db";
 import { clips as clipsTable, clipVariants } from "@/db/schema/clips";
-import { eq, and, gte, lte, or, asc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, or, asc, sql, inArray } from "drizzle-orm";
 import type { Clip, ClipTranslation } from "@/lib/types";
 import { mapClipFromRow } from "@/lib/server/clip-row-mapper";
 
 export type ClipFilters = {
-  surah?: number;
+  surahs?: number[];
   ayahStart?: number;
   ayahEnd?: number;
-  reciterSlug?: string;
+  reciterSlugs?: string[];
   riwayah?: string;
   translation?: ClipTranslation;
 };
 
 export async function listClips(filters: ClipFilters): Promise<Clip[]> {
   const where = [];
-  const hasAyahFilter = filters.ayahStart != null || filters.ayahEnd != null;
-  const ayahFilterStart =
-    filters.ayahStart ?? (filters.ayahEnd != null ? filters.ayahEnd : 1);
-  const ayahFilterEnd =
-    filters.ayahEnd ?? (filters.ayahStart != null ? filters.ayahStart : 999);
 
-  if (filters.surah != null) {
-    where.push(eq(clipsTable.surah, filters.surah));
+  // Surah filter (single or multiple)
+  if (filters.surahs && filters.surahs.length > 0) {
+    if (filters.surahs.length === 1) {
+      where.push(eq(clipsTable.surah, filters.surahs[0]));
+    } else {
+      where.push(inArray(clipsTable.surah, filters.surahs));
+    }
   }
-  if (filters.reciterSlug) {
-    where.push(eq(clipsTable.reciterSlug, filters.reciterSlug));
+
+  // Reciter filter (single or multiple)
+  if (filters.reciterSlugs && filters.reciterSlugs.length > 0) {
+    if (filters.reciterSlugs.length === 1) {
+      where.push(eq(clipsTable.reciterSlug, filters.reciterSlugs[0]));
+    } else {
+      where.push(inArray(clipsTable.reciterSlug, filters.reciterSlugs));
+    }
   }
+
   if (filters.riwayah) {
     where.push(eq(clipsTable.riwayah, filters.riwayah));
   }
@@ -36,9 +43,16 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
     where.push(eq(clipsTable.translation, filters.translation));
   }
 
-  // Ayah range overlap logic
+  // Ayah range only when single surah is selected
+  const hasAyahFilter =
+    (filters.surahs?.length === 1) &&
+    (filters.ayahStart != null || filters.ayahEnd != null);
+  const ayahFilterStart =
+    filters.ayahStart ?? (filters.ayahEnd != null ? filters.ayahEnd : 1);
+  const ayahFilterEnd =
+    filters.ayahEnd ?? (filters.ayahStart != null ? filters.ayahStart : 999);
+
   if (hasAyahFilter) {
-    // clip.ayahStart <= fEnd AND clip.ayahEnd >= fStart
     where.push(lte(clipsTable.ayahStart, ayahFilterEnd));
     where.push(gte(clipsTable.ayahEnd, ayahFilterStart));
   }
@@ -143,7 +157,7 @@ export async function listReciters(): Promise<{ slug: string; name: string }[]> 
     .from(clipsTable)
     .groupBy(clipsTable.reciterSlug, clipsTable.reciterName)
     .orderBy(asc(clipsTable.reciterName));
-  
+
   return results;
 }
 
@@ -153,7 +167,7 @@ export async function listRiwayat(): Promise<string[]> {
     .from(clipsTable)
     .groupBy(clipsTable.riwayah)
     .orderBy(asc(clipsTable.riwayah));
-  
+
   return results.map(r => r.riwayah);
 }
 
@@ -163,6 +177,6 @@ export async function listTranslations(): Promise<ClipTranslation[]> {
     .from(clipsTable)
     .groupBy(clipsTable.translation)
     .orderBy(asc(clipsTable.translation));
-  
+
   return results.map(r => r.translation as ClipTranslation);
 }

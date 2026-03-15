@@ -85,14 +85,14 @@ export default function HomePage({ clips, filterData }: HomePageProps) {
 
   const filters: HomeUiFilters = useMemo(
     () => ({
-      surah: state.surah,
+      surahs: state.surahs,
       start: state.start,
       end: state.end,
-      reciter: state.reciter,
+      reciters: state.reciters,
       riwayah: state.riwayah,
       translation: state.translation,
     }),
-    [state.end, state.reciter, state.riwayah, state.start, state.surah, state.translation],
+    [state.end, state.reciters, state.riwayah, state.start, state.surahs, state.translation],
   );
 
   const filteredOnlineClips = useMemo(
