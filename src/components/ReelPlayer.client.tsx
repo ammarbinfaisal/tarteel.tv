@@ -6,7 +6,6 @@ import { cn, isProbablyMp4, isHls, formatSlug, formatTranslation, getSurahName }
 import { Button } from "./ui/button";
 import { Share2, Volume2, VolumeX, Play, Music, Download, MousePointer2, Repeat, Trash2 } from "lucide-react";
 import Hls from "hls.js";
-import { trackEvent } from "@/lib/analytics";
 import { downloadClipForOffline, removeOfflineDownload } from "@/lib/client/downloads";
 import { useDownloadRecord, useOnlineStatus } from "@/lib/client/downloads-hooks";
 import {
@@ -410,14 +409,6 @@ export default function ReelPlayer({
     if (!media) return;
 
     if (isActive) {
-      trackEvent('clip_play', {
-        clip_id: clip.id,
-        surah_num: clip.surah,
-        surah_name: getSurahName(clip.surah),
-        reciter_name: clip.reciterName,
-        reciter_slug: clip.reciterSlug,
-      });
-
       const playPromise = media.play();
       playPromise?.catch((err) => {
         const message = err instanceof Error ? err.message : String(err);
@@ -463,13 +454,6 @@ export default function ReelPlayer({
 
   const handleShare = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    trackEvent('clip_share', {
-      clip_id: clip.id,
-      surah_num: clip.surah,
-      surah_name: getSurahName(clip.surah),
-      reciter_name: clip.reciterName,
-      reciter_slug: clip.reciterSlug,
-    });
     const shareUrl = window.location.href;
     if (navigator.share) {
       navigator.share({
@@ -485,14 +469,6 @@ export default function ReelPlayer({
 
   const handleSaveToDevice = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    trackEvent('clip_download', {
-      clip_id: clip.id,
-      surah_num: clip.surah,
-      surah_name: getSurahName(clip.surah),
-      reciter_name: clip.reciterName,
-      reciter_slug: clip.reciterSlug,
-      download_type: "file",
-    });
     const downloadVariant = selectDownloadVariant(variants);
     const downloadUrl = downloadVariant?.url;
     if (downloadUrl) {
@@ -525,14 +501,6 @@ export default function ReelPlayer({
         });
         return;
       }
-      trackEvent("clip_download", {
-        clip_id: clip.id,
-        surah_num: clip.surah,
-        surah_name: getSurahName(clip.surah),
-        reciter_name: clip.reciterName,
-        reciter_slug: clip.reciterSlug,
-        download_type: "offline",
-      });
       toast.success("Download started", {
         description: `Downloading ${getSurahName(clip.surah)}:${clip.ayahStart}-${clip.ayahEnd} for offline`,
       });

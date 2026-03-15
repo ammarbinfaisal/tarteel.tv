@@ -22,7 +22,6 @@ import {
   DropDrawerItem,
   DropDrawerTrigger,
 } from "@/components/ui/dropdrawer";
-import { trackEvent } from "@/lib/analytics";
 import type { HomeUiFilters } from "@/lib/home-ui-state";
 
 type Props = {
@@ -77,13 +76,6 @@ function ClipFiltersForm({
     };
 
     performance.mark("filters:apply:click");
-    trackEvent("apply_filters", {
-      surah_num: next.surah,
-      surah_name: next.surah ? surahNames[next.surah - 1] : null,
-      reciter_slug: next.reciter,
-      riwayah: next.riwayah,
-      translation: next.translation,
-    });
 
     startTransition(() => {
       onApplyFilters(next);
