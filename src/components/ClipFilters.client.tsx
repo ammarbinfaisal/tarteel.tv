@@ -142,6 +142,7 @@ function ClipFiltersForm({
               <Command title="Surah search">
                 <CommandInput
                   placeholder="Search surah..."
+                  autoFocus={false}
                   onPointerDown={(e) => e.stopPropagation()}
                 />
                 <CommandList className="max-h-[40vh] sm:max-h-[300px]">

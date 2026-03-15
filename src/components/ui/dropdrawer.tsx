@@ -54,7 +54,7 @@ function DropDrawer({
     <DropDrawerContext.Provider value={{ isMobile }}>
       <DropdownComponent
         data-slot="drop-drawer"
-        {...(isMobile && { autoFocus: true })}
+        {...(isMobile && { autoFocus: false })}
         {...props}
       >
         {children}
