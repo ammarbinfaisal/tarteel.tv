@@ -330,6 +330,7 @@ export default function ReelPlayer({
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [progress, setProgress] = useState(0);
   const isActiveRef = useRef(isActive);
   const lastProgressUpdateRef = useRef(0);
@@ -356,7 +357,10 @@ export default function ReelPlayer({
   const blurredBackgroundSrc = clip.thumbnailBlur ?? selectThumbnailVariant(variants)?.url;
   const isVideo = isProbablyMp4(src) || isProbablyMp4(chosenVariant?.r2Key) || isHls(src) || isHls(chosenVariant?.r2Key);
 
-  const handleMediaPlay = useCallback(() => setIsPlaying(true), []);
+  const handleMediaPlay = useCallback(() => {
+    setIsPlaying(true);
+    setHasPlayedOnce(true);
+  }, []);
   const handleMediaPause = useCallback(() => setIsPlaying(false), []);
 
   useEffect(() => {
@@ -450,6 +454,7 @@ export default function ReelPlayer({
   useEffect(() => {
     lastProgressUpdateRef.current = 0;
     setProgress(0);
+    setHasPlayedOnce(false);
   }, [clip.id, src]);
 
   const handleShare = useCallback((e: React.MouseEvent) => {
@@ -563,10 +568,7 @@ export default function ReelPlayer({
             <div className="absolute inset-0 overflow-hidden">
               {blurredBackgroundSrc ? (
                 <div
-                  className={cn(
-                    "absolute inset-0 scale-110 bg-cover bg-center blur-3xl transition-opacity duration-150",
-                    isActive ? "opacity-60" : "opacity-0",
-                  )}
+                  className="absolute inset-0 scale-110 bg-cover bg-center blur-3xl opacity-60"
                   style={{ backgroundImage: `url("${blurredBackgroundSrc}")` }}
                 />
               ) : (
@@ -606,8 +608,8 @@ export default function ReelPlayer({
           </div>
         )}
 
-        {/* Only show paused affordance for the active reel to avoid swipe flash */}
-        {isActive && !isPlaying && (
+        {/* Only show paused affordance after video has played once (user-initiated pause) */}
+        {isActive && !isPlaying && hasPlayedOnce && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none transition-opacity">
             <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm">
               <Play className="w-12 h-12 text-white fill-white" />
