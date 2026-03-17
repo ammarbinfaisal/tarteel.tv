@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, useRef, useEffect, memo } from "react";
 import { Play, Layers } from "lucide-react";
 import type { Clip } from "@/lib/types";
 import { getSurahName } from "@/lib/utils";
@@ -30,11 +30,20 @@ function ClipCard({ clip }: { clip: Clip }) {
 
   const alreadyCached = thumbnailUrl ? loadedThumbnails.has(thumbnailUrl) : false;
   const [thumbLoaded, setThumbLoaded] = useState(alreadyCached);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const onThumbLoad = useCallback(() => {
     if (thumbnailUrl) loadedThumbnails.add(thumbnailUrl);
     setThumbLoaded(true);
   }, [thumbnailUrl]);
+
+  // Handle SSR hydration race: image may have loaded before React attached onLoad
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0 && !thumbLoaded) {
+      onThumbLoad();
+    }
+  }, [onThumbLoad, thumbLoaded]);
 
   const hasBlur = !!blurSrc;
   const hasThumb = !!thumbnailUrl;
@@ -62,6 +71,7 @@ function ClipCard({ clip }: { clip: Clip }) {
       {/* Full thumbnail – fades in over the blur placeholder */}
       {hasThumb && (
         <img
+          ref={imgRef}
           src={thumbnailUrl}
           alt=""
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
