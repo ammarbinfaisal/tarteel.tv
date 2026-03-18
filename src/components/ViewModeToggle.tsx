@@ -16,33 +16,35 @@ export function ViewModeToggle() {
   }
 
   return (
-    <div 
-      className="relative flex items-center bg-muted/50 p-1 rounded-full w-[84px] h-[40px] cursor-pointer select-none"
+    <button
+      type="button"
+      className="relative flex h-10 w-[76px] items-center rounded-full bg-muted/50 p-1 select-none"
       onClick={() => handleSetView(view === "grid" ? "reel" : "grid")}
+      aria-label={`Switch to ${view === "grid" ? "reel" : "grid"} view`}
     >
       <div
         className={cn(
-          "absolute h-[32px] w-[32px] bg-background rounded-full shadow-md z-0 transition-transform duration-300 ease-in-out",
-          view === "grid" ? "translate-x-0" : "translate-x-[44px]"
+          "absolute left-1 h-8 w-8 rounded-full bg-background shadow-md transition-transform duration-300 ease-in-out",
+          view === "grid" ? "translate-x-0" : "translate-x-9"
         )}
       />
-      
-      <div className="relative z-10 flex w-full justify-between items-center px-1.5">
+
+      <div className="relative z-10 flex w-full items-center justify-between">
         <div className={cn(
-          "flex items-center justify-center w-[32px] h-[32px] rounded-full transition-colors duration-200",
+          "flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200",
           view === "grid" ? "text-foreground" : "text-muted-foreground/60"
         )}>
           <LayoutGrid className="h-4 w-4" />
           <span className="sr-only">Grid View</span>
         </div>
         <div className={cn(
-          "flex items-center justify-center w-[32px] h-[32px] rounded-full transition-colors duration-200",
+          "flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200",
           view === "reel" ? "text-foreground" : "text-muted-foreground/60"
         )}>
           <Film className="h-4 w-4" />
           <span className="sr-only">Reel View</span>
         </div>
       </div>
-    </div>
+    </button>
   )
 }

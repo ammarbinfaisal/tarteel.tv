@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, memo, useCallback } from "react";
 import type { Clip } from "@/lib/types";
 import { cn, isProbablyMp4, isHls, formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { Share2, Volume2, VolumeX, Play, Music, Download, MousePointer2, Repeat, Trash2 } from "lucide-react";
+import { Share2, Volume2, VolumeX, Play, Music, Download, ChevronsDown, Repeat, Trash2 } from "lucide-react";
 import Hls from "hls.js";
 import { downloadClipForOffline, removeOfflineDownload } from "@/lib/client/downloads";
 import { useDownloadRecord, useOnlineStatus } from "@/lib/client/downloads-hooks";
@@ -27,6 +27,7 @@ import {
 interface ReelPlayerProps {
   clip: Clip;
   isActive: boolean;
+  isVisible?: boolean;
   isMuted: boolean;
   onMuteChange: (muted: boolean) => void;
   autoScroll: boolean;
@@ -128,30 +129,32 @@ const ActionButtons = memo(function ActionButtons({
     <div className={beside ? "flex flex-col gap-6 pointer-events-auto justify-end pb-8" : "absolute right-4 bottom-24 flex flex-col gap-6 pointer-events-auto"}>
       {filterButton}
 
-      <div
-        className="relative flex flex-col items-center bg-muted/50 backdrop-blur-md rounded-full border border-white/5 p-1 h-[88px] w-12 cursor-pointer transition-colors hover:bg-muted/70"
+      <button
+        type="button"
+        className="relative flex h-[88px] w-12 flex-col items-center rounded-full border border-white/5 bg-muted/50 p-1 backdrop-blur-md transition-colors hover:bg-muted/70"
         onClick={(e) => { e.stopPropagation(); onAutoScrollChange(!autoScroll); }}
-        title={autoScroll ? "Auto-scroll enabled" : "Looping enabled"}
+        title={autoScroll ? "Auto-advance to the next clip" : "Repeat the current clip"}
+        aria-label={autoScroll ? "Auto-advance to the next clip" : "Repeat the current clip"}
       >
         <div
           className={cn(
-            "absolute left-1 w-10 h-10 bg-background rounded-full shadow-md transition-transform duration-300 ease-in-out z-0",
+            "absolute left-1 top-1 h-10 w-10 rounded-full bg-background shadow-md transition-transform duration-300 ease-in-out",
             autoScroll ? "translate-y-0" : "translate-y-10"
           )}
         />
         <div className={cn(
-          "relative z-10 flex items-center justify-center w-10 h-10 transition-colors duration-200",
+          "relative z-10 flex h-10 w-10 items-center justify-center transition-colors duration-200",
           autoScroll ? "text-foreground" : "text-muted-foreground/60"
         )}>
-          <MousePointer2 className="h-5 w-5" />
+          <ChevronsDown className="h-5 w-5" />
         </div>
         <div className={cn(
-          "relative z-10 flex items-center justify-center w-10 h-10 transition-colors duration-200",
+          "relative z-10 flex h-10 w-10 items-center justify-center transition-colors duration-200",
           !autoScroll ? "text-foreground" : "text-muted-foreground/60"
         )}>
           <Repeat className="h-5 w-5" />
         </div>
-      </div>
+      </button>
 
       <Button
         variant="ghost"
@@ -320,6 +323,7 @@ const BesideButtons = memo(function BesideButtons({
 export default function ReelPlayer({
   clip,
   isActive,
+  isVisible = true,
   isMuted,
   onMuteChange,
   autoScroll,
@@ -356,12 +360,26 @@ export default function ReelPlayer({
   const src = chosenVariant?.url;
   const blurredBackgroundSrc = clip.thumbnailBlur ?? selectThumbnailVariant(variants)?.url;
   const isVideo = isProbablyMp4(src) || isProbablyMp4(chosenVariant?.r2Key) || isHls(src) || isHls(chosenVariant?.r2Key);
+  const mediaMuted = isMuted || !isActive;
 
   const handleMediaPlay = useCallback(() => {
     setIsPlaying(true);
     setHasPlayedOnce(true);
   }, []);
   const handleMediaPause = useCallback(() => setIsPlaying(false), []);
+  const playMedia = useCallback((media: HTMLMediaElement) => {
+    const playPromise = media.play();
+    playPromise?.catch((err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      const name = err && typeof err === "object" && "name" in err ? String((err as { name?: unknown }).name) : "";
+      if (name === "NotAllowedError") {
+        setHasPlayedOnce(true);
+        return;
+      }
+      if (name === "AbortError" || message.includes("interrupted by a call to pause")) return;
+      console.warn("Playback failed:", err);
+    });
+  }, []);
 
   useEffect(() => {
     const media = mediaRef.current;
@@ -391,9 +409,7 @@ export default function ReelPlayer({
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (isActiveRef.current && media) {
-          media.play().catch(() => {
-            // Autoplay might be blocked until interaction
-          });
+          playMedia(media);
         }
       });
     } else if (media.canPlayType("application/vnd.apple.mpegurl")) {
@@ -406,34 +422,31 @@ export default function ReelPlayer({
         hlsRef.current = null;
       }
     };
-  }, [src]);
+  }, [playMedia, src]);
 
   useEffect(() => {
     const media = mediaRef.current;
     if (!media) return;
 
     if (isActive) {
-      const playPromise = media.play();
-      playPromise?.catch((err) => {
-        const message = err instanceof Error ? err.message : String(err);
-        const name = err && typeof err === "object" && "name" in err ? String((err as any).name) : "";
-        if (name === "AbortError" || message.includes("interrupted by a call to pause")) return;
-        console.warn("Playback failed:", err);
-      });
-    } else {
+      playMedia(media);
+      return;
+    }
+
+    if (!isVisible) {
       media.pause();
     }
-  }, [isActive, clip.id, clip.surah, clip.reciterName, clip.reciterSlug]);
+  }, [clip.id, clip.reciterName, clip.reciterSlug, clip.surah, isActive, isVisible, playMedia]);
 
   const togglePlay = useCallback(() => {
     const media = mediaRef.current;
     if (!media) return;
     if (media.paused) {
-      media.play().catch(() => {});
+      playMedia(media);
     } else {
       media.pause();
     }
-  }, []);
+  }, [playMedia]);
 
   const toggleMute = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -523,8 +536,8 @@ export default function ReelPlayer({
 
   const handleEnded = useCallback(() => {
     setProgress(100);
-    if (autoScroll) onClipEnd();
-  }, [autoScroll, onClipEnd]);
+    if (isActive && autoScroll) onClipEnd();
+  }, [autoScroll, isActive, onClipEnd]);
 
   if (!src) {
     return (
@@ -583,7 +596,7 @@ export default function ReelPlayer({
               className="relative z-10 h-full w-full object-contain"
               loop={!autoScroll}
               playsInline
-              muted={isMuted}
+              muted={mediaMuted}
               onPlay={handleMediaPlay}
               onPause={handleMediaPause}
               onTimeUpdate={handleTimeUpdate}
@@ -599,7 +612,7 @@ export default function ReelPlayer({
               ref={mediaRef as React.RefObject<HTMLAudioElement>}
               src={isHls(src) ? undefined : src}
               loop={!autoScroll}
-              muted={isMuted}
+              muted={mediaMuted}
               onPlay={handleMediaPlay}
               onPause={handleMediaPause}
               onTimeUpdate={handleTimeUpdate}
@@ -608,7 +621,7 @@ export default function ReelPlayer({
           </div>
         )}
 
-        {/* Only show paused affordance after video has played once (user-initiated pause) */}
+        {/* Show a play affordance after playback has started once or autoplay was blocked. */}
         {isActive && !isPlaying && hasPlayedOnce && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none transition-opacity">
             <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm">

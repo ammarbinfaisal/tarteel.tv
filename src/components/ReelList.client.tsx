@@ -70,6 +70,7 @@ const ReelItem = memo(function ReelItem({
         <ReelPlayer
           clip={clip}
           isActive={isActive}
+          isVisible={isVisible}
           isMuted={isMuted}
           onMuteChange={onMuteChange}
           autoScroll={autoScroll}
@@ -89,7 +90,7 @@ const ReelItem = memo(function ReelItem({
 function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilters, isOffline = false }: ReelListProps) {
   const { state, setClipId } = useHomeUiState();
   const clipIds = useMemo(() => clips.map((clip) => clip.id), [clips]);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const view = state.view;
   const clipId = state.clipId;

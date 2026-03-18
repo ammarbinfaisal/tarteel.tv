@@ -25,7 +25,7 @@ export default function DownloadsReelList({
 }) {
   const clipIds = useMemo(() => clips.map((clip) => clip.id), [clips]);
   const initialClipId = useMemo(() => readClipIdFromUrl(), []);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const { containerRef, activeIndex, scrollToNext } = useSnapReelController({
     itemIds: clipIds,
@@ -48,6 +48,7 @@ export default function DownloadsReelList({
               <ReelPlayer
                 clip={clip}
                 isActive={index === activeIndex}
+                isVisible={isVisible}
                 isMuted={isMuted}
                 onMuteChange={setIsMuted}
                 autoScroll={autoScroll}
