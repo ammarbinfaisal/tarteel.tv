@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { listReciters, listRiwayat, listTranslations } from "@/lib/server/clips";
 import IngestForm from "./IngestForm.client";
 
@@ -7,14 +6,12 @@ export const metadata = {
 };
 
 export default async function IngestPage() {
-  const [reciters, riwayat, translations, headersList] = await Promise.all([
+  const [reciters, riwayat, translations] = await Promise.all([
     listReciters(),
     listRiwayat(),
     listTranslations(),
-    headers(),
   ]);
 
-  const authHeader = headersList.get("authorization") ?? "";
   const ingestEndpoint =
     process.env.INGEST_ENDPOINT ??
     process.env.NEXT_PUBLIC_INGEST_ENDPOINT ??
@@ -27,7 +24,6 @@ export default async function IngestPage() {
         reciters={reciters}
         riwayat={riwayat}
         translations={translations}
-        authHeader={authHeader}
         ingestEndpoint={ingestEndpoint}
       />
     </div>

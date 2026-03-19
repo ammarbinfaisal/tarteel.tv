@@ -24,7 +24,6 @@ interface IngestFormProps {
   reciters: { slug: string; name: string }[];
   riwayat: string[];
   translations: string[];
-  authHeader: string;
   ingestEndpoint: string;
 }
 
@@ -37,9 +36,11 @@ interface JobStatus {
   youtube?: { status: string; videoId?: string; error?: string };
 }
 
-export default function IngestForm({ reciters, riwayat, translations, authHeader, ingestEndpoint }: IngestFormProps) {
+export default function IngestForm({ reciters, riwayat, translations, ingestEndpoint }: IngestFormProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   // Controlled state for all selectors
@@ -138,9 +139,15 @@ export default function IngestForm({ reciters, riwayat, translations, authHeader
       return;
     }
 
+    if (!username || !password) {
+      setMessage({ type: "error", text: "Enter username and password" });
+      return;
+    }
+
     setLoading(true);
     setMessage({ type: "info", text: "Uploading file..." });
 
+    const authHeader = "Basic " + btoa(`${username}:${password}`);
     const formData = new FormData(e.currentTarget);
 
     // Override form values with controlled state
@@ -517,6 +524,29 @@ export default function IngestForm({ reciters, riwayat, translations, authHeader
               <input type="checkbox" name="uploadYoutube" defaultChecked className="h-4 w-4 rounded border-gray-600" />
               Upload to YouTube
             </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
           </div>
 
           {message && (
