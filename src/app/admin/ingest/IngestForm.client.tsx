@@ -32,15 +32,13 @@ interface JobStatus {
   status: "uploading" | "processing" | "done" | "error";
   step: string;
   clipId?: string;
-  telegram?: { status: string; error?: string };
+  telegram?: { status: string; url?: string; error?: string };
   youtube?: { status: string; videoId?: string; error?: string };
 }
 
 export default function IngestForm({ reciters, riwayat, translations, ingestEndpoint }: IngestFormProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   // Controlled state for all selectors
@@ -96,11 +94,16 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
 
   const pollJob = useCallback(async (jobId: string) => {
     const statusUrl = `${ingestEndpoint}/status/${jobId}`;
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       await new Promise((r) => setTimeout(r, 2000));
       try {
-        const res = await fetch(statusUrl);
+        const res = await fetch(statusUrl, {
+          credentials: "include",
+        });
+        if (res.status === 401) {
+          setMessage({ type: "error", text: "Your admin session expired. Sign in again." });
+          return;
+        }
         if (!res.ok) throw new Error(`Status check failed (${res.status})`);
         const job: JobStatus = await res.json();
 
@@ -111,7 +114,9 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
 
         if (job.status === "done") {
           let text = `Successfully ingested: ${job.clipId}`;
-          if (job.telegram) text += `\nTelegram: ${job.telegram.status}${job.telegram.error ? ` — ${job.telegram.error}` : ""}`;
+          if (job.telegram) {
+            text += `\nTelegram: ${job.telegram.status}${job.telegram.url ? ` (${job.telegram.url})` : ""}${job.telegram.error ? ` — ${job.telegram.error}` : ""}`;
+          }
           if (job.youtube) text += `\nYouTube: ${job.youtube.status}${job.youtube.videoId ? ` (${job.youtube.videoId})` : ""}${job.youtube.error ? ` — ${job.youtube.error}` : ""}`;
           setMessage({ type: "success", text });
           formRef.current?.reset();
@@ -139,15 +144,9 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
       return;
     }
 
-    if (!username || !password) {
-      setMessage({ type: "error", text: "Enter username and password" });
-      return;
-    }
-
     setLoading(true);
     setMessage({ type: "info", text: "Uploading file..." });
 
-    const authHeader = "Basic " + btoa(`${username}:${password}`);
     const formData = new FormData(e.currentTarget);
 
     // Override form values with controlled state
@@ -162,8 +161,8 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
     try {
       const response = await fetch(ingestEndpoint, {
         method: "POST",
-        headers: { Authorization: authHeader },
         body: formData,
+        credentials: "include",
       });
 
       const result = await response.json();
@@ -171,6 +170,8 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
       if (result.jobId) {
         setMessage({ type: "info", text: "Processing..." });
         await pollJob(result.jobId);
+      } else if (response.status === 401) {
+        setMessage({ type: "error", text: "Your admin session expired. Sign in again." });
       } else if (result.error) {
         setMessage({ type: "error", text: result.error });
       } else {
@@ -224,9 +225,13 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
                 <Command>
-                  <CommandInput placeholder="Search surah..." />
+                  <CommandInput placeholder="Search surah..." autoFocus={false} />
                   <CommandList className="max-h-[300px]">
                     <CommandEmpty>No surah found.</CommandEmpty>
                     <CommandGroup>
@@ -335,9 +340,13 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
                 <Command>
-                  <CommandInput placeholder="Search reciter..." />
+                  <CommandInput placeholder="Search reciter..." autoFocus={false} />
                   <CommandList className="max-h-[300px]">
                     <CommandEmpty>No reciter found.</CommandEmpty>
                     <CommandGroup>
@@ -404,9 +413,13 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <PopoverContent
+                  className="w-[--radix-popover-trigger-width] p-0"
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
                   <Command>
-                    <CommandInput placeholder="Search riwayah..." />
+                    <CommandInput placeholder="Search riwayah..." autoFocus={false} />
                     <CommandList className="max-h-[300px]">
                       <CommandEmpty>No riwayah found.</CommandEmpty>
                       <CommandGroup>
@@ -464,9 +477,13 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <PopoverContent
+                  className="w-[--radix-popover-trigger-width] p-0"
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
                   <Command>
-                    <CommandInput placeholder="Search translation..." />
+                    <CommandInput placeholder="Search translation..." autoFocus={false} />
                     <CommandList className="max-h-[300px]">
                       <CommandEmpty>No translation found.</CommandEmpty>
                       <CommandGroup>
@@ -521,32 +538,9 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
               Upload to Telegram
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" name="uploadYoutube" defaultChecked className="h-4 w-4 rounded border-gray-600" />
+              <input type="checkbox" name="uploadYoutube" className="h-4 w-4 rounded border-gray-600" />
               Upload to YouTube
             </label>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
           </div>
 
           {message && (

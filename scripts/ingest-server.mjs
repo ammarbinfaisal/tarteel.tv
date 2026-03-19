@@ -1,14 +1,30 @@
 import { ingestClip } from "../src/lib/server/ingestion.impl";
+import { db } from "../src/db/index";
+import { clips as clipsTable } from "../src/db/schema/clips";
+import { isAdminRequestAuthenticated } from "../src/lib/server/admin-session";
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
 import { Database } from "bun:sqlite";
+import { eq } from "drizzle-orm";
 
 const PORT = process.env.INGEST_PORT || 3001;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://www.tarteel.tv",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ADMIN_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .concat(DEFAULT_ALLOWED_ORIGINS),
+);
 
 if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
   console.error("ADMIN_USERNAME and ADMIN_PASSWORD must be set");
@@ -39,6 +55,19 @@ function releaseLock(clipId) {
   lockDb.run("DELETE FROM ingest_locks WHERE clip_id = ?", [clipId]);
 }
 
+async function setClipTelegramMeta(clipId, telegram) {
+  await db
+    .update(clipsTable)
+    .set({ telegramMeta: telegram ? JSON.stringify(telegram) : null })
+    .where(eq(clipsTable.id, clipId));
+
+  const clip = await db.query.clips.findFirst({
+    where: eq(clipsTable.id, clipId),
+  });
+
+  return clip ?? null;
+}
+
 // ---------------------------------------------------------------------------
 // In-memory job store for async ingestion
 // ---------------------------------------------------------------------------
@@ -58,6 +87,32 @@ function createJob() {
   const job = { id, status: "uploading", step: "Uploading file...", createdAt: Date.now() };
   jobs.set(id, job);
   return job;
+}
+
+function getCorsHeaders(req) {
+  const origin = req.headers.get("origin");
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    return {};
+  }
+
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Credentials": "true",
+    Vary: "Origin",
+  };
+}
+
+function jsonResponse(req, body, init = {}) {
+  return new Response(JSON.stringify(body), {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...getCorsHeaders(req),
+      ...(init.headers || {}),
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -86,7 +141,32 @@ async function sendToTelegramChannel(videoPath, caption) {
     throw new Error(`Telegram sendVideo failed: ${body}`);
   }
 
-  return { status: "sent" };
+  const payload = await res.json();
+  if (!payload.ok || !payload.result) {
+    throw new Error(`Telegram sendVideo returned an unexpected response: ${JSON.stringify(payload)}`);
+  }
+
+  const message = payload.result;
+  const chat = message.chat || {};
+  const channelUsername = chat.username || undefined;
+  const chatId = chat.id;
+  const messageId = message.message_id;
+  const chatIdString = String(chatId);
+  const url = channelUsername
+    ? `https://t.me/${channelUsername.replace(/^@/, "")}/${messageId}`
+    : chatIdString.startsWith("-100")
+      ? `https://t.me/c/${chatIdString.replace(/^-100/, "")}/${messageId}`
+      : undefined;
+
+  return {
+    status: "sent",
+    messageId,
+    chatId,
+    channelUsername,
+    channelTitle: chat.title || undefined,
+    url,
+    postedAt: new Date().toISOString(),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -172,6 +252,12 @@ async function processJob(job, videoPath, tempDir, clipIdForLock, opts) {
         job.step = "Uploading to Telegram...";
         const caption = `Surah ${opts.surah}, Ayah ${opts.ayahStart}–${opts.ayahEnd}\nReciter: ${reciterDisplay}`;
         job.telegram = await sendToTelegramChannel(videoPath, caption);
+        if (job.clipId && job.telegram.status === "sent") {
+          const savedClip = await setClipTelegramMeta(job.clipId, job.telegram);
+          if (!savedClip) {
+            throw new Error(`Telegram post sent but failed to persist metadata for ${job.clipId}`);
+          }
+        }
       } catch (err) {
         console.error("Telegram channel upload failed:", err);
         job.telegram = { status: "error", error: err.message };
@@ -210,14 +296,12 @@ console.log(`Ingestion server starting on port ${PORT}...`);
 Bun.serve({
   port: PORT,
   async fetch(req) {
+    const corsHeaders = getCorsHeaders(req);
+
     // Handle CORS preflight
     if (req.method === "OPTIONS") {
       return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Authorization, Content-Type",
-        },
+        headers: corsHeaders,
       });
     }
 
@@ -285,28 +369,21 @@ Bun.serve({
 
     // ----- Job status polling endpoint -----
     if (url.pathname.startsWith("/ingest/status/") && req.method === "GET") {
+      if (!isAdminRequestAuthenticated(req.headers)) {
+        return jsonResponse(req, { error: "Unauthorized" }, { status: 401 });
+      }
+
       const jobId = url.pathname.split("/ingest/status/")[1];
       const job = jobs.get(jobId);
       if (!job) {
-        return new Response(JSON.stringify({ error: "Job not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
+        return jsonResponse(req, { error: "Job not found" }, { status: 404 });
       }
-      return new Response(JSON.stringify(job), {
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse(req, job);
     }
 
     if (url.pathname === "/ingest" && req.method === "POST") {
-      // Basic Auth Check
-      const authHeader = req.headers.get("authorization");
-      if (!authHeader) return new Response("Unauthorized", { status: 401 });
-
-      const auth = authHeader.split(" ")[1];
-      const [user, pwd] = Buffer.from(auth, "base64").toString().split(":");
-      if (user !== ADMIN_USERNAME || pwd !== ADMIN_PASSWORD) {
-        return new Response("Unauthorized", { status: 401 });
+      if (!isAdminRequestAuthenticated(req.headers)) {
+        return jsonResponse(req, { error: "Unauthorized" }, { status: 401 });
       }
 
       try {
@@ -334,13 +411,10 @@ Bun.serve({
         const clipIdForLock = `s${surah}_a${ayahStart}-${ayahEnd}__${reciterSlug}__${riwayah}__${translation}`;
 
         if (!acquireLock(clipIdForLock)) {
-          return new Response(JSON.stringify({
+          return jsonResponse(req, {
             success: false,
             error: `Clip ${clipIdForLock} is already being ingested`,
-          }), {
-            status: 409,
-            headers: { "Content-Type": "application/json" },
-          });
+          }, { status: 409 });
         }
 
         // Save video to temp dir synchronously, then process in background
@@ -359,19 +433,16 @@ Bun.serve({
           riwayah, translation, uploadTelegram, uploadYoutube,
         });
 
-        return new Response(JSON.stringify({ jobId: job.id }), {
-          status: 202,
-          headers: { "Content-Type": "application/json" },
-        });
+        return jsonResponse(req, { jobId: job.id }, { status: 202 });
       } catch (err) {
         console.error("Ingestion error:", err);
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        });
+        return jsonResponse(req, { success: false, error: err.message }, { status: 500 });
       }
     }
 
-    return new Response("Not Found", { status: 404 });
+    return new Response("Not Found", {
+      status: 404,
+      headers: corsHeaders,
+    });
   },
 });
