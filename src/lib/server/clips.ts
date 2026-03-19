@@ -2,8 +2,8 @@ import "server-only";
 
 import { db } from "@/db";
 import { clips as clipsTable, clipVariants } from "@/db/schema/clips";
-import { eq, and, gte, lte, or, asc, sql, inArray } from "drizzle-orm";
-import type { Clip, ClipTranslation } from "@/lib/types";
+import { eq, and, gte, lte, or, asc, desc, sql, inArray, like } from "drizzle-orm";
+import type { Clip, ClipTranslation, TelegramPost } from "@/lib/types";
 import { mapClipFromRow } from "@/lib/server/clip-row-mapper";
 
 export type ClipFilters = {
@@ -15,37 +15,79 @@ export type ClipFilters = {
   translation?: ClipTranslation;
 };
 
-export async function listClips(filters: ClipFilters): Promise<Clip[]> {
+export type AdminClipFilters = ClipFilters & {
+  q?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminClipListResult = {
+  clips: Clip[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export type ClipMetadataInput = {
+  surah?: number;
+  ayahStart?: number;
+  ayahEnd?: number;
+  reciterSlug?: string;
+  reciterName?: string;
+  riwayah?: string;
+  translation?: string;
+};
+
+function buildClipIdFromMetadata(metadata: {
+  surah: number;
+  ayahStart: number;
+  ayahEnd: number;
+  reciterSlug: string;
+  riwayah: string;
+  translation: string;
+}): string {
+  return `s${metadata.surah}_a${metadata.ayahStart}-${metadata.ayahEnd}__${metadata.reciterSlug}__${metadata.riwayah}__${metadata.translation}`;
+}
+
+function humanizeSlug(slug: string): string {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function buildAdminClipWhere(filters: AdminClipFilters) {
   const where = [];
 
-  // Surah filter (single or multiple)
-  if (filters.surahs && filters.surahs.length > 0) {
-    if (filters.surahs.length === 1) {
-      where.push(eq(clipsTable.surah, filters.surahs[0]));
-    } else {
-      where.push(inArray(clipsTable.surah, filters.surahs));
-    }
+  if (filters.q?.trim()) {
+    const query = `%${filters.q.trim()}%`;
+    where.push(
+      or(
+        like(clipsTable.id, query),
+        like(clipsTable.reciterSlug, query),
+        like(clipsTable.reciterName, query),
+        like(clipsTable.riwayah, query),
+        like(clipsTable.translation, query),
+        like(clipsTable.telegramMeta, query),
+      ),
+    );
   }
 
-  // Reciter filter (single or multiple)
+  if (filters.surahs && filters.surahs.length > 0) {
+    where.push(filters.surahs.length === 1 ? eq(clipsTable.surah, filters.surahs[0]) : inArray(clipsTable.surah, filters.surahs));
+  }
+
   if (filters.reciterSlugs && filters.reciterSlugs.length > 0) {
-    if (filters.reciterSlugs.length === 1) {
-      where.push(eq(clipsTable.reciterSlug, filters.reciterSlugs[0]));
-    } else {
-      where.push(inArray(clipsTable.reciterSlug, filters.reciterSlugs));
-    }
+    where.push(filters.reciterSlugs.length === 1 ? eq(clipsTable.reciterSlug, filters.reciterSlugs[0]) : inArray(clipsTable.reciterSlug, filters.reciterSlugs));
   }
 
   if (filters.riwayah) {
     where.push(eq(clipsTable.riwayah, filters.riwayah));
   }
+
   if (filters.translation) {
     where.push(eq(clipsTable.translation, filters.translation));
   }
 
-  // Ayah range only when single surah is selected
   const hasAyahFilter =
-    (filters.surahs?.length === 1) &&
+    filters.surahs?.length === 1 &&
     (filters.ayahStart != null || filters.ayahEnd != null);
   const ayahFilterStart =
     filters.ayahStart ?? (filters.ayahEnd != null ? filters.ayahEnd : 1);
@@ -56,6 +98,12 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
     where.push(lte(clipsTable.ayahStart, ayahFilterEnd));
     where.push(gte(clipsTable.ayahEnd, ayahFilterStart));
   }
+
+  return { where, hasAyahFilter, ayahFilterStart, ayahFilterEnd };
+}
+
+export async function listClips(filters: ClipFilters): Promise<Clip[]> {
+  const { where, hasAyahFilter, ayahFilterStart, ayahFilterEnd } = buildAdminClipWhere(filters);
 
   const results = await db.query.clips.findMany({
     where: and(...where),
@@ -89,6 +137,136 @@ export async function getClipById(id: string): Promise<Clip | null> {
   if (!result) return null;
 
   return mapClipFromRow(result);
+}
+
+export async function listAdminClips(filters: AdminClipFilters): Promise<AdminClipListResult> {
+  const { where } = buildAdminClipWhere(filters);
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 25));
+  const offset = (page - 1) * pageSize;
+
+  const [totalRows, rows] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` })
+      .from(clipsTable)
+      .where(and(...where)),
+    db.query.clips.findMany({
+      where: and(...where),
+      with: {
+        variants: true,
+      },
+      orderBy: [
+        desc(clipsTable.createdAt),
+        desc(clipsTable.surah),
+        desc(clipsTable.ayahStart),
+        desc(clipsTable.id),
+      ],
+      limit: pageSize,
+      offset,
+    }),
+  ]);
+
+  return {
+    clips: rows.map((row) => mapClipFromRow(row)),
+    total: totalRows[0]?.count ?? 0,
+    page,
+    pageSize,
+  };
+}
+
+export async function setClipTelegramMeta(clipId: string, telegram: TelegramPost | null): Promise<Clip | null> {
+  await db.update(clipsTable).set({
+    telegramMeta: telegram ? JSON.stringify(telegram) : null,
+  }).where(eq(clipsTable.id, clipId));
+
+  return getClipById(clipId);
+}
+
+export async function updateClipMetadata(
+  clipId: string,
+  metadata: ClipMetadataInput,
+): Promise<Clip> {
+  return db.transaction(async (tx) => {
+    const existing = await tx.query.clips.findFirst({
+      where: eq(clipsTable.id, clipId),
+      with: {
+        variants: true,
+      },
+    });
+
+    if (!existing) {
+      throw new Error(`Clip not found: ${clipId}`);
+    }
+
+    const next = {
+      surah: metadata.surah ?? existing.surah,
+      ayahStart: metadata.ayahStart ?? existing.ayahStart,
+      ayahEnd: metadata.ayahEnd ?? existing.ayahEnd,
+      reciterSlug: metadata.reciterSlug ?? existing.reciterSlug,
+      reciterName:
+        metadata.reciterName ??
+        (metadata.reciterSlug && metadata.reciterSlug !== existing.reciterSlug
+          ? humanizeSlug(metadata.reciterSlug)
+          : existing.reciterName),
+      riwayah: metadata.riwayah ?? existing.riwayah,
+      translation: metadata.translation ?? existing.translation,
+    };
+
+    const nextId = buildClipIdFromMetadata(next);
+
+    if (nextId !== clipId) {
+      const conflict = await tx.select({ id: clipsTable.id })
+        .from(clipsTable)
+        .where(eq(clipsTable.id, nextId))
+        .limit(1);
+
+      if (conflict.length > 0) {
+        throw new Error(`Clip already exists as ${nextId}`);
+      }
+
+      await tx.insert(clipsTable).values({
+        id: nextId,
+        surah: next.surah,
+        ayahStart: next.ayahStart,
+        ayahEnd: next.ayahEnd,
+        reciterSlug: next.reciterSlug,
+        reciterName: next.reciterName,
+        riwayah: next.riwayah,
+        translation: next.translation,
+        thumbnailBlur: existing.thumbnailBlur,
+        telegramMeta: existing.telegramMeta,
+        createdAt: existing.createdAt ?? new Date(),
+      });
+
+      await tx.update(clipVariants).set({
+        clipId: nextId,
+      }).where(eq(clipVariants.clipId, clipId));
+
+      await tx.delete(clipsTable).where(eq(clipsTable.id, clipId));
+    } else {
+      await tx.update(clipsTable).set({
+        surah: next.surah,
+        ayahStart: next.ayahStart,
+        ayahEnd: next.ayahEnd,
+        reciterSlug: next.reciterSlug,
+        reciterName: next.reciterName,
+        riwayah: next.riwayah,
+        translation: next.translation,
+      }).where(eq(clipsTable.id, clipId));
+    }
+
+    const updated = await tx.query.clips.findFirst({
+      where: eq(clipsTable.id, nextId),
+      with: {
+        variants: true,
+      },
+    });
+
+    if (!updated) {
+      throw new Error(`Failed to load updated clip ${nextId}`);
+    }
+
+    return mapClipFromRow(updated);
+  });
 }
 
 function calculateSimilarityScore(reference: Clip, candidate: Clip): number {

@@ -19,6 +19,15 @@ export type ClipVariant = {
 
 export type ClipTranslation = "saheeh-international" | "khan-al-hilali" | "abu-iyaad" | (string & {});
 
+export type TelegramPost = {
+  messageId: number;
+  chatId: number;
+  channelUsername?: string;
+  channelTitle?: string;
+  url?: string;
+  postedAt?: string;
+};
+
 export type Clip = {
   id: string;
   surah: number;
@@ -29,6 +38,7 @@ export type Clip = {
   riwayah?: string;
   translation?: ClipTranslation;
   thumbnailBlur?: string;
+  telegram?: TelegramPost;
   variants: ClipVariant[];
   isPartial?: boolean;
   createdAt?: Date;
@@ -40,7 +50,7 @@ export type ClipIndexV3 = {
   clipCount: number;
   clipsById: Record<
     string,
-    Required<Omit<Clip, "riwayah" | "translation">> & { riwayah: string; translation: ClipTranslation }
+    Required<Omit<Clip, "riwayah" | "translation" | "telegram">> & { riwayah: string; translation: ClipTranslation }
   >;
   indexes: {
     bySurah: Record<string, string[]>;

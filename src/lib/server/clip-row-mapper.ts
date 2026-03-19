@@ -1,7 +1,7 @@
 import type { InferSelectModel } from "drizzle-orm";
 
 import { clips as clipsTable, clipVariants as clipVariantsTable } from "@/db/schema/clips";
-import type { Clip, ClipTranslation, ClipVariant } from "@/lib/types";
+import type { Clip, ClipTranslation, ClipVariant, TelegramPost } from "@/lib/types";
 
 type ClipRow = InferSelectModel<typeof clipsTable>;
 type ClipVariantRow = InferSelectModel<typeof clipVariantsTable>;
@@ -21,6 +21,25 @@ export function mapClipVariantFromRow(row: ClipVariantRow): ClipVariant {
   };
 }
 
+function parseTelegramMeta(raw: string | null | undefined): TelegramPost | undefined {
+  if (!raw) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as TelegramPost;
+    if (typeof parsed !== "object" || parsed === null) {
+      return undefined;
+    }
+    if (typeof parsed.messageId !== "number" || typeof parsed.chatId !== "number") {
+      return undefined;
+    }
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
 export function mapClipFromRow(row: ClipRowWithVariants, ayahFilter?: AyahFilter): Clip {
   const clip: Clip = {
     id: row.id,
@@ -32,6 +51,7 @@ export function mapClipFromRow(row: ClipRowWithVariants, ayahFilter?: AyahFilter
     riwayah: row.riwayah,
     translation: row.translation as ClipTranslation,
     thumbnailBlur: row.thumbnailBlur ?? undefined,
+    telegram: parseTelegramMeta(row.telegramMeta),
     variants: row.variants.map(mapClipVariantFromRow),
     createdAt: row.createdAt ?? undefined,
   };
