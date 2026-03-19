@@ -22,6 +22,9 @@ export default async function IngestPage() {
     process.env.NEXT_PUBLIC_INGEST_ENDPOINT ??
     "http://localhost:3001/ingest";
 
+  const telegramMaxUploadMbRaw = process.env.TELEGRAM_MAX_UPLOAD_MB ?? "50";
+  const telegramMaxUploadMb = Number(telegramMaxUploadMbRaw);
+
   return (
     <div className="py-10 max-w-2xl mx-auto">
       <div className="mb-8 flex items-start justify-between gap-4">
@@ -33,6 +36,7 @@ export default async function IngestPage() {
         riwayat={riwayat}
         translations={translations}
         ingestEndpoint={ingestEndpoint}
+        telegramMaxUploadMb={Number.isFinite(telegramMaxUploadMb) && telegramMaxUploadMb > 0 ? telegramMaxUploadMb : null}
       />
     </div>
   );

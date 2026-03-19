@@ -1,4 +1,4 @@
-import { listClips, listReciters, listRiwayat, listTranslations } from "@/lib/server/clips";
+import { listClips } from "@/lib/server/clips";
 import { requireAdminPageAuth } from "@/lib/server/admin-auth";
 
 import AdminLogoutButton from "../AdminLogoutButton.client";
@@ -11,24 +11,14 @@ export const metadata = {
 export default async function ClipManagerPage() {
   await requireAdminPageAuth("/admin/clips");
 
-  const [clips, reciters, riwayat, translations] = await Promise.all([
-    listClips({}),
-    listReciters(),
-    listRiwayat(),
-    listTranslations(),
-  ]);
+  const clips = await listClips({});
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-4 flex justify-end">
         <AdminLogoutButton />
       </div>
-      <ClipManager
-        clips={clips}
-        reciters={reciters}
-        riwayat={riwayat}
-        translations={translations}
-      />
+      <ClipManager clips={clips} />
     </div>
   );
 }

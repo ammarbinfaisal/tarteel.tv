@@ -25,6 +25,7 @@ interface IngestFormProps {
   riwayat: string[];
   translations: string[];
   ingestEndpoint: string;
+  telegramMaxUploadMb: number | null;
 }
 
 interface JobStatus {
@@ -32,14 +33,27 @@ interface JobStatus {
   status: "uploading" | "processing" | "done" | "error";
   step: string;
   clipId?: string;
-  telegram?: { status: string; url?: string; error?: string };
+  telegram?: { status: string; url?: string; error?: string; reason?: string };
   youtube?: { status: string; videoId?: string; error?: string };
 }
 
-export default function IngestForm({ reciters, riwayat, translations, ingestEndpoint }: IngestFormProps) {
+function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function IngestForm({
+  reciters,
+  riwayat,
+  translations,
+  ingestEndpoint,
+  telegramMaxUploadMb,
+}: IngestFormProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
 
   // Controlled state for all selectors
   const [selectedSurahs, setSelectedSurahs] = useState<number[]>([1]);
@@ -115,10 +129,11 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
         if (job.status === "done") {
           let text = `Successfully ingested: ${job.clipId}`;
           if (job.telegram) {
-            text += `\nTelegram: ${job.telegram.status}${job.telegram.url ? ` (${job.telegram.url})` : ""}${job.telegram.error ? ` — ${job.telegram.error}` : ""}`;
+            text += `\nTelegram: ${job.telegram.status}${job.telegram.url ? ` (${job.telegram.url})` : ""}${job.telegram.reason ? ` — ${job.telegram.reason}` : ""}${job.telegram.error ? ` — ${job.telegram.error}` : ""}`;
           }
           if (job.youtube) text += `\nYouTube: ${job.youtube.status}${job.youtube.videoId ? ` (${job.youtube.videoId})` : ""}${job.youtube.error ? ` — ${job.youtube.error}` : ""}`;
           setMessage({ type: "success", text });
+          setSelectedVideo(null);
           formRef.current?.reset();
           return;
         }
@@ -205,6 +220,11 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
     selectedTranslation === "custom"
       ? "Custom..."
       : formatTranslation(selectedTranslation) || "Select translation...";
+
+  const telegramMaxUploadBytes = telegramMaxUploadMb ? telegramMaxUploadMb * 1024 * 1024 : null;
+  const telegramFileTooLarge = Boolean(
+    selectedVideo && telegramMaxUploadBytes && selectedVideo.size > telegramMaxUploadBytes,
+  );
 
   return (
     <Card>
@@ -529,7 +549,22 @@ export default function IngestForm({ reciters, riwayat, translations, ingestEndp
 
           <div className="space-y-2">
             <Label htmlFor="video">Video File</Label>
-            <Input id="video" name="video" type="file" accept="video/*" required />
+            <Input
+              id="video"
+              name="video"
+              type="file"
+              accept="video/*"
+              required
+              onChange={(e) => setSelectedVideo(e.currentTarget.files?.[0] ?? null)}
+            />
+            {selectedVideo && telegramMaxUploadBytes && (
+              <p className={`text-xs ${telegramFileTooLarge ? "text-amber-300" : "text-muted-foreground"}`}>
+                Selected file: {formatBytes(selectedVideo.size)}.
+                {telegramFileTooLarge
+                  ? ` Telegram will try a 720p compressed copy because it exceeds the ${formatBytes(telegramMaxUploadBytes)} bot limit. If the compressed file is still too large, the Telegram upload will be skipped.`
+                  : ` Telegram uploads up to ${formatBytes(telegramMaxUploadBytes)} are sent without extra compression.`}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-6">

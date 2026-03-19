@@ -7,6 +7,7 @@ import fsSync from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
+import { spawn } from "node:child_process";
 import { Database } from "bun:sqlite";
 import { eq } from "drizzle-orm";
 
@@ -73,6 +74,12 @@ async function setClipTelegramMeta(clipId, telegram) {
 // ---------------------------------------------------------------------------
 const jobs = new Map();
 const MAX_JOB_AGE_MS = 30 * 60 * 1000; // 30 min
+const DEFAULT_TELEGRAM_MAX_UPLOAD_MB = 50;
+const TELEGRAM_TRANSCODE_HEIGHT = 720;
+const TELEGRAM_AUDIO_BITRATE = 96_000;
+const TELEGRAM_MIN_VIDEO_BITRATE = 350_000;
+const TELEGRAM_MAX_VIDEO_BITRATE = 2_200_000;
+const TELEGRAM_SIZE_SAFETY_RATIO = 0.94;
 
 function cleanOldJobs() {
   const now = Date.now();
@@ -115,6 +122,149 @@ function jsonResponse(req, body, init = {}) {
   });
 }
 
+function getTelegramMaxUploadBytes() {
+  const rawValue = process.env.TELEGRAM_MAX_UPLOAD_MB;
+  const parsed = rawValue ? Number(rawValue) : DEFAULT_TELEGRAM_MAX_UPLOAD_MB;
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return Math.floor(parsed * 1024 * 1024);
+}
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 B";
+  }
+
+  if (bytes >= 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  }
+
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  if (bytes >= 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${bytes} B`;
+}
+
+function buildTelegramTooLargeResult(fileSizeBytes, maxUploadBytes) {
+  const limitMessage = maxUploadBytes
+    ? `Telegram bot uploads are limited to ${formatBytes(maxUploadBytes)} on this server`
+    : "Telegram rejected the upload as too large";
+
+  return {
+    status: "skipped",
+    reason: `File is ${formatBytes(fileSizeBytes)}; ${limitMessage}`,
+    fileSizeBytes,
+    maxUploadBytes,
+  };
+}
+
+async function runCommand(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args);
+    let stderr = "";
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(new Error(`${command} failed with code ${code}${stderr ? `: ${stderr}` : ""}`));
+    });
+  });
+}
+
+async function getVideoDurationSeconds(videoPath) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("ffprobe", [
+      "-v", "error",
+      "-show_entries", "format=duration",
+      "-of", "default=noprint_wrappers=1:nokey=1",
+      videoPath,
+    ]);
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code !== 0) {
+        reject(new Error(`ffprobe failed with code ${code}${stderr ? `: ${stderr}` : ""}`));
+        return;
+      }
+
+      const duration = Number.parseFloat(stdout.trim());
+      if (!Number.isFinite(duration) || duration <= 0) {
+        reject(new Error(`ffprobe returned invalid duration: ${stdout.trim()}`));
+        return;
+      }
+
+      resolve(duration);
+    });
+  });
+}
+
+function getTelegramTargetVideoBitrate(durationSeconds, maxUploadBytes) {
+  const usableBits = Math.floor(maxUploadBytes * 8 * TELEGRAM_SIZE_SAFETY_RATIO);
+  const totalBitrate = Math.floor(usableBits / Math.max(durationSeconds, 1));
+  const videoBitrate = totalBitrate - TELEGRAM_AUDIO_BITRATE;
+  return Math.max(TELEGRAM_MIN_VIDEO_BITRATE, Math.min(TELEGRAM_MAX_VIDEO_BITRATE, videoBitrate));
+}
+
+async function transcodeVideoForTelegram(inputPath, outputPath, maxUploadBytes) {
+  const durationSeconds = await getVideoDurationSeconds(inputPath);
+  const targetVideoBitrate = getTelegramTargetVideoBitrate(durationSeconds, maxUploadBytes);
+  const maxRate = Math.floor(targetVideoBitrate * 1.15);
+  const bufSize = Math.floor(targetVideoBitrate * 2);
+
+  await runCommand("ffmpeg", [
+    "-y",
+    "-i", inputPath,
+    "-map", "0:v:0",
+    "-map", "0:a:0?",
+    "-vf", `scale=-2:${TELEGRAM_TRANSCODE_HEIGHT}:force_original_aspect_ratio=decrease`,
+    "-c:v", "libx264",
+    "-preset", "veryfast",
+    "-pix_fmt", "yuv420p",
+    "-b:v", String(targetVideoBitrate),
+    "-maxrate", String(maxRate),
+    "-bufsize", String(bufSize),
+    "-c:a", "aac",
+    "-b:a", String(TELEGRAM_AUDIO_BITRATE),
+    "-ac", "2",
+    "-ar", "44100",
+    "-movflags", "+faststart",
+    outputPath,
+  ]);
+
+  return {
+    durationSeconds,
+    targetVideoBitrate,
+    maxRate,
+    bufSize,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Telegram channel upload
 // ---------------------------------------------------------------------------
@@ -125,9 +275,32 @@ async function sendToTelegramChannel(videoPath, caption) {
     return { status: "skipped", reason: "TELEGRAM_BOT_TOKEN or TELEGRAM_CHANNEL_ID not configured" };
   }
 
+  let uploadPath = videoPath;
+  let { size: fileSizeBytes } = await fs.stat(videoPath);
+  const maxUploadBytes = getTelegramMaxUploadBytes();
+  let compressionNote;
+
+  if (maxUploadBytes && fileSizeBytes > maxUploadBytes) {
+    const compressedPath = path.join(
+      path.dirname(videoPath),
+      `${path.basename(videoPath, path.extname(videoPath))}.telegram-720p.mp4`,
+    );
+
+    await transcodeVideoForTelegram(videoPath, compressedPath, maxUploadBytes);
+    uploadPath = compressedPath;
+
+    const compressedStats = await fs.stat(compressedPath);
+    fileSizeBytes = compressedStats.size;
+    compressionNote = `Compressed to 720p for Telegram (${formatBytes(fileSizeBytes)} from ${formatBytes((await fs.stat(videoPath)).size)})`;
+
+    if (fileSizeBytes > maxUploadBytes) {
+      return buildTelegramTooLargeResult(fileSizeBytes, maxUploadBytes);
+    }
+  }
+
   const form = new FormData();
   form.append("chat_id", channelId);
-  form.append("video", Bun.file(videoPath));
+  form.append("video", Bun.file(uploadPath));
   form.append("caption", caption);
   form.append("supports_streaming", "true");
 
@@ -138,6 +311,9 @@ async function sendToTelegramChannel(videoPath, caption) {
 
   if (!res.ok) {
     const body = await res.text();
+    if (res.status === 413 || body.includes('"error_code":413') || /Request Entity Too Large/i.test(body)) {
+      return buildTelegramTooLargeResult(fileSizeBytes, maxUploadBytes);
+    }
     throw new Error(`Telegram sendVideo failed: ${body}`);
   }
 
@@ -165,6 +341,7 @@ async function sendToTelegramChannel(videoPath, caption) {
     channelUsername,
     channelTitle: chat.title || undefined,
     url,
+    reason: compressionNote,
     postedAt: new Date().toISOString(),
   };
 }
