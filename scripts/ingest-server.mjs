@@ -290,11 +290,11 @@ Bun.serve({
       if (!job) {
         return new Response(JSON.stringify({ error: "Job not found" }), {
           status: 404,
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          headers: { "Content-Type": "application/json" },
         });
       }
       return new Response(JSON.stringify(job), {
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
@@ -339,7 +339,7 @@ Bun.serve({
             error: `Clip ${clipIdForLock} is already being ingested`,
           }), {
             status: 409,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            headers: { "Content-Type": "application/json" },
           });
         }
 
@@ -361,16 +361,13 @@ Bun.serve({
 
         return new Response(JSON.stringify({ jobId: job.id }), {
           status: 202,
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          headers: { "Content-Type": "application/json" },
         });
       } catch (err) {
         console.error("Ingestion error:", err);
         return new Response(JSON.stringify({ success: false, error: err.message }), {
           status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          },
+          headers: { "Content-Type": "application/json" },
         });
       }
     }
