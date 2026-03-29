@@ -268,7 +268,7 @@ async function transcodeVideoForTelegram(inputPath, outputPath, maxUploadBytes) 
 // ---------------------------------------------------------------------------
 // Telegram channel upload
 // ---------------------------------------------------------------------------
-async function sendToTelegramChannel(videoPath, caption) {
+async function sendToTelegramChannel(videoPath) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const channelId = process.env.TELEGRAM_CHANNEL_ID;
   if (!botToken || !channelId) {
@@ -301,7 +301,6 @@ async function sendToTelegramChannel(videoPath, caption) {
   const form = new FormData();
   form.append("chat_id", channelId);
   form.append("video", Bun.file(uploadPath));
-  form.append("caption", caption);
   form.append("supports_streaming", "true");
 
   const res = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
@@ -427,8 +426,7 @@ async function processJob(job, videoPath, tempDir, clipIdForLock, opts) {
     if (opts.uploadTelegram) {
       try {
         job.step = "Uploading to Telegram...";
-        const caption = `Surah ${opts.surah}, Ayah ${opts.ayahStart}–${opts.ayahEnd}\nReciter: ${reciterDisplay}`;
-        job.telegram = await sendToTelegramChannel(videoPath, caption);
+        job.telegram = await sendToTelegramChannel(videoPath);
         if (job.clipId && job.telegram.status === "sent") {
           const savedClip = await setClipTelegramMeta(job.clipId, job.telegram);
           if (!savedClip) {
