@@ -41,6 +41,7 @@ export type Clip = {
   telegram?: TelegramPost;
   variants: ClipVariant[];
   isPartial?: boolean;
+  archivedAt?: Date;
   createdAt?: Date;
 };
 

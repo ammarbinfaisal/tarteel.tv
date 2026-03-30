@@ -53,6 +53,7 @@ export function mapClipFromRow(row: ClipRowWithVariants, ayahFilter?: AyahFilter
     thumbnailBlur: row.thumbnailBlur ?? undefined,
     telegram: parseTelegramMeta(row.telegramMeta),
     variants: row.variants.map(mapClipVariantFromRow),
+    archivedAt: row.archivedAt ?? undefined,
     createdAt: row.createdAt ?? undefined,
   };
 

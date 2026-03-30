@@ -11,7 +11,7 @@ export const metadata = {
 export default async function ClipManagerPage() {
   await requireAdminPageAuth("/admin/clips");
 
-  const clips = await listClips({});
+  const clips = await listClips({ includeArchived: true });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

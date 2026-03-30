@@ -14,6 +14,7 @@ export type ClipFilters = {
   reciterSlugs?: string[];
   riwayah?: string;
   translation?: ClipTranslation;
+  includeArchived?: boolean;
 };
 
 export type AdminClipFilters = ClipFilters & {
@@ -107,7 +108,7 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
   const { where, hasAyahFilter, ayahFilterStart, ayahFilterEnd } = buildAdminClipWhere(filters);
 
   const results = await db.query.clips.findMany({
-    where: and(...where, isNull(clipsTable.archivedAt)),
+    where: and(...where, ...(filters.includeArchived ? [] : [isNull(clipsTable.archivedAt)])),
     with: {
       variants: true
     },
