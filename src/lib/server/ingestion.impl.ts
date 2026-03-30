@@ -172,7 +172,7 @@ export async function ingestClip(videoPath: string, params: IngestionParams): Pr
       id, surah, ayahStart, ayahEnd, reciterSlug, reciterName, riwayah, translation, thumbnailBlur
     }).onConflictDoUpdate({
       target: clipsTable.id,
-      set: { surah, ayahStart, ayahEnd, reciterName, riwayah, translation, thumbnailBlur },
+      set: { surah, ayahStart, ayahEnd, reciterName, riwayah, translation, thumbnailBlur, archivedAt: null },
     });
 
     await tx.delete(clipVariants).where(eq(clipVariants.clipId, id));
