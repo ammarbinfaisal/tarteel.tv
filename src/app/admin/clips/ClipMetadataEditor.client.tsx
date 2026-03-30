@@ -284,8 +284,10 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
     setStatus({ type: "saving", text: "Archiving clip..." });
 
     try {
-      const response = await fetch(`/api/admin/clips/${encodeURIComponent(currentClip.id)}`, {
+      const ingestEndpoint = process.env.NEXT_PUBLIC_INGEST_ENDPOINT!;
+      const response = await fetch(`${ingestEndpoint}/clips/${encodeURIComponent(currentClip.id)}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       const data = await response.json().catch(() => null);

@@ -1,6 +1,7 @@
 import { ingestClip } from "../src/lib/server/ingestion.impl";
+import { deletePrefix } from "../src/lib/server/r2.impl";
 import { db } from "../src/db/index";
-import { clips as clipsTable } from "../src/db/schema/clips";
+import { clips as clipsTable, clipVariants } from "../src/db/schema/clips";
 import { isAdminRequestAuthenticated } from "../src/lib/server/admin-session";
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
@@ -612,6 +613,63 @@ Bun.serve({
       } catch (err) {
         console.error("Ingestion error:", err);
         return jsonResponse(req, { success: false, error: err.message }, { status: 500 });
+      }
+    }
+
+    // ----- Archive clip endpoint -----
+    const archiveMatch = url.pathname.match(/^\/ingest\/clips\/(.+)$/);
+    if (archiveMatch && req.method === "DELETE") {
+      if (!isAdminRequestAuthenticated(req.headers)) {
+        return jsonResponse(req, { error: "Unauthorized" }, { status: 401 });
+      }
+
+      const clipId = decodeURIComponent(archiveMatch[1]);
+
+      try {
+        const clip = await db.query.clips.findFirst({
+          where: eq(clipsTable.id, clipId),
+        });
+
+        if (!clip) {
+          return jsonResponse(req, { error: "Clip not found" }, { status: 404 });
+        }
+
+        if (clip.archivedAt) {
+          return jsonResponse(req, { error: "Clip already archived" }, { status: 409 });
+        }
+
+        // 1. Delete R2 files
+        const r2Prefix = `clips/${clip.reciterSlug}/${clip.riwayah}/${clip.translation}/s${clip.surah}/a${clip.ayahStart}-${clip.ayahEnd}`;
+        const deletedR2Objects = await deletePrefix(r2Prefix);
+
+        // 2. Delete Telegram post
+        let telegramDeleted = false;
+        if (clip.telegramMeta) {
+          try {
+            const telegram = JSON.parse(clip.telegramMeta);
+            const botToken = process.env.TELEGRAM_BOT_TOKEN;
+            if (botToken && telegram.messageId && telegram.chatId) {
+              const res = await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: telegram.chatId, message_id: telegram.messageId }),
+              });
+              const body = await res.text();
+              telegramDeleted = res.ok || body.includes("message to delete not found");
+            }
+          } catch (err) {
+            console.error("Telegram delete failed:", err);
+          }
+        }
+
+        // 3. Mark archived, clear variants
+        await db.delete(clipVariants).where(eq(clipVariants.clipId, clipId));
+        await db.update(clipsTable).set({ archivedAt: new Date() }).where(eq(clipsTable.id, clipId));
+
+        return jsonResponse(req, { success: true, clipId, deletedR2Objects, telegramDeleted });
+      } catch (err) {
+        console.error("Archive error:", err);
+        return jsonResponse(req, { error: err.message }, { status: 500 });
       }
     }
 

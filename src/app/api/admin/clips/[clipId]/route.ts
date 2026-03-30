@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdminAuth } from "@/lib/server/admin-auth";
-import { getClipById, updateClipMetadata, archiveClip } from "@/lib/server/clips";
+import { getClipById, updateClipMetadata } from "@/lib/server/clips";
 
 type RouteContext = {
   params: Promise<{ clipId: string }>;
@@ -38,22 +38,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 
   return NextResponse.json({ clip });
-}
-
-export async function DELETE(request: NextRequest, context: RouteContext) {
-  const authResponse = requireAdminAuth(request);
-  if (authResponse) return authResponse;
-
-  const { clipId } = await context.params;
-
-  try {
-    const result = await archiveClip(clipId);
-    return NextResponse.json({ success: true, clipId, ...result });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to archive clip";
-    const status = message.includes("not found") ? 404 : message.includes("already archived") ? 409 : 500;
-    return NextResponse.json({ error: message }, { status });
-  }
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {

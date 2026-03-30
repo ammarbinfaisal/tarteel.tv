@@ -5,7 +5,6 @@ import { clips as clipsTable, clipVariants } from "@/db/schema/clips";
 import { eq, and, gte, lte, or, asc, desc, sql, inArray, like, isNull } from "drizzle-orm";
 import type { Clip, ClipTranslation, TelegramPost } from "@/lib/types";
 import { mapClipFromRow } from "@/lib/server/clip-row-mapper";
-import { deletePrefix } from "@/lib/server/r2.impl";
 
 export type ClipFilters = {
   surahs?: number[];
@@ -269,53 +268,6 @@ export async function updateClipMetadata(
 
     return mapClipFromRow(updated);
   });
-}
-
-async function deleteTelegramMessage(telegram: TelegramPost): Promise<void> {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken) return;
-
-  const res = await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: telegram.chatId, message_id: telegram.messageId }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    // 400 "message to delete not found" is fine — already gone
-    if (!body.includes("message to delete not found")) {
-      throw new Error(`Telegram deleteMessage failed: ${body}`);
-    }
-  }
-}
-
-export async function archiveClip(clipId: string): Promise<{ deletedR2Objects: number }> {
-  const clip = await db.query.clips.findFirst({
-    where: eq(clipsTable.id, clipId),
-    with: { variants: true },
-  });
-
-  if (!clip) throw new Error(`Clip not found: ${clipId}`);
-  if (clip.archivedAt) throw new Error(`Clip already archived: ${clipId}`);
-
-  // 1. Delete R2 files — derive prefix from clip metadata
-  const r2Prefix = `clips/${clip.reciterSlug}/${clip.riwayah}/${clip.translation}/s${clip.surah}/a${clip.ayahStart}-${clip.ayahEnd}`;
-  const deletedR2Objects = await deletePrefix(r2Prefix);
-
-  // 2. Delete Telegram post if present
-  const telegram = clip.telegramMeta ? JSON.parse(clip.telegramMeta) as TelegramPost : null;
-  if (telegram?.messageId && telegram?.chatId) {
-    await deleteTelegramMessage(telegram);
-  }
-
-  // 3. Mark as archived, clear variants
-  await db.transaction(async (tx) => {
-    await tx.delete(clipVariants).where(eq(clipVariants.clipId, clipId));
-    await tx.update(clipsTable).set({ archivedAt: new Date() }).where(eq(clipsTable.id, clipId));
-  });
-
-  return { deletedR2Objects };
 }
 
 function calculateSimilarityScore(reference: Clip, candidate: Clip): number {
