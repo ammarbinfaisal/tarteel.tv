@@ -2,9 +2,10 @@ import "server-only";
 
 import { db } from "@/db";
 import { clips as clipsTable, clipVariants } from "@/db/schema/clips";
-import { eq, and, gte, lte, or, asc, desc, sql, inArray, like } from "drizzle-orm";
+import { eq, and, gte, lte, or, asc, desc, sql, inArray, like, isNull } from "drizzle-orm";
 import type { Clip, ClipTranslation, TelegramPost } from "@/lib/types";
 import { mapClipFromRow } from "@/lib/server/clip-row-mapper";
+import { deletePrefix } from "@/lib/server/r2.impl";
 
 export type ClipFilters = {
   surahs?: number[];
@@ -106,7 +107,7 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
   const { where, hasAyahFilter, ayahFilterStart, ayahFilterEnd } = buildAdminClipWhere(filters);
 
   const results = await db.query.clips.findMany({
-    where: and(...where),
+    where: and(...where, isNull(clipsTable.archivedAt)),
     with: {
       variants: true
     },
@@ -269,6 +270,53 @@ export async function updateClipMetadata(
   });
 }
 
+async function deleteTelegramMessage(telegram: TelegramPost): Promise<void> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) return;
+
+  const res = await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: telegram.chatId, message_id: telegram.messageId }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    // 400 "message to delete not found" is fine — already gone
+    if (!body.includes("message to delete not found")) {
+      throw new Error(`Telegram deleteMessage failed: ${body}`);
+    }
+  }
+}
+
+export async function archiveClip(clipId: string): Promise<{ deletedR2Objects: number }> {
+  const clip = await db.query.clips.findFirst({
+    where: eq(clipsTable.id, clipId),
+    with: { variants: true },
+  });
+
+  if (!clip) throw new Error(`Clip not found: ${clipId}`);
+  if (clip.archivedAt) throw new Error(`Clip already archived: ${clipId}`);
+
+  // 1. Delete R2 files — derive prefix from clip metadata
+  const r2Prefix = `clips/${clip.reciterSlug}/${clip.riwayah}/${clip.translation}/s${clip.surah}/a${clip.ayahStart}-${clip.ayahEnd}`;
+  const deletedR2Objects = await deletePrefix(r2Prefix);
+
+  // 2. Delete Telegram post if present
+  const telegram = clip.telegramMeta ? JSON.parse(clip.telegramMeta) as TelegramPost : null;
+  if (telegram?.messageId && telegram?.chatId) {
+    await deleteTelegramMessage(telegram);
+  }
+
+  // 3. Mark as archived, clear variants
+  await db.transaction(async (tx) => {
+    await tx.delete(clipVariants).where(eq(clipVariants.clipId, clipId));
+    await tx.update(clipsTable).set({ archivedAt: new Date() }).where(eq(clipsTable.id, clipId));
+  });
+
+  return { deletedR2Objects };
+}
+
 function calculateSimilarityScore(reference: Clip, candidate: Clip): number {
   const isSameReciter = reference.reciterSlug === candidate.reciterSlug;
   const isSameSurah = reference.surah === candidate.surah;
@@ -316,7 +364,8 @@ export async function getRelatedClips(clip: Clip, limit = 10): Promise<Clip[]> {
         eq(clipsTable.reciterSlug, clip.reciterSlug),
         eq(clipsTable.surah, clip.surah)
       ),
-      sql`${clipsTable.id} != ${clip.id}`
+      sql`${clipsTable.id} != ${clip.id}`,
+      isNull(clipsTable.archivedAt),
     ),
     with: {
       variants: true
@@ -333,6 +382,7 @@ export async function listReciters(): Promise<{ slug: string; name: string }[]> 
   const results = await db
     .select({ slug: clipsTable.reciterSlug, name: clipsTable.reciterName })
     .from(clipsTable)
+    .where(isNull(clipsTable.archivedAt))
     .groupBy(clipsTable.reciterSlug, clipsTable.reciterName)
     .orderBy(asc(clipsTable.reciterName));
 
@@ -343,6 +393,7 @@ export async function listRiwayat(): Promise<string[]> {
   const results = await db
     .select({ riwayah: clipsTable.riwayah })
     .from(clipsTable)
+    .where(isNull(clipsTable.archivedAt))
     .groupBy(clipsTable.riwayah)
     .orderBy(asc(clipsTable.riwayah));
 
@@ -353,6 +404,7 @@ export async function listTranslations(): Promise<ClipTranslation[]> {
   const results = await db
     .select({ translation: clipsTable.translation })
     .from(clipsTable)
+    .where(isNull(clipsTable.archivedAt))
     .groupBy(clipsTable.translation)
     .orderBy(asc(clipsTable.translation));
 

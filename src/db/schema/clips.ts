@@ -12,6 +12,7 @@ export const clips = sqliteTable("clips", {
   translation: text("translation").default("saheeh-international").notNull(),
   thumbnailBlur: text("thumbnail_blur"),
   telegramMeta: text("telegram_meta"),
+  archivedAt: integer("archived_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 }, (table) => [
   index("surah_idx").on(table.surah),

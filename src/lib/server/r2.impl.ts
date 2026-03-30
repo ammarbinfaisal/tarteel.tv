@@ -1,4 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import fsSync from "node:fs";
@@ -57,6 +57,36 @@ export async function uploadFile(key: string, filePath: string, contentType: str
     },
   });
   await upload.done();
+}
+
+export async function deletePrefix(prefix: string): Promise<number> {
+  const s3 = getS3Client();
+  const bucket = process.env.R2_BUCKET;
+  if (!bucket) throw new Error("R2_BUCKET is missing");
+
+  let deleted = 0;
+  let continuationToken: string | undefined;
+
+  do {
+    const list = await s3.send(new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix.replace(/^\/+/, ""),
+      ContinuationToken: continuationToken,
+    }));
+
+    const keys = (list.Contents ?? []).map((obj) => ({ Key: obj.Key! }));
+    if (keys.length > 0) {
+      await s3.send(new DeleteObjectsCommand({
+        Bucket: bucket,
+        Delete: { Objects: keys },
+      }));
+      deleted += keys.length;
+    }
+
+    continuationToken = list.IsTruncated ? list.NextContinuationToken : undefined;
+  } while (continuationToken);
+
+  return deleted;
 }
 
 export async function uploadDir(localDir: string, remotePrefix: string) {

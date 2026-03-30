@@ -2,9 +2,9 @@
 
 import type { Route } from "next";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ExternalLink, RefreshCcw, Save } from "lucide-react";
+import { ArrowLeft, ExternalLink, RefreshCcw, Save, Archive } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,6 +123,8 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
   const [idInput, setIdInput] = useState(clip.id);
   const [idDirty, setIdDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const [status, setStatus] = useState<{ type: "idle" | "saving" | "success" | "error"; text: string }>({
     type: "idle",
     text: "",
@@ -151,11 +153,14 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
     return parsedCustomId ? null : "Clip ID must match s<surah>_a<start>-<end>__<reciter>__<riwayah>__<translation>.";
   }, [derivedId, idDirty, idInput, parsedCustomId]);
 
-  useEffect(() => {
+  // Derived state: keep idInput in sync with derivedId when user hasn't manually edited it
+  const prevDerivedId = useRef(derivedId);
+  if (prevDerivedId.current !== derivedId) {
+    prevDerivedId.current = derivedId;
     if (!idDirty) {
       setIdInput(derivedId);
     }
-  }, [derivedId, idDirty]);
+  }
 
   const selectedReciterValue = reciterMap.has(form.reciterSlug) ? form.reciterSlug : CUSTOM_OPTION;
   const selectedRiwayahValue = baseRiwayat.includes(form.riwayah) ? form.riwayah : CUSTOM_OPTION;
@@ -266,6 +271,35 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
       }
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleArchive() {
+    if (!confirmArchive) {
+      setConfirmArchive(true);
+      return;
+    }
+
+    setArchiving(true);
+    setStatus({ type: "saving", text: "Archiving clip..." });
+
+    try {
+      const response = await fetch(`/api/admin/clips/${encodeURIComponent(currentClip.id)}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setStatus({ type: "error", text: data?.error ?? `Archive failed (${response.status})` });
+        return;
+      }
+
+      setStatus({ type: "success", text: `Archived. Deleted ${data?.deletedR2Objects ?? 0} R2 objects.` });
+      router.replace("/admin/clips" as Route);
+    } finally {
+      setArchiving(false);
+      setConfirmArchive(false);
     }
   }
 
@@ -592,6 +626,43 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
               </CardContent>
             </Card>
           )}
+
+          <Card className="border-red-500/30 bg-card/70 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="text-red-300">Archive clip</CardTitle>
+              <CardDescription>
+                Permanently removes R2 files and deletes the Telegram post. The clip record is kept but marked as archived.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {confirmArchive && (
+                <p className="text-sm text-red-300">
+                  Are you sure? This will delete all video files from R2 and remove the Telegram post. This cannot be undone.
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleArchive}
+                  disabled={archiving || saving}
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  {archiving ? "Archiving..." : confirmArchive ? "Confirm archive" : "Archive clip"}
+                </Button>
+                {confirmArchive && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setConfirmArchive(false)}
+                    disabled={archiving}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
