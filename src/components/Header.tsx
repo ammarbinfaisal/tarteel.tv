@@ -24,7 +24,7 @@ export default function Header() {
     <header className={cn(
       "sticky top-0 z-50 w-full transition-all duration-300",
       isReelView 
-        ? "bg-transparent border-none text-white" 
+        ? "border-none text-white bg-gradient-to-b from-black/40 to-transparent backdrop-blur-sm"
         : "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     )}>
       <div className="w-full md:max-w-2xl md:mx-auto px-4 md:px-0 flex h-14 items-center justify-between">
