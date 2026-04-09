@@ -1,10 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 
 import "@/app/globals.css";
-import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { HomeUiStateProvider } from "@/components/HomeUiState.client";
 import { Toaster } from "sonner";
 
 export const viewport: Viewport = {
@@ -61,6 +58,12 @@ export const metadata: Metadata = {
     description: "Clips of Quran Recitations.",
     images: ["/og-image.png"],
   },
+  alternates: {
+    languages: {
+      "en": "https://tarteel.tv",
+      "x-default": "https://tarteel.tv",
+    },
+  },
   robots: {
     index: true,
     follow: true,
@@ -77,13 +80,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           forcedTheme="dark"
           disableTransitionOnChange
         >
-          <HomeUiStateProvider>
-            <Suspense fallback={<div className="h-14 border-b bg-background" />}>
-              <Header />
-            </Suspense>
-            <main>{children}</main>
-            <Toaster />
-          </HomeUiStateProvider>
+          {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
