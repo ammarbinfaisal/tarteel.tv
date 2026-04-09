@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useMountEffect } from "@/hooks/useMountEffect";
 import { Button } from "@/components/ui/button";
 import { Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,7 @@ export function PwaInstallButton({ className }: { className?: string }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
 
-  useEffect(() => {
+  useMountEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -26,7 +27,7 @@ export function PwaInstallButton({ className }: { className?: string }) {
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
     };
-  }, []);
+  });
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -45,13 +46,14 @@ export function PwaInstallButton({ className }: { className?: string }) {
   return (
     <Button
       variant="ghost"
-      size="icon"
-      className={cn("rounded-full", className)}
+      size="sm"
+      className={cn("gap-1.5 rounded-full", className)}
       onClick={handleInstall}
       title="Install app"
       aria-label="Install app"
     >
-      <Smartphone className="h-5 w-5" />
+      <Smartphone className="h-4 w-4" />
+      <span className="text-xs">Install</span>
     </Button>
   );
 }
