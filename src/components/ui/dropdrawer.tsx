@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import * as React from "react";
+import { useMountEffect } from "@/hooks/useMountEffect";
 
 import {
   Drawer,
@@ -276,7 +277,7 @@ function DropDrawerContent({
       >
         <DrawerContent
           data-slot="drop-drawer-content"
-          className={cn("max-h-[90vh]", className)}
+          className={cn("max-h-[70vh]", className)}
           {...props}
         >
           {activeSubmenu ? (
@@ -409,23 +410,16 @@ function DropDrawerItem({
     []
   );
 
-  // Create a ref to check if the item is in a group
-  const itemRef = React.useRef<HTMLDivElement>(null);
+  // Callback ref: check if the item is inside a group when attached to the DOM
   const [isInsideGroup, setIsInsideGroup] = React.useState(false);
-
-  React.useEffect(() => {
-    // Only run this effect in mobile mode
-    if (!isMobile) return;
-
-    // Use a short timeout to ensure the DOM is fully rendered
-    const timer = setTimeout(() => {
-      if (itemRef.current) {
-        setIsInsideGroup(isInGroup(itemRef.current));
+  const itemRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node && isMobile) {
+        setTimeout(() => setIsInsideGroup(isInGroup(node)), 0);
       }
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [isInGroup, isMobile]);
+    },
+    [isMobile, isInGroup],
+  );
 
   if (isMobile) {
     const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -686,15 +680,16 @@ function DropDrawerSub({
   const [generatedId] = React.useState(() => `submenu-${submenuIdCounter++}`);
   const submenuId = id || generatedId;
 
-  // Extract submenu content to register with parent
-  React.useEffect(() => {
+  // Register submenu content with parent on mount (fallback extraction covers dynamic changes)
+  const childrenRef = React.useRef(children);
+  childrenRef.current = children;
+
+  useMountEffect(() => {
     if (!registerSubmenuContent) return;
 
-    // Find the SubContent within this Sub
     const contentItems: React.ReactNode[] = [];
-    React.Children.forEach(children, (child) => {
+    React.Children.forEach(childrenRef.current, (child) => {
       if (React.isValidElement(child) && child.type === DropDrawerSubContent) {
-        // Add all children of the SubContent to the result
         React.Children.forEach(
           (child.props as { children?: React.ReactNode }).children,
           (contentChild) => {
@@ -704,11 +699,10 @@ function DropDrawerSub({
       }
     });
 
-    // Register the content with the parent
     if (contentItems.length > 0) {
       registerSubmenuContent(submenuId, contentItems);
     }
-  }, [children, registerSubmenuContent, submenuId]);
+  });
 
   if (isMobile) {
     // For mobile, we'll use the context to manage submenu state
@@ -799,23 +793,16 @@ function DropDrawerSubTrigger({
     []
   );
 
-  // Create a ref to check if the item is in a group
-  const itemRef = React.useRef<HTMLDivElement>(null);
+  // Callback ref: check if the trigger is inside a group when attached to the DOM
   const [isInsideGroup, setIsInsideGroup] = React.useState(false);
-
-  React.useEffect(() => {
-    // Only run this effect in mobile mode
-    if (!isMobile) return;
-
-    // Use a short timeout to ensure the DOM is fully rendered
-    const timer = setTimeout(() => {
-      if (itemRef.current) {
-        setIsInsideGroup(isInGroup(itemRef.current));
+  const itemRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node && isMobile) {
+        setTimeout(() => setIsInsideGroup(isInGroup(node)), 0);
       }
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [isInGroup, isMobile]);
+    },
+    [isMobile, isInGroup],
+  );
 
   if (isMobile) {
     // Find the parent submenu ID
