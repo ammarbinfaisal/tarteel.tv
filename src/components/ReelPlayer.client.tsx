@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, memo, useCallback } from "react";
+import { useRef, useState, memo, useCallback } from "react";
+import { useMountEffect } from "@/hooks/useMountEffect";
 import type { Clip } from "@/lib/types";
 import { cn, isProbablyMp4, isHls, formatSlug, formatTranslation, getSurahName } from "@/lib/utils";
 import { Button } from "./ui/button";
@@ -342,9 +343,8 @@ export default function ReelPlayer({
   const { record: offlineRecord } = useDownloadRecord(clip.id);
   const [offlineBusy, setOfflineBusy] = useState(false);
 
-  useEffect(() => {
-    isActiveRef.current = isActive;
-  }, [isActive]);
+  // Inline ref sync — always fresh, no effect needed
+  isActiveRef.current = isActive;
 
   const variants = clip.variants;
 
@@ -381,62 +381,91 @@ export default function ReelPlayer({
     });
   }, []);
 
-  useEffect(() => {
+  // Keep refs fresh for mount-time closures
+  const srcRef = useRef(src);
+  srcRef.current = src;
+  const playMediaRef = useRef(playMedia);
+  playMediaRef.current = playMedia;
+
+  // Unified HLS/media setup — reads everything from refs, stable identity
+  const setupMedia = useCallback(() => {
     const media = mediaRef.current;
-    if (!media || !src || !isHls(src)) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      return;
+    const currentSrc = srcRef.current;
+
+    // Always tear down existing HLS first
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
     }
 
-    if (Hls.isSupported()) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
+    if (!media || !currentSrc) return;
+
+    if (isHls(currentSrc)) {
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 90,
+          abrEwmaDefaultEstimate: 5000000,
+          abrBandWidthFactor: 0.9,
+          abrBandWidthUpFactor: 0.7,
+        });
+        hls.loadSource(currentSrc);
+        hls.attachMedia(media);
+        hlsRef.current = hls;
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (isActiveRef.current && media) {
+            playMediaRef.current(media);
+          }
+        });
+      } else if (media.canPlayType("application/vnd.apple.mpegurl")) {
+        (media as HTMLVideoElement).src = currentSrc;
+        if (isActiveRef.current) playMediaRef.current(media);
       }
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 90,
-        abrEwmaDefaultEstimate: 5000000,
-        abrBandWidthFactor: 0.9,
-        abrBandWidthUpFactor: 0.7,
-      });
-      hls.loadSource(src);
-      hls.attachMedia(media);
-      hlsRef.current = hls;
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (isActiveRef.current && media) {
-          playMedia(media);
-        }
-      });
-    } else if (media.canPlayType("application/vnd.apple.mpegurl")) {
-      (media as HTMLVideoElement).src = src;
+    } else {
+      // Non-HLS (MP4/audio) — src is set via JSX, just play if active
+      if (isActiveRef.current) playMediaRef.current(media);
     }
+  }, []);
 
+  const setupMediaRef = useRef(setupMedia);
+  setupMediaRef.current = setupMedia;
+
+  // Initial setup + unmount cleanup
+  useMountEffect(() => {
+    setupMediaRef.current();
     return () => {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [playMedia, src]);
+  });
 
-  useEffect(() => {
-    const media = mediaRef.current;
-    if (!media) return;
+  // Re-setup when src changes after mount
+  const prevSrc = useRef(src);
+  if (prevSrc.current !== src) {
+    prevSrc.current = src;
+    queueMicrotask(() => setupMediaRef.current());
+  }
 
-    if (isActive) {
-      playMedia(media);
-      return;
-    }
-
-    if (!isVisible) {
-      media.pause();
-    }
-  }, [clip.id, clip.reciterName, clip.reciterSlug, clip.surah, isActive, isVisible, playMedia]);
+  // Play/pause when isActive or isVisible changes after mount
+  const prevPlaybackState = useRef({ isActive, isVisible });
+  if (prevPlaybackState.current.isActive !== isActive || prevPlaybackState.current.isVisible !== isVisible) {
+    const active = isActive;
+    const visible = isVisible;
+    prevPlaybackState.current = { isActive, isVisible };
+    queueMicrotask(() => {
+      const media = mediaRef.current;
+      if (!media) return;
+      if (active) {
+        playMediaRef.current(media);
+      } else if (!visible) {
+        media.pause();
+      }
+    });
+  }
 
   const togglePlay = useCallback(() => {
     const media = mediaRef.current;
@@ -464,11 +493,15 @@ export default function ReelPlayer({
     setProgress((media.currentTime / media.duration) * 100);
   }, []);
 
-  useEffect(() => {
+  // Derived state: reset progress when clip/source changes
+  const clipKey = `${clip.id}|${src}`;
+  const prevClipKey = useRef(clipKey);
+  if (prevClipKey.current !== clipKey) {
+    prevClipKey.current = clipKey;
     lastProgressUpdateRef.current = 0;
     setProgress(0);
     setHasPlayedOnce(false);
-  }, [clip.id, src]);
+  }
 
   const handleShare = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -481,7 +514,7 @@ export default function ReelPlayer({
       });
     } else {
       navigator.clipboard.writeText(shareUrl);
-      alert("Link copied to clipboard!");
+      toast.success("Link copied to clipboard");
     }
   }, [clip]);
 
