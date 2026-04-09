@@ -200,10 +200,10 @@ function ClipFiltersForm({
                 {num}. {surahNames[num - 1]}
                 <button
                   type="button"
-                  className="rounded-full p-0.5 hover:bg-primary/20"
+                  className="rounded-full p-1 hover:bg-primary/20"
                   onClick={() => setLocalSurahs((prev) => prev.filter((s) => s !== num))}
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-4 w-4" />
                 </button>
               </span>
             ))}
@@ -311,10 +311,10 @@ function ClipFiltersForm({
                   {name}
                   <button
                     type="button"
-                    className="rounded-full p-0.5 hover:bg-primary/20"
+                    className="rounded-full p-1 hover:bg-primary/20"
                     onClick={() => setLocalReciters((prev) => prev.filter((s) => s !== slug))}
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-4 w-4" />
                   </button>
                 </span>
               );
