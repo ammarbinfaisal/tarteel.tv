@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useMountEffect } from "@/hooks/useMountEffect";
 
 type UseSnapReelControllerParams = {
   itemIds: string[];
@@ -37,61 +38,91 @@ export function useSnapReelController({
   const maxIndex = Math.max(0, itemIds.length - 1);
   const safeActiveIndex = Math.min(activeIndex, maxIndex);
 
-  useEffect(() => {
-    onActiveItemChangeRef.current = onActiveItemChange;
-  }, [onActiveItemChange]);
+  // Inline ref syncs — always fresh, no effect needed
+  onActiveItemChangeRef.current = onActiveItemChange;
 
+  // Store dynamic values in refs for the mount-time subscriptions
+  const itemIdsRef = useRef(itemIds);
+  itemIdsRef.current = itemIds;
+  const lockDurationMsRef = useRef(lockDurationMs);
+  lockDurationMsRef.current = lockDurationMs;
+  const intersectionThresholdRef = useRef(intersectionThreshold);
+  intersectionThresholdRef.current = intersectionThreshold;
+  const initialIndexRef = useRef(initialIndex);
+  initialIndexRef.current = initialIndex;
+
+  // Stable callbacks — read everything from refs, never change identity
   const setActiveIndexAndNotify = useCallback(
     (nextIndex: number) => {
-      if (itemIds.length === 0) return;
-      const boundedIndex = Math.max(0, Math.min(itemIds.length - 1, nextIndex));
+      const ids = itemIdsRef.current;
+      if (ids.length === 0) return;
+      const boundedIndex = Math.max(0, Math.min(ids.length - 1, nextIndex));
       if (activeIndexRef.current === boundedIndex) return;
 
       activeIndexRef.current = boundedIndex;
       setActiveIndex(boundedIndex);
-      const nextId = itemIds[boundedIndex];
+      const nextId = ids[boundedIndex];
       if (nextId) {
         onActiveItemChangeRef.current?.(nextId, boundedIndex);
       }
     },
-    [itemIds],
+    [],
   );
+
+  const setActiveIndexAndNotifyRef = useRef(setActiveIndexAndNotify);
+  setActiveIndexAndNotifyRef.current = setActiveIndexAndNotify;
 
   const scrollToIndex = useCallback(
     (index: number, behavior: ScrollBehavior = "smooth") => {
       const container = containerRef.current;
       if (!container) return;
-      const boundedIndex = Math.max(0, Math.min(itemIds.length - 1, index));
+      const ids = itemIdsRef.current;
+      const boundedIndex = Math.max(0, Math.min(ids.length - 1, index));
       const target = container.querySelector(`[data-index="${boundedIndex}"]`) as HTMLElement | null;
       target?.scrollIntoView({ behavior });
     },
-    [itemIds.length],
+    [],
   );
 
+  const scrollToIndexRef = useRef(scrollToIndex);
+  scrollToIndexRef.current = scrollToIndex;
+
   const scrollToNext = useCallback(() => {
-    if (itemIds.length === 0) return;
-    scrollToIndex(safeActiveIndex + 1, "smooth");
-  }, [itemIds.length, safeActiveIndex, scrollToIndex]);
+    const ids = itemIdsRef.current;
+    if (ids.length === 0) return;
+    scrollToIndexRef.current(activeIndexRef.current + 1, "smooth");
+  }, []);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    setActiveIndexAndNotify(initialIndex);
-
-    if (initialIndex > 0) {
-      const target = container.querySelector(`[data-index="${initialIndex}"]`) as HTMLElement | null;
-      if (target) {
-        container.scrollTop = target.offsetTop;
-      }
+  // Derived state: clamp activeIndex when items shrink
+  if (itemIds.length > 0 && safeActiveIndex !== activeIndex) {
+    activeIndexRef.current = safeActiveIndex;
+    setActiveIndex(safeActiveIndex);
+    const nextId = itemIds[safeActiveIndex];
+    if (nextId) {
+      queueMicrotask(() => onActiveItemChangeRef.current?.(nextId, safeActiveIndex));
     }
-    didSyncInitialScroll.current = true;
-  }, [initialIndex, setActiveIndexAndNotify]);
+  }
 
-  useEffect(() => {
+  // Single mount effect: wheel handler + IntersectionObserver + initial scroll
+  useMountEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    // -- Initial scroll sync --
+    const syncInitialScroll = () => {
+      if (didSyncInitialScroll.current) return;
+      const idx = initialIndexRef.current;
+      setActiveIndexAndNotifyRef.current(idx);
+      if (idx > 0) {
+        const target = container.querySelector(`[data-index="${idx}"]`) as HTMLElement | null;
+        if (target) {
+          container.scrollTop = target.offsetTop;
+        }
+      }
+      didSyncInitialScroll.current = true;
+    };
+
+    // -- Wheel handler (reads all values from refs at call-time) --
     const handleWheel = (event: WheelEvent) => {
       if (scrollLocked.current) {
         event.preventDefault();
@@ -117,11 +148,12 @@ export function useSnapReelController({
 
       event.preventDefault();
       scrollLocked.current = true;
+      const ids = itemIdsRef.current;
       const direction = event.deltaY > 0 ? 1 : -1;
-      const nextIndex = Math.max(0, Math.min(itemIds.length - 1, activeIndexRef.current + direction));
+      const nextIndex = Math.max(0, Math.min(ids.length - 1, activeIndexRef.current + direction));
 
       if (nextIndex !== activeIndexRef.current) {
-        scrollToIndex(nextIndex, "smooth");
+        scrollToIndexRef.current(nextIndex, "smooth");
       }
 
       if (unlockTimeoutRef.current) {
@@ -129,23 +161,10 @@ export function useSnapReelController({
       }
       unlockTimeoutRef.current = setTimeout(() => {
         scrollLocked.current = false;
-      }, lockDurationMs);
+      }, lockDurationMsRef.current);
     };
 
-    container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      container.removeEventListener("wheel", handleWheel);
-      if (unlockTimeoutRef.current) {
-        clearTimeout(unlockTimeoutRef.current);
-        unlockTimeoutRef.current = null;
-      }
-    };
-  }, [itemIds.length, lockDurationMs, scrollToIndex]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
+    // -- IntersectionObserver --
     const observer = new IntersectionObserver(
       (entries) => {
         if (!didSyncInitialScroll.current) return;
@@ -161,26 +180,85 @@ export function useSnapReelController({
 
         const index = Number(bestEntry.target.getAttribute("data-index"));
         if (Number.isNaN(index)) return;
-        setActiveIndexAndNotify(index);
+        setActiveIndexAndNotifyRef.current(index);
       },
-      { root: container, threshold: intersectionThreshold },
+      { root: container, threshold: intersectionThresholdRef.current },
     );
 
-    const children = container.querySelectorAll("[data-reel-item]");
-    children.forEach((child) => observer.observe(child));
+    const observeItems = () => {
+      observer.disconnect();
+      const children = container.querySelectorAll("[data-reel-item]");
+      children.forEach((child) => observer.observe(child));
+
+      // Sync initial scroll once items are present in the DOM
+      if (!didSyncInitialScroll.current && children.length > 0) {
+        syncInitialScroll();
+      }
+    };
+
+    observeItems();
+
+    // Re-observe when DOM children change (items added/removed)
+    const mutationObserver = new MutationObserver(observeItems);
+    mutationObserver.observe(container, { childList: true, subtree: true });
+
+    // -- Touch swipe handler --
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (scrollLocked.current) return;
+      const touch = event.touches[0];
+      if (!touch) return;
+      touchStartY = touch.clientY;
+      touchStartTime = Date.now();
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      if (scrollLocked.current) return;
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+
+      const deltaY = touchStartY - touch.clientY;
+      const elapsed = Date.now() - touchStartTime;
+      const velocity = Math.abs(deltaY) / Math.max(elapsed, 1);
+
+      // Only trigger on intentional swipes: >60px distance or fast flick (>0.4 px/ms)
+      if (Math.abs(deltaY) < 60 && velocity < 0.4) return;
+
+      const ids = itemIdsRef.current;
+      const direction = deltaY > 0 ? 1 : -1;
+      const nextIndex = Math.max(0, Math.min(ids.length - 1, activeIndexRef.current + direction));
+
+      if (nextIndex !== activeIndexRef.current) {
+        scrollLocked.current = true;
+        scrollToIndexRef.current(nextIndex, "smooth");
+
+        if (unlockTimeoutRef.current) {
+          clearTimeout(unlockTimeoutRef.current);
+        }
+        unlockTimeoutRef.current = setTimeout(() => {
+          scrollLocked.current = false;
+        }, lockDurationMsRef.current);
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    container.addEventListener("touchstart", handleTouchStart, { passive: true });
+    container.addEventListener("touchend", handleTouchEnd, { passive: true });
 
     return () => {
-      children.forEach((child) => observer.unobserve(child));
+      container.removeEventListener("wheel", handleWheel);
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchend", handleTouchEnd);
       observer.disconnect();
+      mutationObserver.disconnect();
+      if (unlockTimeoutRef.current) {
+        clearTimeout(unlockTimeoutRef.current);
+        unlockTimeoutRef.current = null;
+      }
     };
-  }, [intersectionThreshold, setActiveIndexAndNotify, itemIds]);
-
-  useEffect(() => {
-    if (itemIds.length === 0) return;
-    if (safeActiveIndex !== activeIndex) {
-      setActiveIndexAndNotify(safeActiveIndex);
-    }
-  }, [activeIndex, itemIds.length, safeActiveIndex, setActiveIndexAndNotify]);
+  });
 
   return {
     containerRef,
