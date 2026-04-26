@@ -83,24 +83,26 @@
   }
 
   .dark {
-    --background: #010101;
+    /* Hue-shifted darks (cool 230° tint) — avoids pure-black flatness, gives layering depth (Design for Hackers Ch 9) */
+    --background: #0c0c10;
     --foreground: #eeeeee;
-    --card: #0a0a0a;
+    --card: #14141a;
     --card-foreground: #eeeeee;
-    --popover: #010101;
+    --popover: #0c0c10;
     --popover-foreground: #eeeeee;
     --primary: #eeeeee;
-    --primary-foreground: #010101;
-    --secondary: #27272a;
+    --primary-foreground: #0c0c10;
+    --secondary: #1f1f25;
     --secondary-foreground: #eeeeee;
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-    --accent: #27272a;
+    --muted: #1f1f25;
+    --muted-foreground: #b4b4be;
+    --accent: #2d2d36;
     --accent-foreground: #eeeeee;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #eeeeee;
-    --border: #27272a;
-    --input: #27272a;
+    /* Destructive lifted from #7f1d1d — invisible against dark bg — to a perceptually salient red */
+    --destructive: #ef5350;
+    --destructive-foreground: #ffffff;
+    --border: #2a2a32;
+    --input: #2a2a32;
     --ring: #d4d4d8;
   }
 }
