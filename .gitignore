@@ -13,3 +13,8 @@ raw/*
 data/clips.jsonl.bak*
 .env
 *.mp4
+youtube-tokens.json
+ingest-locks.db
+.vercel
+.env*.local
+tsconfig.tsbuildinfo
