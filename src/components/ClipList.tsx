@@ -18,6 +18,8 @@ interface ClipListProps {
   onApplyFilters: (next: HomeUiFilters) => void;
   onResetFilters: () => void;
   isOffline?: boolean;
+  /** When in grid view, this clip is rendered as a 2x2 hero tile at the top. */
+  trendingClipId?: string | null;
 }
 
 export default function ClipList({
@@ -28,6 +30,7 @@ export default function ClipList({
   onApplyFilters,
   onResetFilters,
   isOffline = false,
+  trendingClipId = null,
 }: ClipListProps) {
   if (clips.length === 0) {
     if (view === "reel") {
@@ -80,13 +83,26 @@ export default function ClipList({
     );
   }
 
+  // Promote the trending clip to the first grid cell so it anchors the layout (Design for Hackers Ch 6 — dominant element).
+  const orderedClips =
+    view === "grid" && trendingClipId && clips.some((c) => c.id === trendingClipId)
+      ? [
+          ...clips.filter((c) => c.id === trendingClipId),
+          ...clips.filter((c) => c.id !== trendingClipId),
+        ]
+      : clips;
+
   return (
     <div className={cn(
       "grid gap-px",
       view === "grid" ? "grid-cols-3 md:max-w-2xl md:mx-auto w-full" : "flex flex-col max-w-2xl mx-auto w-full gap-8"
     )}>
-      {clips.map((c) => (
-        <ClipCard key={c.id} clip={c} />
+      {orderedClips.map((c) => (
+        <ClipCard
+          key={c.id}
+          clip={c}
+          featured={view === "grid" && c.id === trendingClipId}
+        />
       ))}
     </div>
   );

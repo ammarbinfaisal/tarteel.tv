@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useRef, memo } from "react";
 import { useMountEffect } from "@/hooks/useMountEffect";
-import { Play, Layers } from "lucide-react";
+import { Play, Layers, Flame } from "lucide-react";
 import type { Clip } from "@/lib/types";
-import { getSurahName } from "@/lib/utils";
+import { getSurahName, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useHomeUiState } from "@/components/HomeUiState.client";
 import { buildHomeUrl } from "@/lib/home-ui-state";
@@ -15,7 +15,7 @@ import { selectThumbnailVariant } from "@/lib/clip-variants";
 // Avoids the blur→fade transition on revisits / re-renders.
 const loadedThumbnails = new Set<string>();
 
-function ClipCard({ clip }: { clip: Clip }) {
+function ClipCard({ clip, featured = false }: { clip: Clip; featured?: boolean }) {
   const { state, openReel } = useHomeUiState();
 
   const getReelUrl = () => {
@@ -53,7 +53,10 @@ function ClipCard({ clip }: { clip: Clip }) {
   return (
     <Link
       href={getReelUrl() as any}
-      className="relative block aspect-[4/5] bg-muted group overflow-hidden"
+      className={cn(
+        "relative block aspect-[4/5] bg-muted group overflow-hidden",
+        featured && "col-span-2 row-span-2",
+      )}
       style={{ contentVisibility: "auto", containIntrinsicSize: "0 120px" }}
       onClick={(e) => {
         e.preventDefault();
@@ -99,10 +102,19 @@ function ClipCard({ clip }: { clip: Clip }) {
       )}
 
       <div className="absolute top-2 right-2 text-white/90 drop-shadow-md">
-        <Play className="w-4 h-4 fill-white" />
+        <Play className={cn("fill-white", featured ? "w-6 h-6" : "w-4 h-4")} />
       </div>
 
-      {clip.isPartial && (
+      {featured && (
+        <div className="absolute top-2 left-2 pointer-events-none">
+          <Badge className="bg-amber-500/90 text-amber-950 border-none text-xs px-2 h-6 backdrop-blur-sm font-semibold gap-1">
+            <Flame className="w-3 h-3" />
+            Trending
+          </Badge>
+        </div>
+      )}
+
+      {!featured && clip.isPartial && (
         <div className="absolute top-2 left-2 pointer-events-none">
           <Badge variant="secondary" className="bg-black/40 text-white border-none text-xs px-2 h-5 backdrop-blur-sm">
             Partial

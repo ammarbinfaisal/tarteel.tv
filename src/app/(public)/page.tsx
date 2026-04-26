@@ -1,5 +1,6 @@
 import HomePage from "@/components/HomePage.client";
 import { listClips, listReciters, listRiwayat, listTranslations, getClipById } from "@/lib/server/clips";
+import { getTopClips, parseDateRange } from "@/lib/server/analytics";
 import { variantToPublicUrl } from "@/lib/server/r2";
 import type { Clip } from "@/lib/types";
 import { Suspense } from "react";
@@ -109,7 +110,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
 async function HomeContent({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const parsedState = parseHomeUiStateFromSearchParams(await searchParams);
 
-  const [clipsRaw, reciters, riwayat, translations] = await Promise.all([
+  const hasFilters = Boolean(
+    (parsedState.surahs && parsedState.surahs.length > 0) ||
+      (parsedState.reciters && parsedState.reciters.length > 0) ||
+      parsedState.riwayah ||
+      parsedState.translation,
+  );
+
+  const [clipsRaw, reciters, riwayat, translations, topTrending] = await Promise.all([
     listClips({
       surahs: parsedState.surahs && parsedState.surahs.length > 0 ? parsedState.surahs : undefined,
       ayahStart: (parsedState.surahs?.length === 1) ? (parsedState.start ?? undefined) : undefined,
@@ -121,7 +129,13 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
     listReciters(),
     listRiwayat(),
     listTranslations(),
+    // Only highlight a hero on the unfiltered grid — filtered views shouldn't promote a clip outside the filter.
+    hasFilters
+      ? Promise.resolve([] as { clipId: string | null }[])
+      : getTopClips(parseDateRange("7d"), 1).catch(() => []),
   ]);
+
+  const trendingClipId = topTrending[0]?.clipId ?? null;
 
   const clips: Clip[] = clipsRaw.map(clip => ({
     ...clip,
@@ -142,6 +156,7 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
       <HomePage
         clips={clips}
         filterData={{ reciters, riwayat, translations }}
+        trendingClipId={trendingClipId}
       />
     </>
   );
