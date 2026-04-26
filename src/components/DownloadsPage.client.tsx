@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useMountEffect } from "@/hooks/useMountEffect";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Play, WifiOff } from "lucide-react";
@@ -26,13 +27,13 @@ export default function DownloadsPage() {
   const online = useOnlineStatus();
   const [storageEstimate, setStorageEstimate] = useState<{ usage?: number; quota?: number } | null>(null);
 
-  useEffect(() => {
+  useMountEffect(() => {
     (async () => {
       if (!("storage" in navigator) || !navigator.storage.estimate) return;
       const est = await navigator.storage.estimate();
       setStorageEstimate({ usage: est.usage ?? undefined, quota: est.quota ?? undefined });
     })();
-  }, []);
+  });
 
   const estimateText = useMemo(() => {
     if (!storageEstimate?.usage || !storageEstimate?.quota) return null;

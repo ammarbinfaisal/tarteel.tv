@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, memo } from "react";
+import { useState, useCallback, useRef, memo } from "react";
+import { useMountEffect } from "@/hooks/useMountEffect";
 import { Play, Layers } from "lucide-react";
 import type { Clip } from "@/lib/types";
 import { getSurahName } from "@/lib/utils";
@@ -38,12 +39,12 @@ function ClipCard({ clip }: { clip: Clip }) {
   }, [thumbnailUrl]);
 
   // Handle SSR hydration race: image may have loaded before React attached onLoad
-  useEffect(() => {
+  useMountEffect(() => {
     const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth > 0 && !thumbLoaded) {
+    if (img && img.complete && img.naturalWidth > 0) {
       onThumbLoad();
     }
-  }, [onThumbLoad, thumbLoaded]);
+  });
 
   const hasBlur = !!blurSrc;
   const hasThumb = !!thumbnailUrl;

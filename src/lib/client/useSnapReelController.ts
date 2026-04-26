@@ -202,55 +202,10 @@ export function useSnapReelController({
     const mutationObserver = new MutationObserver(observeItems);
     mutationObserver.observe(container, { childList: true, subtree: true });
 
-    // -- Touch swipe handler --
-    let touchStartY = 0;
-    let touchStartTime = 0;
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (scrollLocked.current) return;
-      const touch = event.touches[0];
-      if (!touch) return;
-      touchStartY = touch.clientY;
-      touchStartTime = Date.now();
-    };
-
-    const handleTouchEnd = (event: TouchEvent) => {
-      if (scrollLocked.current) return;
-      const touch = event.changedTouches[0];
-      if (!touch) return;
-
-      const deltaY = touchStartY - touch.clientY;
-      const elapsed = Date.now() - touchStartTime;
-      const velocity = Math.abs(deltaY) / Math.max(elapsed, 1);
-
-      // Only trigger on intentional swipes: >60px distance or fast flick (>0.4 px/ms)
-      if (Math.abs(deltaY) < 60 && velocity < 0.4) return;
-
-      const ids = itemIdsRef.current;
-      const direction = deltaY > 0 ? 1 : -1;
-      const nextIndex = Math.max(0, Math.min(ids.length - 1, activeIndexRef.current + direction));
-
-      if (nextIndex !== activeIndexRef.current) {
-        scrollLocked.current = true;
-        scrollToIndexRef.current(nextIndex, "smooth");
-
-        if (unlockTimeoutRef.current) {
-          clearTimeout(unlockTimeoutRef.current);
-        }
-        unlockTimeoutRef.current = setTimeout(() => {
-          scrollLocked.current = false;
-        }, lockDurationMsRef.current);
-      }
-    };
-
     container.addEventListener("wheel", handleWheel, { passive: false });
-    container.addEventListener("touchstart", handleTouchStart, { passive: true });
-    container.addEventListener("touchend", handleTouchEnd, { passive: true });
 
     return () => {
       container.removeEventListener("wheel", handleWheel);
-      container.removeEventListener("touchstart", handleTouchStart);
-      container.removeEventListener("touchend", handleTouchEnd);
       observer.disconnect();
       mutationObserver.disconnect();
       if (unlockTimeoutRef.current) {

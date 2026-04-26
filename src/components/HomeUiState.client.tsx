@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { useMountEffect } from "@/hooks/useMountEffect";
 import {
   buildHomeUrl,
   defaultHomeUiState,
@@ -59,7 +60,7 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
   }, []);
 
   // Sync state from URL on browser back/forward
-  useEffect(() => {
+  useMountEffect(() => {
     const handlePopState = () => {
       if (window.location.pathname !== "/") return;
       const urlState = parseHomeUiStateFromSearch(window.location.search);
@@ -72,7 +73,7 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  });
 
   const updateState = useCallback((updater: (prev: ProviderState) => ProviderState, mode: "push" | "replace" = "replace") => {
     setState((prev) => {
