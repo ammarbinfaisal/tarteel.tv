@@ -101,7 +101,7 @@ export default function DownloadsPage() {
                 {r.riwayah ? formatSlug(r.riwayah) : ""}{" "}
                 {r.translation ? `· ${formatTranslation(r.translation)}` : ""}
               </div>
-              <div className="text-[11px] text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 Downloaded {new Date(r.downloadedAt).toLocaleString()}
               </div>
             </div>

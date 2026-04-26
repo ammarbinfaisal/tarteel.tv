@@ -83,11 +83,11 @@ const ClipInfo = memo(function ClipInfo({ clip, isExpanded, onToggleExpanded }: 
       )}
 
       <div className="flex items-center gap-2">
-        <h2 className="text-[10px] font-medium text-white/50 drop-shadow-lg uppercase tracking-wider">
+        <h2 className="text-xs font-medium text-white/70 drop-shadow-lg uppercase tracking-wide">
           Surah {getSurahName(clip.surah)}:{clip.ayahStart}-{clip.ayahEnd}
         </h2>
         <div className="flex items-center gap-2">
-          <span className="px-1 py-0 rounded bg-white/5 backdrop-blur-md text-[7px] font-bold text-white/30 uppercase tracking-tighter border border-white/5">
+          <span className="px-1.5 py-0.5 rounded bg-white/10 backdrop-blur-md text-[10px] font-bold text-white/60 uppercase tracking-wide border border-white/10">
             {hasHdVariant(clip.variants) ? "HD" : "SD"}
           </span>
         </div>

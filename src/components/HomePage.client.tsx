@@ -36,8 +36,8 @@ const GridHeader = memo(function GridHeader({
   onSortChange: (s: HomeUiSort) => void;
 }) {
   return (
-    <div className="pt-5 pb-3 md:max-w-2xl md:mx-auto w-full px-4 md:px-0 flex items-center justify-between">
-      <p className="text-muted-foreground text-[10px] uppercase tracking-[0.3em] font-semibold opacity-60">
+    <div className="pt-6 pb-4 md:max-w-2xl md:mx-auto w-full px-4 md:px-0 flex items-center justify-between">
+      <p className="text-muted-foreground text-xs uppercase tracking-wide font-semibold">
         {count} recitation{count === 1 ? "" : "s"}
       </p>
       <SortControl sort={sort} onSortChange={onSortChange} />
@@ -52,9 +52,11 @@ interface HomePageProps {
     riwayat: string[];
     translations: string[];
   };
+  /** Clip ID with the most views over the past 7 days; rendered as a hero tile in grid view. */
+  trendingClipId?: string | null;
 }
 
-export default function HomePage({ clips, filterData }: HomePageProps) {
+export default function HomePage({ clips, filterData, trendingClipId = null }: HomePageProps) {
   const { state, randomSeed, setFilters, resetFilters, setSort } = useHomeUiState();
   const online = useOnlineStatus();
   const { records } = useDownloadsList();
@@ -121,6 +123,7 @@ export default function HomePage({ clips, filterData }: HomePageProps) {
         onApplyFilters={setFilters}
         onResetFilters={resetFilters}
         isOffline={!online && offlineClips.length > 0}
+        trendingClipId={trendingClipId}
       />
 
       {view !== "reel" && (

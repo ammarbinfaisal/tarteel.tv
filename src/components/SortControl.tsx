@@ -31,7 +31,7 @@ export default function SortControl({ sort, onSortChange }: SortControlProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 gap-1.5 px-2 text-[10px] uppercase tracking-[0.2em] font-semibold text-muted-foreground opacity-60 hover:opacity-100"
+          className="h-8 gap-1.5 px-2.5 text-xs uppercase tracking-wide font-semibold text-muted-foreground hover:text-foreground"
         >
           <CurrentIcon className="w-3.5 h-3.5" />
           {current.label}

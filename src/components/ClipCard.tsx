@@ -85,13 +85,13 @@ function ClipCard({ clip }: { clip: Clip }) {
 
       {/* Text fallback when neither blur nor thumbnail is available */}
       {!hasBlur && !hasThumb && (
-        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-2 text-center">
-          <span className="text-[10px] font-medium leading-tight">
+        <div className="flex flex-col items-center justify-center h-full text-foreground/80 p-2 text-center">
+          <span className="text-sm font-semibold leading-tight">
             {getSurahName(clip.surah)}<br/>{clip.ayahStart}-{clip.ayahEnd}
           </span>
           {clip.isPartial && (
-            <div className="mt-1 flex items-center justify-center gap-1 text-[8px] uppercase tracking-tighter opacity-70">
-              <Layers className="w-2 h-2" />
+            <div className="mt-1.5 flex items-center justify-center gap-1 text-xs uppercase tracking-wide text-muted-foreground">
+              <Layers className="w-3 h-3" />
               <span>Partial</span>
             </div>
           )}
@@ -104,19 +104,19 @@ function ClipCard({ clip }: { clip: Clip }) {
 
       {clip.isPartial && (
         <div className="absolute top-2 left-2 pointer-events-none">
-          <Badge variant="secondary" className="bg-black/40 text-white border-none text-[8px] px-1.5 h-4 backdrop-blur-sm">
+          <Badge variant="secondary" className="bg-black/40 text-white border-none text-xs px-2 h-5 backdrop-blur-sm">
             Partial
           </Badge>
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-white text-[10px] font-medium truncate">
+          <p className="text-white text-xs font-medium truncate">
             {getSurahName(clip.surah)} {clip.ayahStart}-{clip.ayahEnd}
           </p>
           {clip.isPartial && (
-            <Layers className="w-3 h-3 text-white/80 shrink-0" />
+            <Layers className="w-3.5 h-3.5 text-white/80 shrink-0" />
           )}
         </div>
       </div>

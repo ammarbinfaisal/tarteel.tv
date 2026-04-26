@@ -309,7 +309,7 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-2">
-          <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">Clip editor</p>
+          <p className="text-sm uppercase tracking-wider text-muted-foreground">Clip editor</p>
           <h1 className="text-3xl font-semibold tracking-tight">Edit clip metadata</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Update the canonical ID, metadata fields, and linked values for this clip.
@@ -579,17 +579,17 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Stored ID</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Stored ID</p>
                 <p className="mt-1 break-all font-mono">{currentClip.id}</p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Surah / ayahs</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Surah / ayahs</p>
                 <p className="mt-1">
                   {surahNames[currentClip.surah - 1] ?? `Surah ${currentClip.surah}`} {currentClip.ayahStart}-{currentClip.ayahEnd}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Reciter</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Reciter</p>
                 <p className="mt-1">{currentClip.reciterName}</p>
                 <p className="text-muted-foreground">{currentClip.reciterSlug}</p>
               </div>
