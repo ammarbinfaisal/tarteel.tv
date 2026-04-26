@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function ClipManagerPage() {
-  const clips = await listClips({ includeArchived: true });
+  const clips = await listClips({ includeArchived: true, includeDrafts: true });
 
   return <ClipManager clips={clips} />;
 }

@@ -14,6 +14,8 @@ export type ClipFilters = {
   riwayah?: string;
   translation?: ClipTranslation;
   includeArchived?: boolean;
+  /** Admin-only — set true to return clips with isDraft=true. Public callers must omit. */
+  includeDrafts?: boolean;
 };
 
 export type AdminClipFilters = ClipFilters & {
@@ -107,7 +109,11 @@ export async function listClips(filters: ClipFilters): Promise<Clip[]> {
   const { where, hasAyahFilter, ayahFilterStart, ayahFilterEnd } = buildAdminClipWhere(filters);
 
   const results = await db.query.clips.findMany({
-    where: and(...where, ...(filters.includeArchived ? [] : [isNull(clipsTable.archivedAt)])),
+    where: and(
+      ...where,
+      ...(filters.includeArchived ? [] : [isNull(clipsTable.archivedAt)]),
+      ...(filters.includeDrafts ? [] : [eq(clipsTable.isDraft, false)]),
+    ),
     with: {
       variants: true
     },
@@ -182,6 +188,11 @@ export async function setClipTelegramMeta(clipId: string, telegram: TelegramPost
   return getClipById(clipId);
 }
 
+export async function setClipDraftStatus(clipId: string, isDraft: boolean): Promise<Clip | null> {
+  await db.update(clipsTable).set({ isDraft }).where(eq(clipsTable.id, clipId));
+  return getClipById(clipId);
+}
+
 export async function updateClipMetadata(
   clipId: string,
   metadata: ClipMetadataInput,
@@ -235,6 +246,7 @@ export async function updateClipMetadata(
         translation: next.translation,
         thumbnailBlur: existing.thumbnailBlur,
         telegramMeta: existing.telegramMeta,
+        isDraft: existing.isDraft,
         createdAt: existing.createdAt ?? new Date(),
       });
 
@@ -319,6 +331,7 @@ export async function getRelatedClips(clip: Clip, limit = 10): Promise<Clip[]> {
       ),
       sql`${clipsTable.id} != ${clip.id}`,
       isNull(clipsTable.archivedAt),
+      eq(clipsTable.isDraft, false),
     ),
     with: {
       variants: true
@@ -335,7 +348,7 @@ export async function listReciters(): Promise<{ slug: string; name: string }[]> 
   const results = await db
     .select({ slug: clipsTable.reciterSlug, name: clipsTable.reciterName })
     .from(clipsTable)
-    .where(isNull(clipsTable.archivedAt))
+    .where(and(isNull(clipsTable.archivedAt), eq(clipsTable.isDraft, false)))
     .groupBy(clipsTable.reciterSlug, clipsTable.reciterName)
     .orderBy(asc(clipsTable.reciterName));
 
@@ -346,7 +359,7 @@ export async function listRiwayat(): Promise<string[]> {
   const results = await db
     .select({ riwayah: clipsTable.riwayah })
     .from(clipsTable)
-    .where(isNull(clipsTable.archivedAt))
+    .where(and(isNull(clipsTable.archivedAt), eq(clipsTable.isDraft, false)))
     .groupBy(clipsTable.riwayah)
     .orderBy(asc(clipsTable.riwayah));
 
@@ -357,7 +370,7 @@ export async function listTranslations(): Promise<ClipTranslation[]> {
   const results = await db
     .select({ translation: clipsTable.translation })
     .from(clipsTable)
-    .where(isNull(clipsTable.archivedAt))
+    .where(and(isNull(clipsTable.archivedAt), eq(clipsTable.isDraft, false)))
     .groupBy(clipsTable.translation)
     .orderBy(asc(clipsTable.translation));
 

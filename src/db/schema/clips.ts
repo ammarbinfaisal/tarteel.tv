@@ -14,11 +14,15 @@ export const clips = sqliteTable("clips", {
   telegramMeta: text("telegram_meta"),
   archivedAt: integer("archived_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  // When true, the clip is hidden from the public listing — used for clips recovered
+  // from R2 with auto-generated reciter names that need an admin to confirm.
+  isDraft: integer("is_draft", { mode: "boolean" }).notNull().default(false),
 }, (table) => [
   index("surah_idx").on(table.surah),
   index("reciter_slug_idx").on(table.reciterSlug),
   index("riwayah_idx").on(table.riwayah),
   index("translation_idx").on(table.translation),
+  index("is_draft_idx").on(table.isDraft),
 ]);
 
 export const clipVariants = sqliteTable("clip_variants", {

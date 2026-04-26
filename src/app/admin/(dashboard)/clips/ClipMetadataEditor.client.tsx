@@ -125,6 +125,7 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [draftBusy, setDraftBusy] = useState(false);
   const [status, setStatus] = useState<{ type: "idle" | "saving" | "success" | "error"; text: string }>({
     type: "idle",
     text: "",
@@ -628,6 +629,43 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
               </CardContent>
             </Card>
           )}
+
+          <Card className={currentClip.isDraft ? "border-amber-500/40 bg-card/70 backdrop-blur" : "border-border/60 bg-card/70 backdrop-blur"}>
+            <CardHeader>
+              <CardTitle>{currentClip.isDraft ? "Draft" : "Published"}</CardTitle>
+              <CardDescription>
+                {currentClip.isDraft
+                  ? "This clip is hidden from the public site. Confirm the reciter name and metadata, then publish."
+                  : "This clip is live on the public site. You can move it back to draft to hide it."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                type="button"
+                variant={currentClip.isDraft ? "default" : "secondary"}
+                disabled={draftBusy || saving || archiving}
+                onClick={async () => {
+                  setDraftBusy(true);
+                  try {
+                    const res = await fetch(`/api/admin/clips/${encodeURIComponent(currentClip.id)}/draft`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ isDraft: !currentClip.isDraft }),
+                    });
+                    if (!res.ok) throw new Error(`Status ${res.status}`);
+                    const { clip: updated } = await res.json();
+                    setCurrentClip(updated);
+                  } catch (err) {
+                    setStatus({ type: "error", text: err instanceof Error ? err.message : "Failed to toggle draft" });
+                  } finally {
+                    setDraftBusy(false);
+                  }
+                }}
+              >
+                {draftBusy ? "Working..." : currentClip.isDraft ? "Publish clip" : "Move to draft"}
+              </Button>
+            </CardContent>
+          </Card>
 
           <Card className="border-red-500/30 bg-card/70 backdrop-blur">
             <CardHeader>

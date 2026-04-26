@@ -143,6 +143,7 @@ export default function ClipManager({ clips }: Props) {
                         {clip.translation ?? ""}
                       </Badge>
                       {telegramUrl && <Badge className="text-xs">Telegram</Badge>}
+                      {clip.isDraft && <Badge variant="outline" className="text-xs border-amber-500/60 text-amber-500">Draft</Badge>}
                       {clip.archivedAt && <Badge variant="destructive" className="text-xs">Archived</Badge>}
                     </div>
 

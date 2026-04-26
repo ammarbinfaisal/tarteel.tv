@@ -16,7 +16,7 @@ export default async function AdminDashboardPage() {
   const todayRange = parseDateRange("today");
 
   const [clips, todayViews, todayUniques] = await Promise.all([
-    listClips({ includeArchived: true }),
+    listClips({ includeArchived: true, includeDrafts: true }),
     getPageviewStats(todayRange).catch(() => 0),
     getUniqueVisitors(todayRange).catch(() => 0),
   ]);

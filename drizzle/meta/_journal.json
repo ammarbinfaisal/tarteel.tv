@@ -15,6 +15,13 @@
       "when": 1773932376449,
       "tag": "0001_add_telegram_meta",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1777217196806,
+      "tag": "0002_baseline_and_drafts",
+      "breakpoints": true
     }
   ]
 }
