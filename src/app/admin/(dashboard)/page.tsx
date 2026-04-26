@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { listClips } from "@/lib/server/clips";
 import { getPageviewStats, getUniqueVisitors, parseDateRange } from "@/lib/server/analytics";
+import PageHeader from "./_components/PageHeader";
 
 export const metadata = {
   title: "Dashboard",
@@ -36,10 +37,18 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Overview of clips and traffic.</p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Overview of clips and traffic."
+        actions={
+          <Button asChild size="sm">
+            <Link href={"/admin/ingest" as any}>
+              <Upload className="mr-2 size-4" />
+              Ingest
+            </Link>
+          </Button>
+        }
+      />
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -97,20 +106,14 @@ export default async function AdminDashboardPage() {
             <CardHeader>
               <CardTitle className="text-base">Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              <Button asChild>
-                <Link href={"/admin/ingest" as any}>
-                  <Upload className="mr-2 size-4" />
-                  Ingest New Clip
-                </Link>
-              </Button>
-              <Button asChild variant="secondary">
+            <CardContent className="flex flex-wrap gap-2">
+              <Button asChild variant="secondary" size="sm">
                 <Link href={"/admin/clips" as any}>
                   <Film className="mr-2 size-4" />
                   View All Clips
                 </Link>
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="secondary" size="sm">
                 <Link href={"/admin/analytics" as any}>
                   <BarChart3 className="mr-2 size-4" />
                   View Analytics

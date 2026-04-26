@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatSlug, surahNames } from "@/lib/utils";
 import type { Clip } from "@/lib/types";
+import PageHeader from "../_components/PageHeader";
 
 type AdminClip = Clip;
 
@@ -65,36 +66,32 @@ export default function ClipManager({ clips }: Props) {
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">Clip manager</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Choose a clip to edit</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Search clips, inspect their current metadata, then open the dedicated edit page for that clip.
-          </p>
-        </div>
+      <PageHeader
+        title="Clips"
+        description="Search clips, inspect metadata, and open a clip to edit."
+        crumbs={[{ label: "Admin", href: "/admin" }, { label: "Clips" }]}
+      />
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Card className="border-border/60 bg-card/70 backdrop-blur">
-            <CardContent className="p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Total</p>
-              <p className="mt-1 text-2xl font-semibold">{stats.total}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/60 bg-card/70 backdrop-blur">
-            <CardContent className="p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Telegram linked</p>
-              <p className="mt-1 text-2xl font-semibold">{stats.telegramLinked}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/60 bg-card/70 backdrop-blur">
-            <CardContent className="p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Needs review</p>
-              <p className="mt-1 text-2xl font-semibold">{stats.withoutTelegram}</p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="border-border/60 bg-card/70">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium text-muted-foreground">Total</p>
+            <p className="mt-1 text-2xl font-semibold">{stats.total}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60 bg-card/70">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium text-muted-foreground">Telegram linked</p>
+            <p className="mt-1 text-2xl font-semibold">{stats.telegramLinked}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60 bg-card/70">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium text-muted-foreground">Needs review</p>
+            <p className="mt-1 text-2xl font-semibold">{stats.withoutTelegram}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="border-border/60 bg-card/70 backdrop-blur">
         <CardHeader className="space-y-3">
@@ -136,17 +133,17 @@ export default function ClipManager({ clips }: Props) {
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                      <Badge variant="outline" className="text-[11px]">
+                      <Badge variant="outline" className="text-xs">
                         {clip.reciterSlug}
                       </Badge>
-                      <Badge variant="secondary" className="text-[11px]">
+                      <Badge variant="secondary" className="text-xs">
                         {formatSlug(clip.riwayah ?? "")}
                       </Badge>
-                      <Badge variant="secondary" className="text-[11px]">
+                      <Badge variant="secondary" className="text-xs">
                         {clip.translation ?? ""}
                       </Badge>
-                      {telegramUrl && <Badge className="text-[11px]">Telegram</Badge>}
-                      {clip.archivedAt && <Badge variant="destructive" className="text-[11px]">Archived</Badge>}
+                      {telegramUrl && <Badge className="text-xs">Telegram</Badge>}
+                      {clip.archivedAt && <Badge variant="destructive" className="text-xs">Archived</Badge>}
                     </div>
 
                     <p className="mt-3 break-all font-mono text-xs text-muted-foreground">{clip.id}</p>

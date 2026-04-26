@@ -20,13 +20,8 @@ export default function AdminMobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-60 p-0">
         <SheetTitle className="sr-only">Navigation</SheetTitle>
-        <div className="border-b border-border/40 px-4 py-3">
-          <span className="text-sm font-semibold tracking-tight">tarteel.tv</span>
-          <span className="ml-1 text-xs text-muted-foreground">admin</span>
-        </div>
-        {/* Close the sheet when a nav link is clicked */}
         <div onClick={() => setOpen(false)}>
-          <AdminSidebar className="px-2" />
+          <AdminSidebar className="px-2 pt-4" />
         </div>
       </SheetContent>
     </Sheet>

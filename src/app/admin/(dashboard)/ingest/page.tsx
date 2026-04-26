@@ -1,6 +1,7 @@
 import { listReciters, listRiwayat, listTranslations } from "@/lib/server/clips";
 
 import IngestForm from "./IngestForm.client";
+import PageHeader from "../_components/PageHeader";
 
 export const metadata = {
   title: "Ingest Clip",
@@ -22,10 +23,12 @@ export default async function IngestPage() {
   const telegramMaxUploadMb = Number(telegramMaxUploadMbRaw);
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Ingest New Clip</h1>
-      </div>
+    <div className="max-w-2xl space-y-6">
+      <PageHeader
+        title="Ingest New Clip"
+        description="Upload audio/video and link Telegram metadata."
+        crumbs={[{ label: "Admin", href: "/admin" }, { label: "Ingest" }]}
+      />
       <IngestForm
         reciters={reciters}
         riwayat={riwayat}

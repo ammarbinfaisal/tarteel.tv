@@ -10,11 +10,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 border-r border-border/40 bg-card/30 lg:block">
         <div className="sticky top-0 flex h-screen flex-col overflow-y-auto">
-          <div className="border-b border-border/40 px-4 py-3">
-            <span className="text-sm font-semibold tracking-tight">tarteel.tv</span>
-            <span className="ml-1 text-xs text-muted-foreground">admin</span>
-          </div>
-          <AdminSidebar className="flex-1 px-2" />
+          <AdminSidebar className="flex-1 px-2 pt-4" />
         </div>
       </aside>
 
