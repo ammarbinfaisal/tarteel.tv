@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextProxy } from "next/server";
 import { parseUserAgent } from "@/lib/server/ua-parser";
 import { generateVisitorHash } from "@/lib/server/visitor-hash";
 
 /**
- * Server-side analytics middleware.
+ * Server-side analytics proxy.
  * Captures pageview data from request headers (IP, User-Agent, Referer, geo)
  * and posts it to an internal API route for async DB write.
  */
-export async function middleware(request: NextRequest) {
+export const proxy: NextProxy = async (request, event) => {
   const response = NextResponse.next();
   const { pathname, searchParams } = request.nextUrl;
 
@@ -70,14 +70,10 @@ export async function middleware(request: NextRequest) {
     // Analytics write failures must never affect the user experience
   });
 
-  // waitUntil ensures the fetch completes after the response is sent
-  const ctx = (globalThis as any)[Symbol.for("next.middleware.context")] ?? request;
-  if (typeof ctx?.waitUntil === "function") {
-    ctx.waitUntil(writePromise);
-  }
+  event.waitUntil(writePromise);
 
   return response;
-}
+};
 
 export const config = {
   matcher: [
