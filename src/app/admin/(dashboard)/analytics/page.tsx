@@ -20,6 +20,7 @@ import {
 } from "@/lib/server/analytics";
 
 import AnalyticsRangeSelector from "./AnalyticsRangeSelector.client";
+import PageHeader from "../_components/PageHeader";
 
 export const metadata = {
   title: "Analytics",
@@ -59,13 +60,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
-          <p className="text-sm text-muted-foreground">Server-side traffic tracking.</p>
-        </div>
-        <AnalyticsRangeSelector current={rangeKey} />
-      </div>
+      <PageHeader
+        title="Analytics"
+        description="Server-side traffic tracking."
+        crumbs={[{ label: "Admin", href: "/admin" }, { label: "Analytics" }]}
+        actions={<AnalyticsRangeSelector current={rangeKey} />}
+      />
 
       {/* Headline metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
