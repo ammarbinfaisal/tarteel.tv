@@ -45,10 +45,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   ] = await Promise.all([
     getPageviewStats(range),
     getUniqueVisitors(range),
-    getTopClips(range),
-    getTopReferrers(range),
+    getTopClips(range, 5),
+    getTopReferrers(range, 5),
     getDeviceBreakdown(range),
-    getCountryBreakdown(range),
+    getCountryBreakdown(range, 5),
     getPageviewsTimeSeries(range, rangeKey === "today" ? "hour" : "day"),
     getUtmCampaigns(range),
   ]);
@@ -125,21 +125,39 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Clip ID</TableHead>
+                    <TableHead>Clip</TableHead>
                     <TableHead className="text-right">Views</TableHead>
                     <TableHead className="text-right">Uniques</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {topClips.map((row) => (
-                    <TableRow key={row.clipId}>
-                      <TableCell className="max-w-[200px] truncate font-mono text-xs">
-                        {row.clipId}
-                      </TableCell>
-                      <TableCell className="text-right">{row.views}</TableCell>
-                      <TableCell className="text-right">{row.uniques}</TableCell>
-                    </TableRow>
-                  ))}
+                  {topClips.map((row) => {
+                    const ayahLabel =
+                      row.ayahStart != null && row.ayahEnd != null && row.ayahEnd !== row.ayahStart
+                        ? `${row.ayahStart}-${row.ayahEnd}`
+                        : `${row.ayahStart ?? ""}`;
+                    const verseRef = row.surah ? `S${row.surah}:${ayahLabel}` : null;
+                    return (
+                      <TableRow key={row.clipId} className="transition-colors hover:bg-muted/40">
+                        <TableCell>
+                          {verseRef ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium">{verseRef}</span>
+                              {row.reciterName && (
+                                <span className="text-xs text-muted-foreground">{row.reciterName}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {row.clipId?.slice(0, 8)}…
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{row.views}</TableCell>
+                        <TableCell className="text-right tabular-nums">{row.uniques}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -198,10 +216,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
                 </TableHeader>
                 <TableBody>
                   {topReferrers.map((row) => (
-                    <TableRow key={row.referrerDomain ?? "direct"}>
+                    <TableRow key={row.referrerDomain ?? "direct"} className="transition-colors hover:bg-muted/40">
                       <TableCell>{row.referrerDomain ?? "Direct"}</TableCell>
-                      <TableCell className="text-right">{row.views}</TableCell>
-                      <TableCell className="text-right">{row.uniques}</TableCell>
+                      <TableCell className="text-right tabular-nums">{row.views}</TableCell>
+                      <TableCell className="text-right tabular-nums">{row.uniques}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -230,10 +248,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
               </TableHeader>
               <TableBody>
                 {countries.map((row) => (
-                  <TableRow key={row.country ?? "unknown"}>
+                  <TableRow key={row.country ?? "unknown"} className="transition-colors hover:bg-muted/40">
                     <TableCell>{row.country ?? "Unknown"}</TableCell>
-                    <TableCell className="text-right">{row.views}</TableCell>
-                    <TableCell className="text-right">{row.uniques}</TableCell>
+                    <TableCell className="text-right tabular-nums">{row.views}</TableCell>
+                    <TableCell className="text-right tabular-nums">{row.uniques}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -261,12 +279,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
               </TableHeader>
               <TableBody>
                 {utmCampaigns.map((row, i) => (
-                  <TableRow key={i}>
+                  <TableRow key={i} className="transition-colors hover:bg-muted/40">
                     <TableCell>{row.utmSource ?? "—"}</TableCell>
                     <TableCell>{row.utmMedium ?? "—"}</TableCell>
                     <TableCell>{row.utmCampaign ?? "—"}</TableCell>
-                    <TableCell className="text-right">{row.views}</TableCell>
-                    <TableCell className="text-right">{row.uniques}</TableCell>
+                    <TableCell className="text-right tabular-nums">{row.views}</TableCell>
+                    <TableCell className="text-right tabular-nums">{row.uniques}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
