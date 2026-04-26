@@ -2,6 +2,7 @@ import "server-only";
 
 import { db } from "@/db";
 import { pageViews } from "@/db/schema/analytics";
+import { clips } from "@/db/schema/clips";
 import { sql, count, countDistinct, eq, gte, lte, and, isNotNull, desc } from "drizzle-orm";
 
 type DateRange = { start: Date; end: Date };
@@ -48,10 +49,15 @@ export async function getTopClips(range: DateRange, limit = 10) {
   return db
     .select({
       clipId: pageViews.clipId,
+      surah: clips.surah,
+      ayahStart: clips.ayahStart,
+      ayahEnd: clips.ayahEnd,
+      reciterName: clips.reciterName,
       views: count().as("views"),
       uniques: countDistinct(pageViews.visitorHash).as("uniques"),
     })
     .from(pageViews)
+    .leftJoin(clips, eq(clips.id, pageViews.clipId))
     .where(and(dateRangeCondition(range), isNotNull(pageViews.clipId)))
     .groupBy(pageViews.clipId)
     .orderBy(desc(sql`views`))
