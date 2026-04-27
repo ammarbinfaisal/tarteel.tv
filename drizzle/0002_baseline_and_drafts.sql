@@ -23,7 +23,6 @@ CREATE INDEX `pv_visitor_hash_idx` ON `page_views` (`visitor_hash`);--> statemen
 CREATE INDEX `pv_referrer_domain_idx` ON `page_views` (`referrer_domain`);--> statement-breakpoint
 CREATE INDEX `pv_country_idx` ON `page_views` (`country`);--> statement-breakpoint
 ALTER TABLE `clips` ADD `thumbnail_blur` text;--> statement-breakpoint
-ALTER TABLE `clips` ADD `telegram_meta` text;--> statement-breakpoint
 ALTER TABLE `clips` ADD `archived_at` integer;--> statement-breakpoint
 ALTER TABLE `clips` ADD `is_draft` integer DEFAULT false NOT NULL;--> statement-breakpoint
 CREATE INDEX `is_draft_idx` ON `clips` (`is_draft`);
