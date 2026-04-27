@@ -9,14 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { PwaInstallButton } from "./PwaInstallButton";
 import { useHomeUiState } from "./HomeUiState.client";
-import { buildHomeUrl } from "@/lib/home-ui-state";
 
 export default function Header() {
   const pathname = usePathname();
-  const { state, setClipId, setView } = useHomeUiState();
+  const { state, setClipId, setView, resetFilters } = useHomeUiState();
   const isDownloadsReel = pathname === "/downloads/reel";
   const isReelView = (pathname === "/" && state.view === "reel") || isDownloadsReel;
-  const homeHref = buildHomeUrl({ ...state, view: "grid", clipId: null });
+  const homeHref = "/";
 
   if (isDownloadsReel) return null;
 
@@ -36,6 +35,7 @@ export default function Header() {
             e.preventDefault();
             setView("grid");
             setClipId(null);
+            resetFilters();
           }}
         >
           tarteel.tv
