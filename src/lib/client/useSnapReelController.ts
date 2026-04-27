@@ -9,6 +9,14 @@ type UseSnapReelControllerParams = {
   onActiveItemChange?: (itemId: string, index: number) => void;
   lockDurationMs?: number;
   intersectionThreshold?: number;
+  /**
+   * When set, treats the rendered list as a ring buffer with `headPad` clones
+   * before/after a `canonicalLength`-sized body. After a scroll settles inside
+   * a clone zone, the controller silently teleports scrollTop back to the
+   * canonical-zone equivalent so the user can scroll endlessly in either
+   * direction without seeing the jump.
+   */
+  circular?: { headPad: number; canonicalLength: number } | null;
 };
 
 function findInitialIndex(itemIds: string[], initialItemId?: string | null): number {
@@ -23,6 +31,7 @@ export function useSnapReelController({
   onActiveItemChange,
   lockDurationMs = 600,
   intersectionThreshold = 0.6,
+  circular = null,
 }: UseSnapReelControllerParams) {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollLocked = useRef(false);
@@ -50,6 +59,9 @@ export function useSnapReelController({
   intersectionThresholdRef.current = intersectionThreshold;
   const initialIndexRef = useRef(initialIndex);
   initialIndexRef.current = initialIndex;
+  const circularRef = useRef(circular);
+  circularRef.current = circular;
+  const rebindingRef = useRef(false);
 
   // Stable callbacks — read everything from refs, never change identity
   const setActiveIndexAndNotify = useCallback(
@@ -91,8 +103,15 @@ export function useSnapReelController({
     const ids = itemIdsRef.current;
     if (ids.length === 0) return;
     const curr = activeIndexRef.current;
+    // With a circular config the rendered list has clones at both ends,
+    // so a plain +1 from the canonical-last enters a clone and the
+    // scroll-settle rebind below carries us to canonical-first. Without
+    // circular config, fall back to a wrap-jump.
+    if (circularRef.current) {
+      scrollToIndexRef.current(Math.min(ids.length - 1, curr + 1), "smooth");
+      return;
+    }
     if (curr >= ids.length - 1) {
-      // Loop to top — jump instantly so we don't animate across the whole list.
       scrollToIndexRef.current(0, "auto");
       return;
     }
@@ -208,10 +227,35 @@ export function useSnapReelController({
     const mutationObserver = new MutationObserver(observeItems);
     mutationObserver.observe(container, { childList: true, subtree: true });
 
+    // -- Circular rebind on settle (silent teleport from clone zone → canonical zone) --
+    const handleScrollEnd = () => {
+      if (rebindingRef.current) return;
+      const cfg = circularRef.current;
+      if (!cfg || cfg.canonicalLength <= 0) return;
+      const idx = activeIndexRef.current;
+      let teleportTo: number | null = null;
+      if (idx < cfg.headPad) teleportTo = idx + cfg.canonicalLength;
+      else if (idx >= cfg.headPad + cfg.canonicalLength) teleportTo = idx - cfg.canonicalLength;
+      if (teleportTo == null) return;
+
+      const target = container.querySelector(`[data-index="${teleportTo}"]`) as HTMLElement | null;
+      if (!target) return;
+
+      rebindingRef.current = true;
+      // Direct scrollTop assignment is instantaneous and won't trigger another scrollend.
+      container.scrollTop = target.offsetTop;
+      activeIndexRef.current = teleportTo;
+      setActiveIndex(teleportTo);
+      // Clear the guard a tick later so genuine scrolls aren't suppressed.
+      queueMicrotask(() => { rebindingRef.current = false; });
+    };
+
     container.addEventListener("wheel", handleWheel, { passive: false });
+    container.addEventListener("scrollend", handleScrollEnd);
 
     return () => {
       container.removeEventListener("wheel", handleWheel);
+      container.removeEventListener("scrollend", handleScrollEnd);
       observer.disconnect();
       mutationObserver.disconnect();
       if (unlockTimeoutRef.current) {

@@ -87,21 +87,58 @@ const ReelItem = memo(function ReelItem({
   );
 });
 
+// Number of clips cloned at each end of the rendered list to give scroll-end
+// rebind something to land on. The rebind is silent — see useSnapReelController.
+const CIRCULAR_PAD = 3;
+
+type RenderedClip = { clip: Clip; key: string; canonicalIndex: number; isClone: boolean };
+
 function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilters, isOffline = false }: ReelListProps) {
   const { state, setClipId } = useHomeUiState();
-  const clipIds = useMemo(() => clips.map((clip) => clip.id), [clips]);
   const [isMuted, setIsMuted] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const view = state.view;
   const clipId = state.clipId;
-  const { containerRef, activeIndex: safeActiveIndex, scrollToNext } = useSnapReelController({
-    itemIds: clipIds,
-    initialItemId: clipId,
-    onActiveItemChange: (activeId) => {
+  const N = clips.length;
+  // Need at least 2*PAD+1 distinct clips for the ring buffer to make sense; below that, fall back to a flat list.
+  const headPad = N >= CIRCULAR_PAD * 2 + 1 ? CIRCULAR_PAD : 0;
+
+  const renderedClips = useMemo<RenderedClip[]>(() => {
+    if (headPad === 0) {
+      return clips.map((clip, i) => ({ clip, key: clip.id, canonicalIndex: i, isClone: false }));
+    }
+    const tailClones: RenderedClip[] = clips.slice(N - headPad).map((clip, i) => ({
+      clip, key: `${clip.id}#prepend-${i}`, canonicalIndex: N - headPad + i, isClone: true,
+    }));
+    const body: RenderedClip[] = clips.map((clip, i) => ({
+      clip, key: clip.id, canonicalIndex: i, isClone: false,
+    }));
+    const headClones: RenderedClip[] = clips.slice(0, headPad).map((clip, i) => ({
+      clip, key: `${clip.id}#append-${i}`, canonicalIndex: i, isClone: true,
+    }));
+    return [...tailClones, ...body, ...headClones];
+  }, [clips, headPad, N]);
+
+  const itemIds = useMemo(() => renderedClips.map((r) => r.key), [renderedClips]);
+
+  // Initial scroll target: the canonical-body copy of the URL clipId, never a clone.
+  const initialItemId = useMemo(() => {
+    if (!clipId) return null;
+    const found = renderedClips.find((r) => r.clip.id === clipId && !r.isClone);
+    return found?.key ?? null;
+  }, [clipId, renderedClips]);
+
+  const { containerRef, activeIndex: activeRenderedIndex, scrollToNext } = useSnapReelController({
+    itemIds,
+    initialItemId,
+    onActiveItemChange: (_activeKey, renderedIndex) => {
       if (view !== "reel") return;
-      if (activeId === clipId) return;
-      setClipId(activeId);
+      const item = renderedClips[renderedIndex];
+      if (!item) return;
+      if (item.clip.id === clipId) return;
+      setClipId(item.clip.id);
     },
+    circular: headPad > 0 ? { headPad, canonicalLength: N } : null,
   });
 
   const filterButton = useMemo(() => (
@@ -127,19 +164,19 @@ function ReelListInner({ clips, filterData, filters, onApplyFilters, onResetFilt
         ref={containerRef}
         className="fixed inset-0 bg-black overflow-y-scroll snap-y snap-mandatory z-30 scrollbar-hide overscroll-contain"
       >
-        {clips.map((clip, index) => (
+        {renderedClips.map((rendered, renderedIndex) => (
           <ReelItem
-            key={clip.id}
-            clip={clip}
-            index={index}
-            isActive={index === safeActiveIndex}
-            isVisible={Math.abs(index - safeActiveIndex) <= 1}
+            key={rendered.key}
+            clip={rendered.clip}
+            index={renderedIndex}
+            isActive={renderedIndex === activeRenderedIndex}
+            isVisible={Math.abs(renderedIndex - activeRenderedIndex) <= 1}
             isMuted={isMuted}
             onMuteChange={setIsMuted}
             autoScroll={autoScroll}
             onAutoScrollChange={setAutoScroll}
             onClipEnd={scrollToNext}
-            filterButton={index === safeActiveIndex ? filterButton : undefined}
+            filterButton={renderedIndex === activeRenderedIndex ? filterButton : undefined}
           />
         ))}
       </div>
