@@ -18,11 +18,10 @@ import {
 import {
   DropDrawer,
   DropDrawerContent,
-  DropDrawerGroup,
-  DropDrawerItem,
   DropDrawerTrigger,
 } from "@/components/ui/dropdrawer";
 import type { HomeUiFilters } from "@/lib/home-ui-state";
+import type { ClipTranslation } from "@/lib/types";
 
 type Props = {
   reciters: { slug: string; name: string }[];
@@ -70,8 +69,8 @@ function ClipFiltersForm({
   const [localStart, setLocalStart] = useState<number | null>(value.start);
   const [localEnd, setLocalEnd] = useState<number | null>(value.end);
   const [localReciters, setLocalReciters] = useState<string[]>(value.reciters);
-  const [localRiwayah, setLocalRiwayah] = useState<string | null>(value.riwayah);
-  const [localTranslation, setLocalTranslation] = useState<HomeUiFilters["translation"]>(value.translation);
+  const [localRiwayahs, setLocalRiwayahs] = useState<string[]>(value.riwayahs);
+  const [localTranslations, setLocalTranslations] = useState<HomeUiFilters["translations"]>(value.translations);
 
   const multiSurah = localSurahs.length > 1;
 
@@ -81,8 +80,8 @@ function ClipFiltersForm({
       start: multiSurah ? null : localStart,
       end: multiSurah ? null : localEnd,
       reciters: localReciters,
-      riwayah: localRiwayah,
-      translation: localTranslation,
+      riwayahs: localRiwayahs,
+      translations: localTranslations,
     };
 
     performance.mark("filters:apply:click");
@@ -100,8 +99,8 @@ function ClipFiltersForm({
     setLocalStart(null);
     setLocalEnd(null);
     setLocalReciters([]);
-    setLocalRiwayah(null);
-    setLocalTranslation(null);
+    setLocalRiwayahs([]);
+    setLocalTranslations([]);
 
     startTransition(() => {
       onResetFilters();
@@ -115,8 +114,8 @@ function ClipFiltersForm({
     localStart !== value.start ||
     localEnd !== value.end ||
     !arraysEqual(localReciters, value.reciters) ||
-    localRiwayah !== value.riwayah ||
-    localTranslation !== value.translation;
+    !arraysEqual(localRiwayahs, value.riwayahs) ||
+    !arraysEqual(localTranslations, value.translations);
 
   const surahLabel =
     localSurahs.length === 0
@@ -324,57 +323,165 @@ function ClipFiltersForm({
       </div>
 
       {/* Riwayah */}
-      <div className="grid gap-2">
+      <div className="grid gap-3">
         <Label>Riwayah</Label>
         <DropDrawer open={riwayahOpen} onOpenChange={setRiwayahOpen}>
           <DropDrawerTrigger asChild>
-            <Button variant="outline" className="w-full justify-between font-normal px-3">
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={riwayahOpen}
+              className="w-full justify-between font-normal px-3"
+            >
               <span className="truncate">
-                {localRiwayah ? formatSlug(localRiwayah) : "All Riwayah"}
+                {localRiwayahs.length === 0
+                  ? "All Riwayah"
+                  : localRiwayahs.length === 1
+                    ? formatSlug(localRiwayahs[0])
+                    : `${localRiwayahs.length} riwayat selected`}
               </span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </DropDrawerTrigger>
-          <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
-            <DropDrawerGroup>
-              <DropDrawerItem onSelect={() => setLocalRiwayah(null)}>
-                All Riwayah
-              </DropDrawerItem>
-              {riwayat.map((r) => (
-                <DropDrawerItem key={r} onSelect={() => setLocalRiwayah(r)}>
-                  {formatSlug(r)}
-                </DropDrawerItem>
-              ))}
-            </DropDrawerGroup>
+          <DropDrawerContent className="p-0">
+            <Command title="Riwayah search">
+              <CommandInput
+                placeholder="Search riwayah..."
+                autoFocus={false}
+                onPointerDown={(e) => e.stopPropagation()}
+              />
+              <CommandList className="max-h-[40vh] sm:max-h-[300px]">
+                <CommandEmpty>No riwayah found.</CommandEmpty>
+                <CommandGroup>
+                  {riwayat.map((r) => {
+                    const isSelected = localRiwayahs.includes(r);
+                    return (
+                      <CommandItem
+                        key={r}
+                        value={formatSlug(r)}
+                        onSelect={() => {
+                          setLocalRiwayahs((prev) =>
+                            isSelected ? prev.filter((x) => x !== r) : [...prev, r],
+                          );
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            isSelected ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        {formatSlug(r)}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
           </DropDrawerContent>
         </DropDrawer>
+
+        {localRiwayahs.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {localRiwayahs.map((r) => (
+              <span
+                key={r}
+                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full bg-primary/10 text-xs font-medium"
+              >
+                {formatSlug(r)}
+                <button
+                  type="button"
+                  className="rounded-full p-1 hover:bg-primary/20"
+                  onClick={() => setLocalRiwayahs((prev) => prev.filter((x) => x !== r))}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Translation */}
-      <div className="grid gap-2">
+      <div className="grid gap-3">
         <Label>Translation</Label>
         <DropDrawer open={translationOpen} onOpenChange={setTranslationOpen}>
           <DropDrawerTrigger asChild>
-            <Button variant="outline" className="w-full justify-between font-normal px-3">
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={translationOpen}
+              className="w-full justify-between font-normal px-3"
+            >
               <span className="truncate">
-                {localTranslation ? formatTranslation(localTranslation) : "No Translation"}
+                {localTranslations.length === 0
+                  ? "No Translation"
+                  : localTranslations.length === 1
+                    ? formatTranslation(localTranslations[0])
+                    : `${localTranslations.length} translations selected`}
               </span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </DropDrawerTrigger>
-          <DropDrawerContent className="max-h-[50vh] overflow-y-auto">
-            <DropDrawerGroup>
-              <DropDrawerItem onSelect={() => setLocalTranslation(null)}>
-                No Translation
-              </DropDrawerItem>
-              {translations.map((t) => (
-                <DropDrawerItem key={t} onSelect={() => setLocalTranslation(t)}>
-                  {formatTranslation(t)}
-                </DropDrawerItem>
-              ))}
-            </DropDrawerGroup>
+          <DropDrawerContent className="p-0">
+            <Command title="Translation search">
+              <CommandInput
+                placeholder="Search translation..."
+                autoFocus={false}
+                onPointerDown={(e) => e.stopPropagation()}
+              />
+              <CommandList className="max-h-[40vh] sm:max-h-[300px]">
+                <CommandEmpty>No translation found.</CommandEmpty>
+                <CommandGroup>
+                  {translations.map((t) => {
+                    const isSelected = localTranslations.includes(t);
+                    return (
+                      <CommandItem
+                        key={t}
+                        value={formatTranslation(t)}
+                        onSelect={() => {
+                          setLocalTranslations((prev) =>
+                            isSelected
+                              ? prev.filter((x) => x !== t)
+                              : ([...prev, t] as ClipTranslation[]),
+                          );
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            isSelected ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        {formatTranslation(t)}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
           </DropDrawerContent>
         </DropDrawer>
+
+        {localTranslations.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {localTranslations.map((t) => (
+              <span
+                key={t}
+                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full bg-primary/10 text-xs font-medium"
+              >
+                {formatTranslation(t)}
+                <button
+                  type="button"
+                  className="rounded-full p-1 hover:bg-primary/20"
+                  onClick={() => setLocalTranslations((prev) => prev.filter((x) => x !== t))}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -395,8 +502,8 @@ export default function ClipFilters(props: Props) {
     props.value.start ?? "",
     props.value.end ?? "",
     props.value.reciters.join(","),
-    props.value.riwayah ?? "",
-    props.value.translation ?? "",
+    props.value.riwayahs.join(","),
+    props.value.translations.join(","),
   ].join("|");
 
   return <ClipFiltersForm key={key} {...props} />;

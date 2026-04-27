@@ -11,8 +11,8 @@ export type ClipFilters = {
   ayahStart?: number;
   ayahEnd?: number;
   reciterSlugs?: string[];
-  riwayah?: string;
-  translation?: ClipTranslation;
+  riwayahs?: string[];
+  translations?: ClipTranslation[];
   includeArchived?: boolean;
   /** Admin-only — set true to return clips with isDraft=true. Public callers must omit. */
   includeDrafts?: boolean;
@@ -81,12 +81,12 @@ function buildAdminClipWhere(filters: AdminClipFilters) {
     where.push(filters.reciterSlugs.length === 1 ? eq(clipsTable.reciterSlug, filters.reciterSlugs[0]) : inArray(clipsTable.reciterSlug, filters.reciterSlugs));
   }
 
-  if (filters.riwayah) {
-    where.push(eq(clipsTable.riwayah, filters.riwayah));
+  if (filters.riwayahs && filters.riwayahs.length > 0) {
+    where.push(filters.riwayahs.length === 1 ? eq(clipsTable.riwayah, filters.riwayahs[0]) : inArray(clipsTable.riwayah, filters.riwayahs));
   }
 
-  if (filters.translation) {
-    where.push(eq(clipsTable.translation, filters.translation));
+  if (filters.translations && filters.translations.length > 0) {
+    where.push(filters.translations.length === 1 ? eq(clipsTable.translation, filters.translations[0]) : inArray(clipsTable.translation, filters.translations));
   }
 
   const hasAyahFilter =

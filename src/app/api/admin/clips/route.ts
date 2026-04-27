@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdminAuth } from "@/lib/server/admin-auth";
 import { listAdminClips } from "@/lib/server/clips";
+import type { ClipTranslation } from "@/lib/types";
 
 function parseNumberList(searchParams: URLSearchParams, keys: string[]): number[] | undefined {
   const values: number[] = [];
@@ -47,8 +48,8 @@ export async function GET(request: NextRequest) {
     pageSize: Number.isNaN(pageSize) ? 25 : pageSize,
     surahs: parseNumberList(searchParams, ["surah"]),
     reciterSlugs: parseStringList(searchParams, ["reciter", "reciterSlug"]),
-    riwayah: searchParams.get("riwayah") || undefined,
-    translation: searchParams.get("translation") || undefined,
+    riwayahs: parseStringList(searchParams, ["riwayah"]),
+    translations: parseStringList(searchParams, ["translation"]) as ClipTranslation[] | undefined,
   });
 
   return NextResponse.json(result);

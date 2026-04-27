@@ -106,8 +106,8 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
         prev.start === filters.start &&
         prev.end === filters.end &&
         arraysEqual(prev.reciters, filters.reciters) &&
-        prev.riwayah === filters.riwayah &&
-        prev.translation === filters.translation
+        arraysEqual(prev.riwayahs, filters.riwayahs) &&
+        arraysEqual(prev.translations, filters.translations)
       ) {
         return prev;
       }
@@ -122,8 +122,8 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
         prev.start == null &&
         prev.end == null &&
         prev.reciters.length === 0 &&
-        prev.riwayah == null &&
-        prev.translation == null
+        prev.riwayahs.length === 0 &&
+        prev.translations.length === 0
       ) {
         return prev;
       }
@@ -133,8 +133,8 @@ export function HomeUiStateProvider({ children }: { children: React.ReactNode })
         start: null,
         end: null,
         reciters: [],
-        riwayah: null,
-        translation: null,
+        riwayahs: [],
+        translations: [],
       };
     });
   }, [updateState]);

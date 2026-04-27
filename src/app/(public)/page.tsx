@@ -113,8 +113,8 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
   const hasFilters = Boolean(
     (parsedState.surahs && parsedState.surahs.length > 0) ||
       (parsedState.reciters && parsedState.reciters.length > 0) ||
-      parsedState.riwayah ||
-      parsedState.translation,
+      (parsedState.riwayahs && parsedState.riwayahs.length > 0) ||
+      (parsedState.translations && parsedState.translations.length > 0),
   );
 
   const [clipsRaw, reciters, riwayat, translations, topTrending] = await Promise.all([
@@ -123,8 +123,8 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
       ayahStart: (parsedState.surahs?.length === 1) ? (parsedState.start ?? undefined) : undefined,
       ayahEnd: (parsedState.surahs?.length === 1) ? (parsedState.end ?? undefined) : undefined,
       reciterSlugs: parsedState.reciters && parsedState.reciters.length > 0 ? parsedState.reciters : undefined,
-      riwayah: parsedState.riwayah ?? undefined,
-      translation: parsedState.translation ?? undefined,
+      riwayahs: parsedState.riwayahs && parsedState.riwayahs.length > 0 ? parsedState.riwayahs : undefined,
+      translations: parsedState.translations && parsedState.translations.length > 0 ? parsedState.translations : undefined,
     }),
     listReciters(),
     listRiwayat(),
@@ -183,8 +183,12 @@ function describeFilters(parsed: Partial<HomeUiState>): string[] {
   if (parsed.surahs && parsed.surahs.length > 0) {
     parts.push(parsed.surahs.map((s) => `Surah ${getSurahName(s)}`).join(", "));
   }
-  if (parsed.riwayah) parts.push(formatSlug(parsed.riwayah));
-  if (parsed.translation) parts.push(formatTranslation(parsed.translation));
+  if (parsed.riwayahs && parsed.riwayahs.length > 0) {
+    parts.push(parsed.riwayahs.map(formatSlug).join(", "));
+  }
+  if (parsed.translations && parsed.translations.length > 0) {
+    parts.push(parsed.translations.map(formatTranslation).join(", "));
+  }
   return parts;
 }
 

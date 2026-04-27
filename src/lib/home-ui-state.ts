@@ -8,8 +8,8 @@ export type HomeUiFilters = {
   start: number | null;
   end: number | null;
   reciters: string[];
-  riwayah: string | null;
-  translation: ClipTranslation | null;
+  riwayahs: string[];
+  translations: ClipTranslation[];
 };
 
 export type HomeUiState = HomeUiFilters & {
@@ -23,8 +23,8 @@ export const defaultHomeUiState: HomeUiState = {
   start: null,
   end: null,
   reciters: [],
-  riwayah: null,
-  translation: null,
+  riwayahs: [],
+  translations: [],
   view: "grid",
   clipId: null,
   sort: "asc",
@@ -52,6 +52,14 @@ function parseSurahs(value: string | null): number[] {
 }
 
 function parseReciters(value: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function parseStringList(value: string | null): string[] {
   if (!value) return [];
   return value
     .split(",")
@@ -87,8 +95,8 @@ function parseHomeUiStateFromParams(
     start: parsePositiveInt(getFirstParamValue(params, "start")),
     end: parsePositiveInt(getFirstParamValue(params, "end")),
     reciters: parseReciters(getFirstParamValue(params, "reciter")),
-    riwayah: getFirstParamValue(params, "riwayah"),
-    translation: getFirstParamValue(params, "translation") as ClipTranslation | null,
+    riwayahs: parseStringList(getFirstParamValue(params, "riwayah")),
+    translations: parseStringList(getFirstParamValue(params, "translation")) as ClipTranslation[],
     view,
     clipId,
     sort: parseSort(getFirstParamValue(params, "sort")),
@@ -110,8 +118,8 @@ export function buildHomeUrl(state: HomeUiState): string {
   if (state.start != null) params.set("start", String(state.start));
   if (state.end != null) params.set("end", String(state.end));
   if (state.reciters.length > 0) params.set("reciter", state.reciters.join(","));
-  if (state.riwayah) params.set("riwayah", state.riwayah);
-  if (state.translation) params.set("translation", state.translation);
+  if (state.riwayahs.length > 0) params.set("riwayah", state.riwayahs.join(","));
+  if (state.translations.length > 0) params.set("translation", state.translations.join(","));
   if (state.sort && state.sort !== "asc") params.set("sort", state.sort);
   if (state.view === "reel") params.set("view", "reel");
   if (state.view === "reel" && state.clipId) params.set("clipId", state.clipId);
@@ -130,8 +138,8 @@ export function filterClips(clips: Clip[], filters: HomeUiFilters, sort: HomeUiS
     .filter((clip) => {
       if (filters.surahs.length > 0 && !filters.surahs.includes(clip.surah)) return false;
       if (filters.reciters.length > 0 && !filters.reciters.includes(clip.reciterSlug)) return false;
-      if (filters.riwayah && clip.riwayah !== filters.riwayah) return false;
-      if (filters.translation && clip.translation !== filters.translation) return false;
+      if (filters.riwayahs.length > 0 && (!clip.riwayah || !filters.riwayahs.includes(clip.riwayah))) return false;
+      if (filters.translations.length > 0 && (!clip.translation || !filters.translations.includes(clip.translation))) return false;
 
       if (hasAyahFilter) {
         if (clip.ayahStart > fEnd) return false;

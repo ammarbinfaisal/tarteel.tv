@@ -91,10 +91,10 @@ export default function HomePage({ clips, filterData, trendingClipId = null }: H
       start: state.start,
       end: state.end,
       reciters: state.reciters,
-      riwayah: state.riwayah,
-      translation: state.translation,
+      riwayahs: state.riwayahs,
+      translations: state.translations,
     }),
-    [state.end, state.reciters, state.riwayah, state.start, state.surahs, state.translation],
+    [state.end, state.reciters, state.riwayahs, state.start, state.surahs, state.translations],
   );
 
   const filteredOnlineClips = useMemo(
