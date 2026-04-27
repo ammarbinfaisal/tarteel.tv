@@ -137,7 +137,20 @@ async function HomeContent({ searchParams }: { searchParams: Promise<SearchParam
 
   const trendingClipId = topTrending[0]?.clipId ?? null;
 
-  const clips: Clip[] = clipsRaw.map(clip => ({
+  // If the URL points at a clip that listClips excluded (e.g. a draft), pull it
+  // in by id so the reel viewer can render the deep link without leaking it
+  // into listings/sitemap.
+  const requestedClipId = parsedState.clipId ?? null;
+  const requestedClipMissing =
+    requestedClipId !== null && !clipsRaw.some((c) => c.id === requestedClipId);
+  const extraClipRaw = requestedClipMissing
+    ? await getClipById(requestedClipId).catch(() => null)
+    : null;
+
+  const clips: Clip[] = [
+    ...(extraClipRaw ? [extraClipRaw] : []),
+    ...clipsRaw,
+  ].map(clip => ({
     ...clip,
     variants: clip.variants.map(v => ({
       ...v,
