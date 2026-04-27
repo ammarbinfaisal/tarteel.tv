@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useMountEffect } from "@/hooks/useMountEffect";
+import { useSyncRef } from "@/hooks/useSyncRef";
 
 type UseSnapReelControllerParams = {
   itemIds: string[];
@@ -47,20 +48,21 @@ export function useSnapReelController({
   const maxIndex = Math.max(0, itemIds.length - 1);
   const safeActiveIndex = Math.min(activeIndex, maxIndex);
 
-  // Inline ref syncs — always fresh, no effect needed
-  onActiveItemChangeRef.current = onActiveItemChange;
+  // Long-lived handlers below capture these via refs. We sync the refs in a
+  // post-commit effect (useSyncRef) instead of writing during render — the
+  // latter trips react-hooks/refs and is unsafe under React Compiler.
+  useSyncRef(onActiveItemChangeRef, onActiveItemChange);
 
-  // Store dynamic values in refs for the mount-time subscriptions
   const itemIdsRef = useRef(itemIds);
-  itemIdsRef.current = itemIds;
+  useSyncRef(itemIdsRef, itemIds);
   const lockDurationMsRef = useRef(lockDurationMs);
-  lockDurationMsRef.current = lockDurationMs;
+  useSyncRef(lockDurationMsRef, lockDurationMs);
   const intersectionThresholdRef = useRef(intersectionThreshold);
-  intersectionThresholdRef.current = intersectionThreshold;
+  useSyncRef(intersectionThresholdRef, intersectionThreshold);
   const initialIndexRef = useRef(initialIndex);
-  initialIndexRef.current = initialIndex;
+  useSyncRef(initialIndexRef, initialIndex);
   const circularRef = useRef(circular);
-  circularRef.current = circular;
+  useSyncRef(circularRef, circular);
   const rebindingRef = useRef(false);
 
   // Stable callbacks — read everything from refs, never change identity
@@ -82,7 +84,7 @@ export function useSnapReelController({
   );
 
   const setActiveIndexAndNotifyRef = useRef(setActiveIndexAndNotify);
-  setActiveIndexAndNotifyRef.current = setActiveIndexAndNotify;
+  useSyncRef(setActiveIndexAndNotifyRef, setActiveIndexAndNotify);
 
   const scrollToIndex = useCallback(
     (index: number, behavior: ScrollBehavior = "smooth") => {
@@ -97,7 +99,7 @@ export function useSnapReelController({
   );
 
   const scrollToIndexRef = useRef(scrollToIndex);
-  scrollToIndexRef.current = scrollToIndex;
+  useSyncRef(scrollToIndexRef, scrollToIndex);
 
   const scrollToNext = useCallback(() => {
     const ids = itemIdsRef.current;
@@ -118,15 +120,22 @@ export function useSnapReelController({
     scrollToIndexRef.current(curr + 1, "smooth");
   }, []);
 
-  // Derived state: clamp activeIndex when items shrink
+  // Derived state: clamp activeIndex when items shrink. Setting state during
+  // render is the documented "store info from previous render" pattern. The
+  // ref write moves out to a post-commit useSyncRef so we don't trip the
+  // react-hooks/refs rule.
   if (itemIds.length > 0 && safeActiveIndex !== activeIndex) {
-    activeIndexRef.current = safeActiveIndex;
     setActiveIndex(safeActiveIndex);
     const nextId = itemIds[safeActiveIndex];
     if (nextId) {
+      // The microtask runs after this render flushes, so the onActiveItemChange
+      // read happens post-commit even though it's scheduled in render. The lint
+      // rule can't see that and flags it; the timing is correct.
+      // eslint-disable-next-line react-hooks/refs
       queueMicrotask(() => onActiveItemChangeRef.current?.(nextId, safeActiveIndex));
     }
   }
+  useSyncRef(activeIndexRef, safeActiveIndex);
 
   // Single mount effect: wheel handler + IntersectionObserver + initial scroll
   useMountEffect(() => {
