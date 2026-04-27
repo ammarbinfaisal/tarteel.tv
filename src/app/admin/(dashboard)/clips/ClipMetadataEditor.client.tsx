@@ -126,6 +126,8 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
   const [archiving, setArchiving] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [draftBusy, setDraftBusy] = useState(false);
+  const [telegramBusy, setTelegramBusy] = useState(false);
+  const [telegramInput, setTelegramInput] = useState(toTelegramUrl(clip) ?? "");
   const [status, setStatus] = useState<{ type: "idle" | "saving" | "success" | "error"; text: string }>({
     type: "idle",
     text: "",
@@ -611,24 +613,93 @@ export default function ClipMetadataEditor({ clip, reciters, riwayat, translatio
             </CardContent>
           </Card>
 
-          {telegramUrl && (
-            <Card className="border-border/60 bg-card/70 backdrop-blur">
-              <CardHeader>
-                <CardTitle>Telegram post</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <a
-                  href={telegramUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-medium underline-offset-4 hover:underline"
+          <Card className="border-border/60 bg-card/70 backdrop-blur">
+            <CardHeader>
+              <CardTitle>Telegram post</CardTitle>
+              <CardDescription>
+                Paste a t.me link like <span className="font-mono">https://t.me/&lt;channel&gt;/&lt;messageId&gt;</span> to attach
+                the source post.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Input
+                value={telegramInput}
+                onChange={(event) => setTelegramInput(event.target.value)}
+                placeholder="https://t.me/channel/123"
+                disabled={telegramBusy}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={telegramBusy || telegramInput.trim() === (telegramUrl ?? "")}
+                  onClick={async () => {
+                    setTelegramBusy(true);
+                    try {
+                      const res = await fetch(`/api/admin/clips/${encodeURIComponent(currentClip.id)}/telegram`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: telegramInput.trim() }),
+                      });
+                      const json = await res.json();
+                      if (!res.ok) throw new Error(json.error ?? `Status ${res.status}`);
+                      setCurrentClip(json.clip);
+                      setTelegramInput(toTelegramUrl(json.clip) ?? "");
+                      setStatus({ type: "success", text: "Telegram link saved." });
+                    } catch (err) {
+                      setStatus({ type: "error", text: err instanceof Error ? err.message : "Failed to save Telegram link" });
+                    } finally {
+                      setTelegramBusy(false);
+                    }
+                  }}
                 >
-                  Open linked Telegram post
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </CardContent>
-            </Card>
-          )}
+                  {telegramBusy ? "Saving..." : telegramUrl ? "Update link" : "Save link"}
+                </Button>
+                {telegramUrl && (
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      asChild
+                    >
+                      <a href={telegramUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1">
+                        Open
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={telegramBusy}
+                      onClick={async () => {
+                        setTelegramBusy(true);
+                        try {
+                          const res = await fetch(`/api/admin/clips/${encodeURIComponent(currentClip.id)}/telegram`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ url: null }),
+                          });
+                          const json = await res.json();
+                          if (!res.ok) throw new Error(json.error ?? `Status ${res.status}`);
+                          setCurrentClip(json.clip);
+                          setTelegramInput("");
+                          setStatus({ type: "success", text: "Telegram link cleared." });
+                        } catch (err) {
+                          setStatus({ type: "error", text: err instanceof Error ? err.message : "Failed to clear Telegram link" });
+                        } finally {
+                          setTelegramBusy(false);
+                        }
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className={currentClip.isDraft ? "border-amber-500/40 bg-card/70 backdrop-blur" : "border-border/60 bg-card/70 backdrop-blur"}>
             <CardHeader>

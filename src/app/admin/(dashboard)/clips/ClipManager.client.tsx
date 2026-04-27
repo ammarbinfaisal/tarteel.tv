@@ -6,11 +6,12 @@ import { useMemo, useState } from "react";
 import { ChevronRight, ExternalLink, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatSlug, surahNames } from "@/lib/utils";
+import { cn, formatSlug, surahNames } from "@/lib/utils";
 import type { Clip } from "@/lib/types";
 import PageHeader from "../_components/PageHeader";
 
@@ -19,6 +20,9 @@ type AdminClip = Clip;
 type Props = {
   clips: AdminClip[];
 };
+
+type StatusFilter = "all" | "drafts" | "published" | "archived";
+type TelegramFilter = "all" | "linked" | "unlinked";
 
 function toTelegramUrl(clip: AdminClip): string | null {
   if (clip.telegram?.url) return clip.telegram.url;
@@ -30,12 +34,22 @@ function toTelegramUrl(clip: AdminClip): string | null {
 
 export default function ClipManager({ clips }: Props) {
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [telegramFilter, setTelegramFilter] = useState<TelegramFilter>("all");
 
   const filteredClips = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return clips;
 
     return clips.filter((clip) => {
+      if (statusFilter === "drafts" && !clip.isDraft) return false;
+      if (statusFilter === "published" && (clip.isDraft || clip.archivedAt)) return false;
+      if (statusFilter === "archived" && !clip.archivedAt) return false;
+
+      const hasTelegram = Boolean(toTelegramUrl(clip));
+      if (telegramFilter === "linked" && !hasTelegram) return false;
+      if (telegramFilter === "unlinked" && hasTelegram) return false;
+
+      if (!normalizedQuery) return true;
       const haystack = [
         clip.id,
         `${clip.surah}`,
@@ -53,14 +67,15 @@ export default function ClipManager({ clips }: Props) {
 
       return haystack.includes(normalizedQuery);
     });
-  }, [clips, query]);
+  }, [clips, query, statusFilter, telegramFilter]);
 
   const stats = useMemo(() => {
+    const drafts = clips.filter((clip) => clip.isDraft).length;
     const telegramLinked = clips.filter((clip) => toTelegramUrl(clip)).length;
     return {
       total: clips.length,
       telegramLinked,
-      withoutTelegram: clips.length - telegramLinked,
+      drafts,
     };
   }, [clips]);
 
@@ -87,8 +102,8 @@ export default function ClipManager({ clips }: Props) {
         </Card>
         <Card className="border-border/60 bg-card/70">
           <CardContent className="p-4">
-            <p className="text-sm font-medium text-muted-foreground">Needs review</p>
-            <p className="mt-1 text-2xl font-semibold">{stats.withoutTelegram}</p>
+            <p className="text-sm font-medium text-muted-foreground">Drafts</p>
+            <p className="mt-1 text-2xl font-semibold">{stats.drafts}</p>
           </CardContent>
         </Card>
       </div>
@@ -106,6 +121,27 @@ export default function ClipManager({ clips }: Props) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search by surah, ayah, reciter, riwayah, translation, or id..."
+          />
+          <FilterRow
+            label="Status"
+            options={[
+              { value: "all", label: "All" },
+              { value: "drafts", label: "Drafts" },
+              { value: "published", label: "Published" },
+              { value: "archived", label: "Archived" },
+            ] satisfies { value: StatusFilter; label: string }[]}
+            value={statusFilter}
+            onChange={setStatusFilter}
+          />
+          <FilterRow
+            label="Telegram"
+            options={[
+              { value: "all", label: "All" },
+              { value: "linked", label: "Linked" },
+              { value: "unlinked", label: "Unlinked" },
+            ] satisfies { value: TelegramFilter; label: string }[]}
+            value={telegramFilter}
+            onChange={setTelegramFilter}
           />
           <CardDescription>
             Open a clip to edit its canonical ID and metadata on a dedicated page.
@@ -168,6 +204,38 @@ export default function ClipManager({ clips }: Props) {
           </ScrollArea>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function FilterRow<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (next: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+      <div className="flex flex-wrap gap-1">
+        {options.map((option) => (
+          <Button
+            key={option.value}
+            type="button"
+            size="sm"
+            variant={value === option.value ? "default" : "outline"}
+            className={cn("h-7 rounded-full px-3 text-xs", value === option.value ? "" : "bg-transparent")}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </div>
     </div>
   );
 }
