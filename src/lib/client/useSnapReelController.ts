@@ -90,7 +90,13 @@ export function useSnapReelController({
   const scrollToNext = useCallback(() => {
     const ids = itemIdsRef.current;
     if (ids.length === 0) return;
-    scrollToIndexRef.current(activeIndexRef.current + 1, "smooth");
+    const curr = activeIndexRef.current;
+    if (curr >= ids.length - 1) {
+      // Loop to top — jump instantly so we don't animate across the whole list.
+      scrollToIndexRef.current(0, "auto");
+      return;
+    }
+    scrollToIndexRef.current(curr + 1, "smooth");
   }, []);
 
   // Derived state: clamp activeIndex when items shrink

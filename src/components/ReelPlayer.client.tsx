@@ -461,8 +461,12 @@ export default function ReelPlayer({
       if (!media) return;
       if (active) {
         playMediaRef.current(media);
-      } else if (!visible) {
+      } else {
+        // Scrolling away resets the reel: pause and rewind so the user lands at 0:00 if they come back.
         media.pause();
+        try { media.currentTime = 0; } catch { /* ignore: media may be in an unsetable state */ }
+        lastProgressUpdateRef.current = 0;
+        setProgress(0);
       }
     });
   }
